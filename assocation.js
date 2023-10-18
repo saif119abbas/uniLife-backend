@@ -1,0 +1,11 @@
+const { restaurant } = require("./models/restaurant");
+const { order } = require("./models/Order");
+const { orderItem } = require("./models/orderItem");
+const { menu } = require("./models/Menu");
+const { foodItem } = require("./models/foodItem");
+const { student } = require("./models/Student");
+const { schedule } = require("./models/Schedule");
+const { lecture } = require("./models/Lecture");
+const { dormitoryOwner } = require("./models/dormitoryOwner");
+const { dormitoryPost } = require("./models/dormitoryPost");
+const { room } = require("./models/room");

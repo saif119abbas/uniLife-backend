@@ -1,18 +1,14 @@
 const jwt = require("jsonwebtoken");
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const catchAsync = require("./../utils/catchAsync");
 const AppError = require("./../utils/appError");
-//const { connection, getDatabase } = require("./../utils/database");
-const configration = {
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "unilife",
-};
+const { student } = require("../models");
+
 const createMessage = () => crypto.randomBytes(3).toString("hex").toUpperCase();
+let verifyMessage = "";
 const transportMessage = (myMessage, email) => {
   const transporter = nodemailer.createTransport({
     /* host: "sandbox.smtp.mailtrap.io",
@@ -70,49 +66,44 @@ const signToken = (id) => {
     }
   );
 };
+exports.loginRender = catchAsync(async (req, res, next) => {
+  res.render("login");
+});
 
 exports.login = catchAsync(async (req, res, next) => {
   const user = req.body;
   if (!user.email || !user.password)
     return next(new AppError("Please provide your email and password", 400));
-  const query = `select * from student where Email=?`;
-  let result = {};
-  let connection = mysql.createConnection(configration);
-  connection.connect((error) => {
-    if (error) {
-      return new AppError("Failed to connect to MySQL database!", 500);
-    } else {
-      console.log("Connected to MySQL database!");
-    }
-  });
-
-  connection.query(query, user.email, (error, results, fields) => {
-    if (error) {
-      return new AppError("Failed to connect to MySQL database!", 500);
-    }
-    result = results[0];
-    if (results.length > 1) return new AppError("########", 403);
-    bcrypt.compare(
-      user.password,
-      result?.password,
-      (err, passwordIsCorrect) => {
-        if (err) {
-          console.log("password mismatch");
-          console.log(err.message);
-          return new AppError("An error occured please try again", 401);
+  student
+    .findAll({
+      where: {
+        Email: user.email,
+      },
+    })
+    .then((records) => {
+      if (records > 1) return next(new AppError("not allowed", 403));
+      const result = records[0];
+      bcrypt.compare(
+        user.password,
+        result.password,
+        (err, passwordIsCorrect) => {
+          if (err)
+            return new AppError("An error occured please try again", 401);
+          if (
+            !passwordIsCorrect ||
+            result?.Email !== user.email ||
+            records.length === 0
+          ) {
+            console.log("email incorrect");
+            return next(new AppError("Incorrect email or password", 401));
+          }
+          createSendToken(user, 200, res);
         }
-        if (
-          !passwordIsCorrect ||
-          result?.Email !== user.email ||
-          results.length === 0
-        ) {
-          console.log("email incorrect");
-          return next(new AppError("Incorrect email or password", 401));
-        }
-        createSendToken(user, 200, res);
-      }
-    );
-  });
+      );
+    })
+    .catch((err) => {
+      return next(new AppError("Incorrect email or password", 401));
+    });
 });
 exports.signup = catchAsync(async (req, res, next) => {
   const user = req.body;
@@ -124,44 +115,62 @@ exports.signup = catchAsync(async (req, res, next) => {
     !user.universityId
   )
     return next(new AppError("Please provide your information", 400));
-  let myPassword = "";
+
   bcrypt.hash(user.password, 12, (err, hash) => {
     if (err) {
-      if (err) return new AppError("An error occured please try again ");
+      if (err) return new AppError("An error occured please try again ", 500);
     }
 
-    // 'hash' contains the hashed password, which you can store in your database
-    console.log("Hashed Password:", hash);
-    myPassword = hash;
-    const myData = {
-      Email: user.email,
-      password: myPassword,
-      phoneNumber: user.phoneNumber,
-      userName: user.userName,
-      universityId: user.universityId,
-    };
-    const query = `INSERT INTO student SET ?`;
-
-    let connection = mysql.createConnection(configration);
-    connection.connect((error) => {
-      if (error) {
-        return next(AppError("Failed to connect to MySQL database!", 500));
-      } else {
-        console.log("Connected to MySQL database!");
-      }
-    });
-
-    connection.query(query, myData, (error) => {
-      if (error) {
-        if (error.code === "ER_DUP_ENTRY")
-          return next(new AppError("This account is already created", 401));
-        return next(new AppError("Failed to connect to MySQL database!", 500));
-      }
-      transportMessage(createMessage(), user.email);
-      //we want to take the verficaion from user
-      createSendToken(user, 201, res);
-    });
+    req.session.Email = user.email;
+    req.session.password = hash;
+    req.session.phoneNumber = user.phoneNumber;
+    req.session.userName = user.userName;
+    req.session.unevirsityId = user.unevirsityId;
+    verifyMessage = createMessage();
+    console.log(verifyMessage);
+    //send email
+    res.redirect(307, "/verify");
   });
+});
+exports.signupRender = catchAsync(async (req, res) => {
+  res.render("signup");
+});
+exports.verify = catchAsync(async (req, res, next) => {
+  console.log("verify");
+  if (!req.body)
+    return next(
+      new AppError(
+        "You need to provide the verfication code to verify your account",
+        400
+      )
+    );
+  if (req.body.verifyCode === "yes") {
+    const myData = {
+      Email: req.session.email,
+      password: req.session.password,
+      phoneNumber: req.session.phoneNumber,
+      userName: req.session.userName,
+      unevirsityId: req.session.universityId,
+    };
+    student
+      .create(myData)
+      .then(() => {
+        /*transportMessage(createMessage(), user.email);
+        createSendToken(user, 201, res);*/
+        res.redirect("/login");
+      })
+      .catch((err) => {
+        console.log("My error:", err);
+        if (err.name === "SequelizeUniqueConstraintError")
+          return next(new AppError("This account is already created", 401));
+
+        return next(new AppError("An error occured please try again ", 500));
+      });
+    res.redirect(307, "/login");
+  }
+});
+exports.verifyRender = catchAsync(async (req, res) => {
+  res.render("verify");
 });
 exports.forrgetPassword = catchAsync(async (req, res, next) => {
   const data = req.body;
@@ -169,7 +178,7 @@ exports.forrgetPassword = catchAsync(async (req, res, next) => {
     return new AppError("Please provide all required information", 400);
   const user = req.body;
   const query = "SELECT Email FROM student where Email=?";
-  let connection = mysql.createConnection(configration);
+  /*let connection = mysql.createConnection(configration);
   connection.connect((error) => {
     if (error) {
       return next(new AppError("Failed to connect to MySQL database!", 500));
@@ -226,5 +235,5 @@ exports.forrgetPassword = catchAsync(async (req, res, next) => {
       });
     //transportMessage(createMessage(), user.email);
     //we want to take the verficaion from user
-  });
+  });*/
 });

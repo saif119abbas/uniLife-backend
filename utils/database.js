@@ -1,9 +1,9 @@
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const AppError = require("./../utils/appError");
 const catchAsync = require("./catchAsync");
 
 exports.connection = (query, result) => {
-  let connection = mysql.createConnection({
+  /* let connection = mysql.createConnection({
     host: "localhost",
     user: "root",
     password: "",
@@ -23,6 +23,6 @@ exports.connection = (query, result) => {
     }
     result = results;
     //console.log(results);
-  });
+  });*/
 };
 // connect to the MySQL database
