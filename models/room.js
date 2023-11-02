@@ -31,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   room.associate = (models) => {
-    room.belongsTo(models.dormitoryPost); // A User has one Profile
+    room.belongsTo(models.dormitoryPost);
   };
   return room;
 };

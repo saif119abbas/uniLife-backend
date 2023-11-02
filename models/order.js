@@ -1,4 +1,3 @@
-const { restaurant } = require("./restaurant");
 module.exports = (sequelize, DataTypes) => {
   const order = sequelize.define("order", {
     orderId: {
@@ -20,11 +19,5 @@ module.exports = (sequelize, DataTypes) => {
     order.belongsTo(models.restaurant);
   };
 
-  /*  order.associate = (models) => {
-  };
-  restaurant.associate = (models) => {
-  };
-  order.belongsTo(restaurant);
-  restaurant.hasMany(order);*/
   return order;
 };

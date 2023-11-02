@@ -1,8 +1,6 @@
-const { restaurant } = require("./restaurant");
-
 module.exports = (sequelize, DataTypes) => {
   const menu = sequelize.define("menu", {
-    id: {
+    menuId: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
@@ -11,12 +9,9 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   menu.associate = (models) => {
-    menu.belongsTo(models.restaurant); // A Profile belongs to a User
-    menu.hasMany(models.foodItem); // A User has many Posts
+    menu.belongsTo(models.restaurant);
+    menu.hasMany(models.foodItem);
   };
-  /* menu.associate = (models) => {
-  };
- /* menu.belongsTo(restaurant);
-  restaurant.hasOne(menu);*/
+
   return menu;
 };

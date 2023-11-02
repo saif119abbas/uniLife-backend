@@ -50,8 +50,6 @@ module.exports = (sequelize, DataTypes) => {
     restaurant.hasOne(models.menu);
     restaurant.hasMany(models.order);
   };
-  /*restaurant.associate = (models) => {
-  };*/
 
   return restaurant;
 };

@@ -20,10 +20,8 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   dormitoryPost.associate = (models) => {
-    dormitoryPost.hasMany(models.room); // A User has one Profile
-  };
-  dormitoryPost.associate = (models) => {
-    dormitoryPost.belongsTo(models.dormitoryOwner); // A User has one Profile
+    dormitoryPost.hasMany(models.room);
+    dormitoryPost.belongsTo(models.dormitoryOwner);
   };
   return dormitoryPost;
 };

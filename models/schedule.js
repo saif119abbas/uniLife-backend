@@ -1,4 +1,3 @@
-const lecture = require("./lecture");
 module.exports = (sequelize, DataTypes) => {
   const schedule = sequelize.define("schedule", {
     scheduleId: {

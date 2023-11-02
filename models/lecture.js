@@ -1,18 +1,29 @@
 module.exports = (sequelize, DataTypes) => {
   const lecture = sequelize.define("lecture", {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      autoIncrement: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
     lectureId: {
       type: DataTypes.INTEGER,
-      primaryKey: true,
       allowNull: false,
       validator: {
         notEmpty: false,
       },
     },
     classNumber: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: false,
       validator: {
         notEmpty: false,
+        isNumeric: {
+          msg: "The classNumber must be a number",
+        },
       },
     },
     Name: {
@@ -45,7 +56,7 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   lecture.associate = (models) => {
-    lecture.belongsTo(models.schedule); // A Profile belongs to a User
+    lecture.belongsTo(models.schedule);
   };
   return lecture;
 };

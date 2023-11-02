@@ -1,7 +1,8 @@
 const app = require("./app");
+const dotenv = require("dotenv");
+dotenv.config({ path: ".env" });
 const { connection } = require("./utils/database");
 const db = require("./models");
-//console.log(process.env);
 connection();
 db.sequelize.sync().then((req) => {
   app.listen(process.env.PORT || 3000, () => {
