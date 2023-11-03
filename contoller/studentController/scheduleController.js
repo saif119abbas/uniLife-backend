@@ -42,7 +42,7 @@ exports.addLecture = catchAsync(async (req, res, next) => {
   const classNumber = data.classNumber;
   const mySchedule = await schedule.findOne({
     where: {
-      studentUnevirsityId: req.session.ID,
+      studentId: req.session.ID,
     },
   });
   if (!mySchedule)

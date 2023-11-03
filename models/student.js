@@ -2,21 +2,14 @@ const Joi = require("@hapi/joi");
 //universityId
 module.exports = (sequelize, DataTypes) => {
   const student = sequelize.define("student", {
-    unevirsityId: {
+    id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
       unique: [true, "ER_DUP_ENTRY"],
       allowNull: false,
-      validator: {
-        notEmpty: {
-          msg: "provide your univirsity id",
-        },
-        isNumeric: {
-          msg: "The Id must be a number",
-        },
-      },
     },
-    userName: {
+    username: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
@@ -25,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
     },
-    Email: {
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: [true, "ER_DUP_ENTRY"],
@@ -42,29 +35,11 @@ module.exports = (sequelize, DataTypes) => {
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-      validator: {
-        notEmpty: {
-          msg: "provide your password",
-        },
-        len: {
-          args: [8, Infinity],
-          msg: "Password must be at least 8 characters long.",
-        },
-      },
     },
-    phoneNumber: {
+    phoneNum: {
       type: DataTypes.STRING,
       allowNull: false,
-      validator: {
-        notEmpty: {
-          msg: "provide your phone number",
-        },
-      },
       unique: [true, "ER_DUP_ENTRY"],
-    },
-    token: {
-      type: DataTypes.STRING,
-      unique: true,
     },
   });
   student.associate = (models) => {

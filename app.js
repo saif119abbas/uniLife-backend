@@ -1,7 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv").config();
 const session = require("express-session");
-const cookie_parser = require("cookie-parser");
 const studentRouter = require("./router/studentRouter");
 //dotenv.config();
 const app = express();
