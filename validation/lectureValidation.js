@@ -6,10 +6,10 @@ exports.scheduleValidation = Joi.object({
 });
 exports.addLectureValidation = Joi.object({
   lectureId: Joi.number()
-    .invalid()
-    .error(new Error("lecture id must be a number"))
     .required()
-    .error(new Error("❌ Please enter lecture id ")),
+    .error(new Error("❌ Please enter lecture id "))
+    .invalid()
+    .error(new Error("lecture id must be a number")),
   classNumber: Joi.string()
     .required()
     .error(new Error("❌ Please enter class number")),

@@ -12,7 +12,5 @@ app.use(
     saveUninitialized: true,
   })
 );
-app.use("/api/v1/unilife", studentRouter);
-
-//console.log(process.env.DATABASE_NAME);
+app.use(process.env.BASE_URL, studentRouter);
 module.exports = app;
