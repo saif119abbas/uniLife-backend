@@ -21,14 +21,16 @@ const {
   validtaeAddLecture,
   validtaeLogin,
   validtaeEditLecture,
+  validtaeForgetPassword,
+  validtaeResetPassword,
 } = require("../validation/validator");
 const router = express.Router();
 router.post("/login", validtaeLogin, login);
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify);
-router.post("/forgetPassword", forrgetPassword);
+router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
 router.post("/verifyUpdatePassword", verifyUpdatePassword);
-router.post("/restPassword", restPassword);
+router.post("/restPassword", validtaeResetPassword, restPassword);
 //router.use(protect);
 router.post("/addLecture", protect, validtaeAddLecture, addLecture);
 router.delete("/deleteLecture/:id", protect, deleteLecture);

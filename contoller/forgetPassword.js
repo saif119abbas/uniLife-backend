@@ -4,13 +4,13 @@ const { createMessage, transportMessage } = require("./../utils/email");
 const { student } = require("../models");
 const AppError = require("./../utils/appError");
 let verifyMessage = "";
-exports.forrgetPassword = catchAsync(async (req, res, next) => {
+exports.forrgetPassword = catchAsync(async (req, res) => {
   const data = req.body;
-  if (!data.email)
+  /* if (!+++++.email)
     res.status(400).json({
       status: "failed",
       message: "Please provide your email ",
-    });
+    });*/
   req.session.email = data.email;
   const user = await student.findOne({ where: { email: data.email } });
   if (!user)
@@ -26,14 +26,13 @@ exports.forrgetPassword = catchAsync(async (req, res, next) => {
     message: "check your email ",
   });
 });
-exports.verifyUpdatePassword = catchAsync(async (req, res, next) => {
-  if (!req.body.verifyCode)
+exports.verifyUpdatePassword = catchAsync(async (req, res) => {
+  /* if (!req.body.verifyCode)
     res.status(400).json({
       status: "failed",
       message: "please enter your verfication code",
-    });
+    });*/
   if (req.body.verifyCode === verifyMessage) {
-    console.log("verify update password");
     verifyMessage = "";
     res.status(200).json({
       status: "success",
@@ -54,11 +53,11 @@ exports.restPassword = catchAsync(async (req, res, next) => {
   const data = req.body;
   const email = req.session.email;
 
-  if (!data.confirmedPassword || !data.newPassword)
+  /*if (!data.confirmedPassword || !data.newPassword)
     res.status(400).json({
       status: "failed",
       message: "please enter your password and confirm your password",
-    });
+    });*/
 
   if (data.confirmedPassword === data.newPassword) {
     bcrypt.hash(data.newPassword, 12, (err, hash) => {
@@ -75,7 +74,7 @@ exports.restPassword = catchAsync(async (req, res, next) => {
         )
         .then(() => {
           res.status(200).json({
-            status: "failed",
+            status: "success",
             message: "updated successfuly",
           });
         })
@@ -86,7 +85,7 @@ exports.restPassword = catchAsync(async (req, res, next) => {
   } else {
     res.status(401).json({
       status: "failed",
-      message: "confired password and password do not match",
+      message: "confirmed password and password do not match",
     });
   }
 });

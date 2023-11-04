@@ -4,6 +4,10 @@ const {
   addLectureValidation,
   editLectureValidation,
 } = require("./lectureValidation");
+const {
+  forgetPasswordValidation,
+  resetPasswordValidation,
+} = require("./forgetPassowrdValidation");
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
@@ -31,6 +35,23 @@ exports.validtaeAddLecture = (req, res, next) => {
 exports.validtaeEditLecture = (req, res, next) => {
   const lecture = req.body;
   const { error, val } = editLectureValidation.validate(lecture);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeForgetPassword = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = forgetPasswordValidation.validate(data);
+  if (error) {
+    console.log("message ", error.message);
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeResetPassword = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = resetPasswordValidation.validate(data);
   if (error) {
     return next(new AppError(error.message, 400));
   }
