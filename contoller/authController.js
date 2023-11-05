@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const catchAsync = require("./../utils/catchAsync");
 const { createMessage, transportMessage } = require("./../utils/email");
 const { createSendToken } = require("./../utils/createToken");
+
 const AppError = require("./../utils/appError");
 const { student, schedule } = require("../models");
 let verifyMessage = "";
@@ -23,9 +24,8 @@ exports.login = catchAsync(async (req, res, next) => {
         email: user.email,
       },
     })
-    .then((record) => {
-      if (record.length > 1) return next(new AppError("Not allowed", 403));
-      const result = record;
+    .then((result) => {
+      if (result.length > 1) return next(new AppError("Not allowed", 403));
       console.log(result);
 
       bcrypt.compare(
@@ -41,7 +41,7 @@ exports.login = catchAsync(async (req, res, next) => {
           if (
             !passwordIsCorrect ||
             result?.email !== user.email ||
-            record.length === 0
+            result.length === 0
           ) {
             return res.status(401).json({
               status: "failed",
@@ -50,11 +50,14 @@ exports.login = catchAsync(async (req, res, next) => {
           }
 
           // Authentication is successful, set session data and send the token
-          req.session.email = user.email;
-          req.session.ID = result.id;
-          expiresIn = `${24 * 60 * 60}s`;
-          user.id = result.id;
-          createSendToken(user, 200, expiresIn, res);
+          else {
+            req.session.email = user.email;
+            req.session.ID = result.id;
+            req.session.permission = result.permission;
+            expiresIn = `${24 * 60 * 60}s`;
+            user.id = result.id;
+            createSendToken(user, 200, expiresIn, res);
+          }
         }
       );
     })
@@ -85,31 +88,35 @@ exports.signup = catchAsync(async (req, res, next) => {
       status: "falied",
       message: "password and confirm password not matched",
     });
-  console.log("In signup");
-  const userFound = await student.findOne({ where: { email: user.email } });
-  if (userFound)
-    res.status(401).json({
-      status: "falied",
-      message: "This student is already creted",
-    });
-  bcrypt.hash(user.password, 12, (err, hash) => {
-    if (err) {
-      if (err) return new AppError("An error occured please try again ", 500);
+  else {
+    console.log("In signup");
+    const userFound = await student.findOne({ where: { email: user.email } });
+    if (userFound)
+      res.status(401).json({
+        status: "falied",
+        message: "This student is already creted",
+      });
+    else {
+      bcrypt.hash(user.password, 12, (err, hash) => {
+        if (err) {
+          return new AppError("An error occured please try again ", 500);
+        }
+
+        req.session.email = user.email;
+        req.session.password = hash;
+        req.session.phoneNum = user.phoneNum;
+        req.session.username = user.username;
+
+        verifyMessage = createMessage();
+        transportMessage(verifyMessage, user.email);
+        stratTime = Date.now();
+        expiredIn = 60;
+        res.status(200).json({
+          status: "success",
+        });
+      });
     }
-
-    req.session.email = user.email;
-    req.session.password = hash;
-    req.session.phoneNum = user.phoneNum;
-    req.session.username = user.username;
-
-    verifyMessage = createMessage();
-    transportMessage(verifyMessage, user.email);
-    stratTime = Date.now();
-    expiredIn = 60;
-    res.status(200).json({
-      status: "success",
-    });
-  });
+  }
 });
 
 exports.verify = catchAsync(async (req, res, next) => {
@@ -157,10 +164,10 @@ exports.verify = catchAsync(async (req, res, next) => {
                 status: "failed",
                 message: "This account is already created",
               });
-
-            return next(
-              new AppError("An error occured please try again ", 500)
-            );
+            else
+              return next(
+                new AppError("An error occured please try again ", 500)
+              );
           });
       })
       .catch((err) => {
@@ -170,8 +177,8 @@ exports.verify = catchAsync(async (req, res, next) => {
             status: "failed",
             message: "This account is already created",
           });
-
-        return next(new AppError("An error occured please try again ", 500));
+        else
+          return next(new AppError("An error occured please try again ", 500));
       });
   }
 });
@@ -184,7 +191,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
-  console.log("Making token", token);
+  console.log("Making token", token.split(" "));
   if (!token) {
     return next(
       new AppError("You are not logged in! Please log in to get access.", 401)

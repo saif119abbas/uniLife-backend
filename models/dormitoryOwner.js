@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    Email: {
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
@@ -22,12 +22,16 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    phoneNumber: {
+    phoneNum: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
         notEmpty: false,
       },
+    },
+    permission: {
+      type: DataTypes.STRING,
+      defaultValue: process.env.DORMITORY,
     },
   });
   dormitoryOwner.associate = (models) => {

@@ -1,5 +1,3 @@
-const Joi = require("@hapi/joi");
-//universityId
 module.exports = (sequelize, DataTypes) => {
   const student = sequelize.define("student", {
     id: {
@@ -40,6 +38,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       unique: [true, "ER_DUP_ENTRY"],
+    },
+    permission: {
+      type: DataTypes.STRING,
+      defaultValue: process.env.STUDENT,
     },
   });
   student.associate = (models) => {

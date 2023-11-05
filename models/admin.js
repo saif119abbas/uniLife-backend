@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    Name: {
+    name: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
 
-    Email: {
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
@@ -30,12 +30,16 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    phoneNumber: {
+    phoneNum: {
       type: DataTypes.STRING,
       allowNull: false,
       validator: {
         notEmpty: false,
       },
+    },
+    permission: {
+      type: DataTypes.STRING,
+      defaultValue: process.env.ADMIN,
     },
   });
   return admin;

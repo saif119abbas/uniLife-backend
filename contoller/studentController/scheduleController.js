@@ -46,34 +46,35 @@ exports.addLecture = catchAsync(async (req, res, next) => {
     },
   });
   if (!mySchedule)
-    return next(new AppError("You need to create a new schedule", 400));
-  const myData = {
-    lectureId,
-    classNumber,
-    Name: data.Name,
-    startTime: data.startTime,
-    endTime: data.endTime,
-    day: data.day,
-    scheduleScheduleId: mySchedule.scheduleId,
-  };
-
-  let success = false;
-  await lecture
-    .create(myData)
-    .then((data) => {
-      req.session.lectureId = data.id;
-      success = true;
-      res.status(201).json({
-        status: "success",
-        message: "added successfully",
-      });
-    })
-    .catch((err) => {
-      console.log("My error:", err);
-      if (err.name === "SequelizeUniqueConstraintError")
-        return next(new AppError("This lecture is alreay added", 400));
-      else return next(new AppError("1An error occured please try again", 500));
+    res.status(400).json({
+      status: "failed",
+      message: "You need to create a new schedule",
     });
+  else {
+    data.lecture = lectureId;
+    data.classNumber = classNumber;
+    data.scheduleScheduleId = mySchedule.scheduleId;
+    await lecture
+      .create(data)
+      .then((data) => {
+        req.session.lectureId = data.id;
+        success = true;
+        res.status(201).json({
+          status: "success",
+          message: "added successfully",
+        });
+      })
+      .catch((err) => {
+        console.log("My error:", err);
+        if (err.name === "SequelizeUniqueConstraintError")
+          res.status(400).json({
+            status: "failed",
+            message: "This lecture is alreay added",
+          });
+        else
+          return next(new AppError("1An error occured please try again", 500));
+      });
+  }
 });
 exports.editSchedule = catchAsync(async (req, res, next) => {});
 exports.deleteSchedule = catchAsync(async (req, res, next) => {});
@@ -90,40 +91,24 @@ exports.editLecture = catchAsync(async (req, res, next) => {
     return next(
       new AppError("Please provide the information you want to edit", 400)
     );
-  let lectureId = "$$";
-
-  const editLecture = {};
   if (data.lectureId) {
-    lectureId = parseInt(data.lectureId);
-    editLecture.lectureId = lectureId;
-  }
-  if (data.classNumber) {
-    editLecture.classNumber = data.classNumber;
-  }
-  if (data.Name) {
-    editLecture.Name = data.Name;
-  }
-  if (data.startTime) {
-    editLecture.startTime = data.startTime;
-  }
-  if (data.endTime) {
-    editLecture.endTime = data.endTime;
-  }
-  if (data.day) {
-    editLecture.day = data.day;
+    data.lectureId = parseInt(data.lectureId);
   }
   const id = req.params.id;
-  const count = await lecture.update(editLecture, { where: { id: id } });
-  if (count === 0)
-    res.status(404).json({
-      status: "faield",
-      message: "This lecture was not found",
-    });
-  else
-    res.status(200).json({
-      status: "success",
-      message: "This lecture is successfully updated",
-    });
+  await lecture.update(data, { where: { id } }).then((count) => {
+    console.log("Updated", count[0]);
+    if (count[0] === 0)
+      res.status(404).json({
+        status: "faield",
+        message: "This lecture was not found",
+      });
+    else
+      res.status(200).json({
+        status: "success",
+        message: " successfully updated",
+      });
+    console.log("Updated");
+  });
 });
 exports.deleteLecture = catchAsync(async (req, res, next) => {
   let id = req.params.id;

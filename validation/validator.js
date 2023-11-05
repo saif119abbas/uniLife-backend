@@ -8,6 +8,14 @@ const {
   forgetPasswordValidation,
   resetPasswordValidation,
 } = require("./forgetPassowrdValidation");
+const {
+  addResturantValidation,
+  editRestaurantValidation,
+} = require("./restaurantValidation");
+const {
+  addDormitoryOwnerValidation,
+  editDormitoryOwnerValidation,
+} = require("./dormitoryOwnerValidation");
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
@@ -52,6 +60,38 @@ exports.validtaeForgetPassword = (req, res, next) => {
 exports.validtaeResetPassword = (req, res, next) => {
   const data = req.body;
   const { error, val } = resetPasswordValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeAddRestaurant = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = addResturantValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeEditRestaurant = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = editRestaurantValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeAddDormitoryOwner = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = addDormitoryOwnerValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeEditDormitoryOwner = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = editDormitoryOwnerValidation.validate(data);
   if (error) {
     return next(new AppError(error.message, 400));
   }
