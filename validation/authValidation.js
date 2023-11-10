@@ -35,12 +35,10 @@ exports.signupValidation = Joi.object({
 exports.loginValidation = Joi.object({
   email: Joi.string()
     .required()
-    .error(new Error("❌ Please enter your email"))
-    .pattern(/s\d{8}@stu.najah.edu$/)
-    .message("❌ You must use a Najah student email"),
+    .pattern(/(s\d{8}@stu.najah.edu$)|(\w@gmail.com)/)
+    .message("❌ You must use invalid email"),
   password: Joi.string()
     .required()
-    .error(new Error("❌ Please enter your password"))
     .min(8)
     .message("❌ Password should contain at least 8 characters"),
 });

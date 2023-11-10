@@ -27,37 +27,26 @@ exports.forrgetPassword = catchAsync(async (req, res) => {
   });
 });
 exports.verifyUpdatePassword = catchAsync(async (req, res) => {
-  /* if (!req.body.verifyCode)
-    res.status(400).json({
-      status: "failed",
-      message: "please enter your verfication code",
-    });*/
   if (req.body.verifyCode === verifyMessage) {
     verifyMessage = "";
-    res.status(200).json({
+    return res.status(200).json({
       status: "success",
     });
-  } else {
-    res.status(401).json({
-      status: "failed",
-      message: "verification code is not correct",
-    });
   }
+  return res.status(401).json({
+    status: "failed",
+    message: "verification code is not correct",
+  });
 });
 exports.restPassword = catchAsync(async (req, res, next) => {
   if (!req.session.email)
-    res.status(403).json({
+    return res.status(403).json({
       status: "failed",
       message: "Bad request",
     });
   const data = req.body;
   const email = req.session.email;
-
-  /*if (!data.confirmedPassword || !data.newPassword)
-    res.status(400).json({
-      status: "failed",
-      message: "please enter your password and confirm your password",
-    });*/
+  console.log(email);
 
   if (data.confirmedPassword === data.newPassword) {
     bcrypt.hash(data.newPassword, 12, (err, hash) => {
@@ -68,7 +57,7 @@ exports.restPassword = catchAsync(async (req, res, next) => {
           { password: hash },
           {
             where: {
-              Email: email,
+              email: email,
             },
           }
         )

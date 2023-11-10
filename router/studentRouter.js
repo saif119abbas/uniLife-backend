@@ -23,6 +23,7 @@ const {
   validtaeEditLecture,
   validtaeForgetPassword,
   validtaeResetPassword,
+  validtaeVerifyUpdatePassword,
 } = require("../validation/validator");
 const { studentPermission } = require("../permission");
 const router = express.Router();
@@ -30,7 +31,11 @@ router.post("/login", validtaeLogin, login);
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify);
 router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
-router.post("/verifyUpdatePassword", verifyUpdatePassword);
+router.post(
+  "/verifyUpdatePassword",
+  validtaeVerifyUpdatePassword,
+  verifyUpdatePassword
+);
 router.post("/restPassword", validtaeResetPassword, restPassword);
 //router.use(protect);
 router.post(

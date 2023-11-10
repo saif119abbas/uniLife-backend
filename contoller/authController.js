@@ -5,29 +5,57 @@ const { createMessage, transportMessage } = require("./../utils/email");
 const { createSendToken } = require("./../utils/createToken");
 
 const AppError = require("./../utils/appError");
-const { student, schedule } = require("../models");
+const {
+  student,
+  schedule,
+  restaurant,
+  admin,
+  dormitoryOwner,
+} = require("../models");
+const { where } = require("sequelize");
 let verifyMessage = "";
 let expiresIn = "24h";
 
 exports.login = catchAsync(async (req, res, next) => {
   const user = req.body;
-  if (!user.email || !user.password) {
-    return res.status(400).json({
-      status: "failed",
-      message: "Please enter your email and password",
-    });
+  let result = {};
+  let userPassword = "";
+  result = await student.findOne({ where: { email: user.email } });
+  console.log(result);
+  if (!result) {
+    result = await restaurant.findOne({ where: { email: user.email } });
+    if (!result) {
+      result = await admin.findOne({ where: { email: user.email } });
+      if (!result)
+        result = await dormitoryOwner.findOne({ where: { email: user.email } });
+    }
   }
 
-  student
-    .findOne({
-      where: {
-        email: user.email,
-      },
-    })
+  userPassword = result.password;
+  bcrypt.compare(user.password, userPassword, (err, passwordIsCorrect) => {
+    if (err) {
+      return next(new AppError("An error occurred, please try again", 500));
+    }
+    if (!passwordIsCorrect || result?.email !== user.email) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Incorrect email or password",
+      });
+    }
+
+    // Authentication is successful, set session data and send the token
+    else {
+      req.session.email = user.email;
+      req.session.ID = result.id;
+      req.session.permission = result.permission;
+      expiresIn = `${24 * 60 * 60}s`;
+      user.id = result.id;
+      createSendToken(user, 200, expiresIn, res);
+    }
+  });
+  /*result
     .then((result) => {
       if (result.length > 1) return next(new AppError("Not allowed", 403));
-      console.log(result);
-
       bcrypt.compare(
         user.password,
         result.password,
@@ -67,7 +95,7 @@ exports.login = catchAsync(async (req, res, next) => {
         status: "failed",
         message: "Incorrect email or password",
       });
-    });
+    });*/
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -160,20 +188,19 @@ exports.verify = catchAsync(async (req, res, next) => {
           .catch((err) => {
             console.log("My error:", err);
             if (err.name === "SequelizeUniqueConstraintError")
-              res.status(401).json({
+              return res.status(401).json({
                 status: "failed",
                 message: "This account is already created",
               });
-            else
-              return next(
-                new AppError("An error occured please try again ", 500)
-              );
+            return next(
+              new AppError("An error occured please try again ", 500)
+            );
           });
       })
       .catch((err) => {
         console.log("My error:", err);
         if (err.name === "SequelizeUniqueConstraintError")
-          res.status(401).json({
+          return res.status(401).json({
             status: "failed",
             message: "This account is already created",
           });
@@ -213,25 +240,28 @@ exports.protect = catchAsync(async (req, res, next) => {
     /* if (Date.now() / 1000 - res.iat <= res.exp)
       return next(new AppError("Timed out please try again", 401));*/
     // 3) Check if user still exists
-    const currentUser = student.findOne({
-      where: { email: req.session.email },
-    });
-    if (!currentUser) {
-      return next(
-        new AppError(
-          "The user belonging to this token does no longer exist.",
-          401
-        )
-      );
-    }
-    // 4) Check if user changed password after the token was issued
-    /*if (currentUser.changedPasswordAfter(decoded.iat)) {
-      return next(
-        new AppError("User recently changed password! Please log in again.", 401)
-      );
-    }*/
-    // GRANT ACCESS TO PROTECTED ROUTE
-    req.session.user = currentUser;
-    next();
+    student
+      .findOne({
+        where: { email: req.session.email },
+      })
+      .then((user) => {
+        if (!user) {
+          return next(
+            new AppError(
+              "The user belonging to this token does no longer exist.",
+              401
+            )
+          );
+        }
+        // 4) Check if user changed password after the token was issued
+        /*if (currentUser.changedPasswordAfter(decoded.iat)) {
+          return next(
+            new AppError("User recently changed password! Please log in again.", 401)
+          );
+        }*/
+        // GRANT ACCESS TO PROTECTED ROUTE
+        req.session.user = user;
+        next();
+      });
   });
 });

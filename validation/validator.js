@@ -7,6 +7,7 @@ const {
 const {
   forgetPasswordValidation,
   resetPasswordValidation,
+  verifyUpdatePasswordValidation,
 } = require("./forgetPassowrdValidation");
 const {
   addResturantValidation,
@@ -53,6 +54,14 @@ exports.validtaeForgetPassword = (req, res, next) => {
   const { error, val } = forgetPasswordValidation.validate(data);
   if (error) {
     console.log("message ", error.message);
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeVerifyUpdatePassword = (req, res, next) => {
+  const data = req.body;
+  const { error, val } = verifyUpdatePasswordValidation.validate(data);
+  if (error) {
     return next(new AppError(error.message, 400));
   }
   next();
