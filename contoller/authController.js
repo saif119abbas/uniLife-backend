@@ -5,59 +5,23 @@ const { createMessage, transportMessage } = require("./../utils/email");
 const { createSendToken } = require("./../utils/createToken");
 
 const AppError = require("./../utils/appError");
-const {
-  student,
-  schedule,
-  restaurant,
-  admin,
-  dormitoryOwner,
-} = require("../models");
-const { where } = require("sequelize");
+const { student, user } = require("../models");
 let verifyMessage = "";
 let expiresIn = "24h";
 
 exports.login = catchAsync(async (req, res, next) => {
-  const user = req.body;
-  let result = {};
-  let userPassword = "";
-  result = await student.findOne({ where: { email: user.email } });
-  console.log(result);
-  if (!result) {
-    result = await restaurant.findOne({ where: { email: user.email } });
-    if (!result) {
-      result = await admin.findOne({ where: { email: user.email } });
-      if (!result)
-        result = await dormitoryOwner.findOne({ where: { email: user.email } });
-    }
-  }
-
-  userPassword = result.password;
-  bcrypt.compare(user.password, userPassword, (err, passwordIsCorrect) => {
-    if (err) {
-      return next(new AppError("An error occurred, please try again", 500));
-    }
-    if (!passwordIsCorrect || result?.email !== user.email) {
-      return res.status(401).json({
-        status: "failed",
-        message: "Incorrect email or password",
-      });
-    }
-
-    // Authentication is successful, set session data and send the token
-    else {
-      req.session.email = user.email;
-      req.session.ID = result.id;
-      req.session.permission = result.permission;
-      expiresIn = `${24 * 60 * 60}s`;
-      user.id = result.id;
-      createSendToken(user, 200, expiresIn, res);
-    }
-  });
-  /*result
+  const data = req.body;
+  await user
+    .findOne({ where: { email: data.email } })
     .then((result) => {
-      if (result.length > 1) return next(new AppError("Not allowed", 403));
+      if (result.length > 1)
+        return res.status(403).json({
+          status: "failed",
+          message: "not allowed",
+        });
+      console.log(result);
       bcrypt.compare(
-        user.password,
+        data.password,
         result.password,
         (err, passwordIsCorrect) => {
           if (err) {
@@ -68,7 +32,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
           if (
             !passwordIsCorrect ||
-            result?.email !== user.email ||
+            result?.email !== data.email ||
             result.length === 0
           ) {
             return res.status(401).json({
@@ -79,12 +43,12 @@ exports.login = catchAsync(async (req, res, next) => {
 
           // Authentication is successful, set session data and send the token
           else {
-            req.session.email = user.email;
-            req.session.ID = result.id;
-            req.session.permission = result.permission;
+            req.session.email = data.email;
+            req.session.userId = result.id;
+            req.session.role = result.role;
             expiresIn = `${24 * 60 * 60}s`;
-            user.id = result.id;
-            createSendToken(user, 200, expiresIn, res);
+            data.id = result.id;
+            createSendToken(data, 200, expiresIn, res);
           }
         }
       );
@@ -95,56 +59,52 @@ exports.login = catchAsync(async (req, res, next) => {
         status: "failed",
         message: "Incorrect email or password",
       });
-    });*/
+    });
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const user = req.body;
+  const createdUser = req.body;
   if (
-    !user.email ||
-    !user.password ||
-    !user.phoneNum ||
-    !user.username ||
-    !user.confirmPassword
+    !createdUser.email ||
+    !createdUser.password ||
+    !createdUser.phoneNum ||
+    !createdUser.username ||
+    !createdUser.confirmPassword
   )
     res.status(400).json({
       status: "failed",
       message: "Please provide your information",
     });
-  if (user.confirmPassword !== user.password)
-    res.status(400).json({
+  if (createdUser.confirmPassword !== createdUser.password)
+    return res.status(400).json({
       status: "falied",
       message: "password and confirm password not matched",
     });
-  else {
-    console.log("In signup");
-    const userFound = await student.findOne({ where: { email: user.email } });
-    if (userFound)
-      res.status(401).json({
-        status: "falied",
-        message: "This student is already creted",
-      });
-    else {
-      bcrypt.hash(user.password, 12, (err, hash) => {
-        if (err) {
-          return new AppError("An error occured please try again ", 500);
-        }
-
-        req.session.email = user.email;
-        req.session.password = hash;
-        req.session.phoneNum = user.phoneNum;
-        req.session.username = user.username;
-
-        verifyMessage = createMessage();
-        transportMessage(verifyMessage, user.email);
-        stratTime = Date.now();
-        expiredIn = 60;
-        res.status(200).json({
-          status: "success",
-        });
-      });
+  console.log("In signup");
+  const userFound = await user.findOne({ where: { email: createdUser.email } });
+  if (userFound)
+    return res.status(401).json({
+      status: "falied",
+      message: "This account is already creted",
+    });
+  bcrypt.hash(createdUser.password, 12, (err, hash) => {
+    if (err) {
+      return new AppError("An error occured please try again ", 500);
     }
-  }
+
+    req.session.email = createdUser.email;
+    req.session.password = hash;
+    req.session.phoneNum = createdUser.phoneNum;
+    req.session.username = createdUser.username;
+
+    verifyMessage = createMessage();
+    transportMessage(verifyMessage, createdUser.email);
+    stratTime = Date.now();
+    expiredIn = 60;
+    res.status(200).json({
+      status: "success",
+    });
+  });
 });
 
 exports.verify = catchAsync(async (req, res, next) => {
@@ -159,31 +119,24 @@ exports.verify = catchAsync(async (req, res, next) => {
   if (req.body.verifyCode === verifyMessage) {
     verifyMessage = "";
     //expiresIn = "24h";
-    const ID = parseInt(req.session.unevirsityId);
+    console.log(req.session.email, req.session.password, req.session.phoneNum);
     const myData = {
       email: req.session.email,
       password: req.session.password,
       phoneNum: req.session.phoneNum,
       username: req.session.username,
+      role: process.env.student,
     };
-    await student
+    await user
       .create(myData)
       .then((data) => {
-        const scheduleData = {
-          status: "empty",
-          studentId: data.id,
-        };
-
-        schedule
-          .create(scheduleData)
+        student
+          .create({ userId: data.id })
           .then((data) => {
-            console.log(data);
-            req.session.scheduleId = data.scheduleId;
-            console.log("create schedule:", req.session.scheduleId);
-            res.status(201).json({
-              status: "success",
-              message: "Created successfully",
-            });
+            req.session.userId = data.userId;
+            req.session.studentId = data.id;
+            console.log("student id:", req.session.studentId);
+            next();
           })
           .catch((err) => {
             console.log("My error:", err);
@@ -204,8 +157,7 @@ exports.verify = catchAsync(async (req, res, next) => {
             status: "failed",
             message: "This account is already created",
           });
-        else
-          return next(new AppError("An error occured please try again ", 500));
+        return next(new AppError("An error occured please try again ", 500));
       });
   }
 });
@@ -240,12 +192,12 @@ exports.protect = catchAsync(async (req, res, next) => {
     /* if (Date.now() / 1000 - res.iat <= res.exp)
       return next(new AppError("Timed out please try again", 401));*/
     // 3) Check if user still exists
-    student
+    user
       .findOne({
         where: { email: req.session.email },
       })
-      .then((user) => {
-        if (!user) {
+      .then((data) => {
+        if (!data) {
           return next(
             new AppError(
               "The user belonging to this token does no longer exist.",
@@ -260,7 +212,7 @@ exports.protect = catchAsync(async (req, res, next) => {
           );
         }*/
         // GRANT ACCESS TO PROTECTED ROUTE
-        req.session.user = user;
+        req.session.user = data;
         next();
       });
   });

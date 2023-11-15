@@ -8,34 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    email: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
-    },
-    phoneNum: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
-    },
-    permission: {
-      type: DataTypes.STRING,
-      defaultValue: process.env.DORMITORY,
-    },
   });
   dormitoryOwner.associate = (models) => {
-    dormitoryOwner.hasMany(models.dormitoryPost); // A User has one Profile
+    dormitoryOwner.belongsTo(models.user);
+    dormitoryOwner.hasMany(models.dormitoryPost);
   };
   return dormitoryOwner;
 };

@@ -22,9 +22,11 @@ exports.addLectureValidation = Joi.object({
   endTime: Joi.string()
     .required()
     .error(new Error("❌ Please enter end time of the lecture")),
-  day: Joi.string()
-    .required()
-    .error(new Error("❌ Please enter the day of the lecture")),
+  day: Joi.array().items(
+    Joi.string()
+      .required()
+      .error(new Error("❌ Please enter the day of the lecture"))
+  ),
 });
 exports.editLectureValidation = Joi.object({
   lectureId: Joi.number()

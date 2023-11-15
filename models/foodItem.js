@@ -25,10 +25,15 @@ module.exports = (sequelize, DataTypes) => {
       },
       unique: [true, "This food is already exists"],
     },
+    image: {
+      type: DataTypes.BLOB,
+    },
   });
   foodItem.associate = (models) => {
     foodItem.belongsTo(models.menu); // A Profile belongs to a User
-    foodItem.belongsToMany(models.orderItem, { through: "OrderItem_foodItem" }); // A User belongs to many Roles
+    foodItem.belongsToMany(models.orderItem, {
+      through: models.OrderItem_FoodItem,
+    }); // A User belongs to many Roles
   };
   /*foodItem.associate = (models) => {
   };*/

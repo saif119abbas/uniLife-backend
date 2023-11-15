@@ -13,10 +13,18 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
+    totalPrice: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      validator: {
+        notEmpty: false,
+      },
+    },
   });
   order.associate = (models) => {
     order.hasMany(models.orderItem);
     order.belongsTo(models.restaurant);
+    order.belongsTo(models.student, { foreignKey: "studentId" });
   };
 
   return order;

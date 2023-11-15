@@ -5,27 +5,73 @@ const {
   editRestaurant,
   deleteRestaurant,
   deleteMenu,
-} = require("../contoller/adminController/restaurantController");
+  createMenu,
+  editCardID,
+  getResturants,
+} = require("../contoller/adminController/restaurantActions");
 const {
   addDormitoryOwner,
   editDormitoryOwner,
   deleteDormitoryOwner,
-} = require("../contoller/adminController/dormitoryController");
+  editSSN,
+  getDormitoryOwners,
+} = require("../contoller/adminController/dormitoryActions");
 const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
   validtaeAddDormitoryOwner,
   validtaeEditDormitoryOwner,
+  validtaeSignup,
 } = require("../validation/validator");
-router.post("/addRestaurant", validtaeAddRestaurant, addRestaurant);
-router.patch("/editRestaurant/:id", validtaeEditRestaurant, editRestaurant);
-router.delete("/deleteRestaurant/:id", deleteMenu, deleteRestaurant);
-
-router.post("/addDormitoryOwner", validtaeAddDormitoryOwner, addDormitoryOwner);
+const { addAdmin } = require("../contoller/adminController/addAdmin");
+const { adminPermission } = require("../permission");
+const { protect } = require("../contoller/authController");
+router.post(
+  "/addRestaurant",
+  protect,
+  adminPermission,
+  validtaeAddRestaurant,
+  addRestaurant,
+  createMenu
+);
+router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
 router.patch(
-  "/editDormitoryOwner/:SSN",
+  "/editRestaurant/:userId",
+  protect,
+  adminPermission,
+  validtaeEditRestaurant,
+  editCardID,
+  editRestaurant
+);
+router.delete(
+  "/deleteRestaurant/:userId",
+  protect,
+  adminPermission,
+  deleteMenu,
+  deleteRestaurant
+);
+
+router.post(
+  "/addDormitoryOwner",
+  protect,
+  adminPermission,
+  validtaeAddDormitoryOwner,
+  addDormitoryOwner
+);
+router.patch(
+  "/editDormitoryOwner/:userId",
+  protect,
+  adminPermission,
   validtaeEditDormitoryOwner,
+  editSSN,
   editDormitoryOwner
 );
-router.delete("/deleteDormitoryOwner/:SSN", deleteDormitoryOwner);
+router.delete(
+  "/deleteDormitoryOwner/:userId",
+  protect,
+  adminPermission,
+  deleteDormitoryOwner
+);
+router.get("/getAllDormitories", protect, adminPermission, getDormitoryOwners);
+router.get("/getAllRestarunts", protect, adminPermission, getResturants);
 module.exports = router;

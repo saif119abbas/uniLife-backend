@@ -9,6 +9,13 @@ exports.addDormitoryOwnerValidation = Joi.object({
     .required()
     .invalid()
     .error(new Error("SSN must be a number")),
+  username: Joi.string()
+    .required()
+    .error(new Error("❌ Please enter your username"))
+    .min(3)
+    .message("❌ Too Short!")
+    .max(25)
+    .message("❌ Too Long!"),
   email: Joi.string()
     .required()
     .pattern(/\w@gmail.com$/)

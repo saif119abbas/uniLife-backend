@@ -17,6 +17,10 @@ const {
   addDormitoryOwnerValidation,
   editDormitoryOwnerValidation,
 } = require("./dormitoryOwnerValidation");
+const {
+  addFoodItemValidation,
+  editFoodItemValidation,
+} = require("./foodItemValidation");
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
@@ -101,6 +105,22 @@ exports.validtaeAddDormitoryOwner = (req, res, next) => {
 exports.validtaeEditDormitoryOwner = (req, res, next) => {
   const data = req.body;
   const { error, val } = editDormitoryOwnerValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeAddFoodItem = (req, res, next) => {
+  const data = req.body.data;
+  const { error, val } = addFoodItemValidation.validate(data);
+  if (error) {
+    return next(new AppError(error.message, 400));
+  }
+  next();
+};
+exports.validtaeEditFoodItem = (req, res, next) => {
+  const data = req.body.data;
+  const { error, _ } = editFoodItemValidation.validate(data);
   if (error) {
     return next(new AppError(error.message, 400));
   }

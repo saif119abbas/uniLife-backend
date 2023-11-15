@@ -10,7 +10,7 @@ exports.signupValidation = Joi.object({
   email: Joi.string()
     .required()
     .error(new Error("❌ Please enter your email"))
-    .pattern(/s\d{8}@stu.najah.edu$/)
+    .pattern(/(s\d{8}@stu.najah.edu$)|(\w@gmail.com$)/)
     .message("❌ You must use a Najah student email"),
   password: Joi.string()
     .required()

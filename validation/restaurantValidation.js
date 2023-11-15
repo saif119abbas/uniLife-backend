@@ -1,6 +1,6 @@
 const Joi = require("@hapi/joi");
 exports.addResturantValidation = Joi.object({
-  name: Joi.string()
+  username: Joi.string()
     .required("❌ Please enter the name of the restaurant")
     .min(3)
     .message("❌ Too Short!")
@@ -32,7 +32,7 @@ exports.addResturantValidation = Joi.object({
     .error(new Error("cardId must be a number")),
 });
 exports.editRestaurantValidation = Joi.object({
-  name: Joi.string()
+  username: Joi.string()
     .min(3)
     .message("❌ Too Short!")
     .max(25)

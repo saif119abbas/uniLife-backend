@@ -1,13 +1,12 @@
+const Sequelize = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
-const { schedule, lecture } = require("../../models");
+const { schedule, lecture, student } = require("../../models");
 exports.createSchedule = catchAsync(async (req, res, next) => {
-  if (!req.body.status)
-    return next(new AppError("provide the status of your schedule", 400));
   console.log("my ID:", typeof req.session.ID);
   const myData = {
-    status: req.body.status,
-    studentUnevirsityId: req.session.ID,
+    status: "empty",
+    studentId: req.session.studentId,
   };
   await schedule
     .create(myData)
@@ -22,27 +21,35 @@ exports.createSchedule = catchAsync(async (req, res, next) => {
     .catch((err) => {
       console.log("My error:", err);
       if (err.name === "SequelizeUniqueConstraintError")
-        return next(new AppError("This account is already created", 401));
-
+        return res.status(401).json({
+          status: "success",
+          message: "This account is already created",
+        });
       return next(new AppError("An error occured please try again ", 500));
     });
 });
 exports.addLecture = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const myStudent = await student.findOne({
+    attributes: ["id"],
+    where: { userId },
+  });
+  if (!myStudent) {
+    return res.status(403).json({
+      status: "Not allowed action",
+      message: "Something went wrong please try again",
+    });
+  }
+  const studentId = myStudent.id;
+
   const data = req.body;
-  if (
-    !data.lectureId ||
-    !data.classNumber ||
-    !data.Name ||
-    !data.startTime ||
-    !data.endTime ||
-    !data.day
-  )
-    return next(new AppError("provide the lecture information please", 400));
+  console.log(data.day);
+  data.day = data.day.join(" ");
   const lectureId = parseInt(data.lectureId);
   const classNumber = data.classNumber;
   const mySchedule = await schedule.findOne({
     where: {
-      studentId: req.session.ID,
+      studentId,
     },
   });
   if (!mySchedule)
@@ -76,21 +83,20 @@ exports.addLecture = catchAsync(async (req, res, next) => {
       });
   }
 });
-exports.editSchedule = catchAsync(async (req, res, next) => {});
-exports.deleteSchedule = catchAsync(async (req, res, next) => {});
 exports.editLecture = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const myStudent = await student.findOne({
+    attributes: ["id"],
+    where: { userId },
+  });
+  if (!myStudent) {
+    return res.status(403).json({
+      status: "Not allowed action",
+      message: "Something went wrong please try again",
+    });
+  }
+  const studentId = myStudent.Id;
   const data = req.body;
-  if (
-    !data.lectureId &&
-    !data.classNumber &&
-    !data.Name &&
-    !data.startTime &&
-    !data.endTime &&
-    !data.day
-  )
-    return next(
-      new AppError("Please provide the information you want to edit", 400)
-    );
   if (data.lectureId) {
     data.lectureId = parseInt(data.lectureId);
   }
@@ -134,5 +140,50 @@ exports.deleteLecture = catchAsync(async (req, res, next) => {
     })
     .catch((err) => {
       return next(new AppError("An error occured please try again"), 500);
+    });
+});
+exports.getLectures = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const myStudent = await student.findOne({
+    attributes: ["id"],
+    where: { userId },
+  });
+  if (!myStudent) {
+    return res.status(403).json({
+      status: "Not allowed action",
+      message: "Something went wrong please try again",
+    });
+  }
+  const studentId = myStudent.id;
+  const mySchedule = await schedule.findOne({
+    where: { studentId },
+  });
+  await lecture
+    .findAll({
+      attributes: [
+        "id",
+        "lectureId",
+        "classNumber",
+        "Name",
+        "startTime",
+        "endTime",
+        "day",
+      ],
+      where: {
+        scheduleScheduleId: mySchedule.scheduleId,
+      },
+    })
+    .then((data) => {
+      if (data.length === 0)
+        return res.status(404).json({
+          status: "failed",
+          message: "you don't have a lecture this day",
+        });
+
+      return res.status(200).json(data);
+    })
+    .catch((err) => {
+      console.log("My error occurred", err);
+      if (err) return next(new AppError("an ouccured please try again", 500));
     });
 });

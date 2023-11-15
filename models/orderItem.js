@@ -22,12 +22,9 @@ module.exports = (sequelize, DataTypes) => {
   });
   orderItem.associate = (models) => {
     orderItem.belongsTo(models.order);
-    orderItem.belongsToMany(models.foodItem, { through: "OrderItem_foodItem" });
+    orderItem.belongsToMany(models.foodItem, {
+      through: models.OrderItem_FoodItem,
+    });
   };
-  /* orderItem.associate = (models) => {
-  };
- /*orderItem.belongsTo(order);
-  order.hasMany(orderItem);
-*/
   return orderItem;
 };
