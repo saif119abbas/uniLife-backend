@@ -21,11 +21,21 @@ const {
   addFoodItemValidation,
   editFoodItemValidation,
 } = require("./foodItemValidation");
+const {
+  addPostValidtaion,
+  editPostValidtaion,
+} = require("./dormitoryPostValidation");
+const { createOrderValidation } = require("./orderValidation");
+const { createRoomValidation } = require("./roomValidation");
+const { addOfferValidation } = require("./offerValidation");
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -33,7 +43,10 @@ exports.validtaeLogin = (req, res, next) => {
   const student = req.body;
   const { error, val } = loginValidation.validate(student);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -41,7 +54,10 @@ exports.validtaeAddLecture = (req, res, next) => {
   const lecture = req.body;
   const { error, val } = addLectureValidation.validate(lecture);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -49,7 +65,10 @@ exports.validtaeEditLecture = (req, res, next) => {
   const lecture = req.body;
   const { error, val } = editLectureValidation.validate(lecture);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -58,7 +77,10 @@ exports.validtaeForgetPassword = (req, res, next) => {
   const { error, val } = forgetPasswordValidation.validate(data);
   if (error) {
     console.log("message ", error.message);
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -66,7 +88,10 @@ exports.validtaeVerifyUpdatePassword = (req, res, next) => {
   const data = req.body;
   const { error, val } = verifyUpdatePasswordValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -74,7 +99,10 @@ exports.validtaeResetPassword = (req, res, next) => {
   const data = req.body;
   const { error, val } = resetPasswordValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -82,7 +110,10 @@ exports.validtaeAddRestaurant = (req, res, next) => {
   const data = req.body;
   const { error, val } = addResturantValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -90,7 +121,10 @@ exports.validtaeEditRestaurant = (req, res, next) => {
   const data = req.body;
   const { error, val } = editRestaurantValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -98,7 +132,10 @@ exports.validtaeAddDormitoryOwner = (req, res, next) => {
   const data = req.body;
   const { error, val } = addDormitoryOwnerValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -106,7 +143,10 @@ exports.validtaeEditDormitoryOwner = (req, res, next) => {
   const data = req.body;
   const { error, val } = editDormitoryOwnerValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -114,7 +154,10 @@ exports.validtaeAddFoodItem = (req, res, next) => {
   const data = req.body.data;
   const { error, val } = addFoodItemValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };
@@ -122,7 +165,68 @@ exports.validtaeEditFoodItem = (req, res, next) => {
   const data = req.body.data;
   const { error, _ } = editFoodItemValidation.validate(data);
   if (error) {
-    return next(new AppError(error.message, 400));
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddDormitoryPost = (req, res, next) => {
+  const data = {
+    description: req.body.description,
+    location: req.body.location,
+  };
+  const { error, _ } = addPostValidtaion.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddRooms = (req, res, next) => {
+  const data = req.body.rooms;
+  const { error, _ } = createRoomValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeEditDormitoryPost = (req, res, next) => {
+  const data = req.body.data;
+  const { error, _ } = editPostValidtaion.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeCreateOrder = (req, res, next) => {
+  const data = req.body.orderItem;
+  const { error, _ } = createOrderValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddOffer = (req, res, next) => {
+  const data = req.body;
+  const { error, _ } = addOfferValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
   }
   next();
 };

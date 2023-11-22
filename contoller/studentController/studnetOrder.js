@@ -1,4 +1,5 @@
 const AppError = require("../../utils/appError");
+const { Op } = require("sequelize");
 const {
   order,
   orderItem,
@@ -6,6 +7,7 @@ const {
   restaurant,
   foodItem,
   user,
+  menu,
   student,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
@@ -38,9 +40,11 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   for (let item of orderItemData) {
     const fooditemPrice = await foodItem.findOne({
       where: { foodId: item.foodId },
-      attributes: ["price"],
+      attributes: ["price", "offerPrice", "isOffer"],
     });
-    const unitPrice = fooditemPrice.price * item.Qauntity;
+    const unitPrice =
+      item.Qauntity *
+      (fooditemPrice.isOffer ? fooditemPrice.offerPrice : fooditemPrice.price);
 
     totalPrice += unitPrice;
     orderItem
@@ -91,16 +95,35 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     });
     if (!myStudent) {
       return res.status(403).json({
-        status: "Not allowed action",
-        message: "Something went wrong please try again",
+        status: "falied",
+        message: "not allowed",
       });
     }
     console.log("the student", myStudent);
     const studentId = myStudent.id;
     let retrieveData = [];
+    const today = new Date();
+    const startOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    const endOfToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() + 1
+    );
     const myOrders = await order.findAll({
       attributes: ["orderId", "status", "restaurantId", "totalPrice"],
-      where: { studentId },
+      where: {
+        studentId,
+        createdAt: {
+          [Op.gte]: startOfToday,
+          [Op.lt]: endOfToday,
+        },
+        status: "on progress",
+      },
+      order: [["createdAt", "DESC"]],
     });
     if (!myOrders || myOrders.length === 0) {
       return res.status(404).json({
@@ -155,6 +178,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           unitPrice: "",
           price: "",
           nameOfFood: "",
+          offerPrice: "",
         };
         const itemId = orderItems[i];
         itemData.Qauntity = itemId.Qauntity;
@@ -165,12 +189,25 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         });
         console.log("reords Item with foodItemFoodId:", records);
         const foodItems = await foodItem.findOne({
-          attributes: ["price", "nameOfFood"],
+          attributes: [
+            "price",
+            "nameOfFood",
+            "offerPrice",
+            "isOffer",
+            "offerDesc",
+          ],
           where: { foodId: records.foodItemFoodId },
         });
         console.log("food Items Item with price and name of food:", foodItems);
         itemData.price = foodItems.price;
         itemData.nameOfFood = foodItems.nameOfFood;
+        console.log("Is offer", foodItems.isOffer);
+        itemData.offerPrice = foodItems.isOffer
+          ? foodItems.offerPrice
+          : undefined;
+        itemData.offerDesc = foodItems.isOffer
+          ? foodItems.offerDesc
+          : undefined;
         items.push(itemData);
       }
       console.log(items);
@@ -189,4 +226,31 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     console.log("My err", err);
     return next(new AppError("An error occurred please try again", 500));
   }
+});
+exports.getOffers = catchAsync(async (req, res, next) => {
+  const restaurantId = req.params.restaurantId;
+  const myMenu = await menu.findOne({
+    attributes: ["menuId"],
+    where: { restaurantId },
+  });
+  if (!myMenu)
+    return res.status(404).json({ status: "failed", message: "not found" });
+  const menuMenuId = myMenu.menuId;
+  const myOffers = await foodItem.findAll({
+    attributes: [
+      "foodId",
+      "offerPrice",
+      "offerDesc",
+      "category",
+      "nameOfFood",
+      "price",
+    ],
+    where: { menuMenuId, isOffer: true },
+  });
+  if (!myOffers || myOffers.length === 0)
+    return res.status(200).json({
+      status: "failed",
+      message: "no offers",
+    });
+  return res.status(200).json({ myOffers });
 });

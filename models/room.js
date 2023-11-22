@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     roomId: {
       type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
       allowNull: false,
       validator: {
         notEmpty: false,

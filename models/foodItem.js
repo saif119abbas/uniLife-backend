@@ -28,6 +28,37 @@ module.exports = (sequelize, DataTypes) => {
     image: {
       type: DataTypes.BLOB,
     },
+    category: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    isOffer: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    offerPrice: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    offerDesc: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    image: {
+      type: DataTypes.BLOB,
+    },
   });
   foodItem.associate = (models) => {
     foodItem.belongsTo(models.menu); // A Profile belongs to a User

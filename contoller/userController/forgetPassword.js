@@ -1,8 +1,10 @@
 const bcrypt = require("bcrypt");
-const catchAsync = require("./../utils/catchAsync");
-const { createMessage, transportMessage } = require("./../utils/email");
-const { student } = require("../models");
-const AppError = require("./../utils/appError");
+const catchAsync = require("../../utils/catchAsync");
+const { createMessage, transportMessage } = require("../../utils/email");
+const { student, user } = require("../../models");
+const AppError = require("../../utils/appError");
+const { createSendToken } = require("../../utils/createToken");
+
 let verifyMessage = "";
 exports.forrgetPassword = catchAsync(async (req, res) => {
   const data = req.body;
@@ -12,26 +14,28 @@ exports.forrgetPassword = catchAsync(async (req, res) => {
       message: "Please provide your email ",
     });*/
   req.session.email = data.email;
-  const user = await student.findOne({ where: { email: data.email } });
-  if (!user)
+  const myUser = await user.findOne({ where: { email: data.email } });
+  if (!myUser)
     res.status(400).json({
       status: "failed",
       message: "This user does not exist",
     });
-  const email = user.email;
+  const email = myUser.email;
   verifyMessage = createMessage();
   transportMessage(verifyMessage, email);
-  res.status(200).json({
+  const myToken = {
     status: "success",
-    message: "check your email ",
-  });
+    message: "check your email",
+  };
+  createSendToken(myToken, 200, "30s", res);
 });
 exports.verifyUpdatePassword = catchAsync(async (req, res) => {
   if (req.body.verifyCode === verifyMessage) {
+    const data = {
+      id: verifyMessage,
+    };
     verifyMessage = "";
-    return res.status(200).json({
-      status: "success",
-    });
+    createSendToken(data, 200, "60s", res);
   }
   return res.status(401).json({
     status: "failed",
@@ -52,7 +56,7 @@ exports.restPassword = catchAsync(async (req, res, next) => {
     bcrypt.hash(data.newPassword, 12, (err, hash) => {
       if (err)
         return next(new AppError("an error occured please try again", 500));
-      student
+      user
         .update(
           { password: hash },
           {

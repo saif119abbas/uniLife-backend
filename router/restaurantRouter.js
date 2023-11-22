@@ -1,26 +1,24 @@
 const express = require("express");
-const { login, protect } = require("../contoller/authController");
-const {
-  forrgetPassword,
-  verifyUpdatePassword,
-  restPassword,
-} = require("../contoller/forgetPassword");
+const { protect } = require("../contoller/userController/authController");
 const {
   addFoodItem,
   editFoodItem,
   deleteFoodItem,
+  getOrders,
+  endOrder,
 } = require("../contoller/restaurant/restaurantController");
+const { addOffer } = require("../contoller/restaurant/offerController");
 const {
   validtaeAddFoodItem,
-  validtaeLogin,
   validtaeEditFoodItem,
+  validtaeAddOffer,
 } = require("../validation/validator");
 const { restaurantPermission } = require("../permission");
+const { restaurantCheckOrder } = require("../MiddleWare/resturantMiddleWare");
 const { upload } = require("../images/handleImag");
 const router = express.Router();
-router.post("/login", validtaeLogin, login);
 router.post(
-  "/addFoodItem",
+  "/addFoodItem/:userId",
   protect,
   restaurantPermission,
   validtaeAddFoodItem,
@@ -28,7 +26,7 @@ router.post(
   addFoodItem
 );
 router.patch(
-  "/editFoodItem/:foodId",
+  "/editFoodItem/:foodId/:userId",
   protect,
   restaurantPermission,
   validtaeEditFoodItem,
@@ -36,9 +34,29 @@ router.patch(
   editFoodItem
 );
 router.delete(
-  "/deleteFoodItem/:foodId",
+  "/deleteFoodItem/:foodId/:userId",
   protect,
   restaurantPermission,
   deleteFoodItem
+);
+router.get(
+  "/ordersrestaurnt/:userId",
+  protect,
+  restaurantPermission,
+  getOrders
+);
+router.patch(
+  "/addoffer/:userId/:foodId",
+  protect,
+  restaurantPermission,
+  validtaeAddOffer,
+  addOffer
+);
+router.patch(
+  "/endorder/:userId/:orderId",
+  protect,
+  restaurantPermission,
+  restaurantCheckOrder,
+  endOrder
 );
 module.exports = router;

@@ -1,4 +1,3 @@
-const Sequelize = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
 const { schedule, lecture, student } = require("../../models");
@@ -100,7 +99,7 @@ exports.editLecture = catchAsync(async (req, res, next) => {
   if (data.lectureId) {
     data.lectureId = parseInt(data.lectureId);
   }
-  const id = req.params.id;
+  const id = req.params.lectureId;
   await lecture.update(data, { where: { id } }).then((count) => {
     console.log("Updated", count[0]);
     if (count[0] === 0)

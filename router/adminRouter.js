@@ -25,9 +25,9 @@ const {
 } = require("../validation/validator");
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
-const { protect } = require("../contoller/authController");
+const { protect } = require("../contoller/userController/authController");
 router.post(
-  "/addRestaurant",
+  "/addRestaurant/:adminId",
   protect,
   adminPermission,
   validtaeAddRestaurant,
@@ -36,7 +36,7 @@ router.post(
 );
 router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
 router.patch(
-  "/editRestaurant/:userId",
+  "/editRestaurant/:userId/:adminId",
   protect,
   adminPermission,
   validtaeEditRestaurant,
@@ -44,7 +44,7 @@ router.patch(
   editRestaurant
 );
 router.delete(
-  "/deleteRestaurant/:userId",
+  "/deleteRestaurant/:userId/:adminId",
   protect,
   adminPermission,
   deleteMenu,
@@ -52,26 +52,35 @@ router.delete(
 );
 
 router.post(
-  "/addDormitoryOwner",
+  "/addDormitoryOwner/:adminId",
   protect,
   adminPermission,
   validtaeAddDormitoryOwner,
   addDormitoryOwner
 );
 router.patch(
-  "/editDormitoryOwner/:userId",
+  "/editDormitoryOwner/:userId/:adminId",
   protect,
   adminPermission,
   validtaeEditDormitoryOwner,
-  editSSN,
   editDormitoryOwner
 );
 router.delete(
-  "/deleteDormitoryOwner/:userId",
+  "/deleteDormitoryOwner/:userId/:adminId",
   protect,
   adminPermission,
   deleteDormitoryOwner
 );
-router.get("/getAllDormitories", protect, adminPermission, getDormitoryOwners);
-router.get("/getAllRestarunts", protect, adminPermission, getResturants);
+router.get(
+  "/getAllDormitories/:adminId",
+  protect,
+  adminPermission,
+  getDormitoryOwners
+);
+router.get(
+  "/getAllRestarunts/:adminId",
+  protect,
+  adminPermission,
+  getResturants
+);
 module.exports = router;

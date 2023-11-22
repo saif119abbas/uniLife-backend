@@ -1,15 +1,10 @@
 const express = require("express");
 const {
-  login,
   signup,
   verify,
   protect,
-} = require("../contoller/authController");
-const {
-  forrgetPassword,
-  verifyUpdatePassword,
-  restPassword,
-} = require("../contoller/forgetPassword");
+} = require("../contoller/userController/authController");
+
 const {
   createSchedule,
   addLecture,
@@ -17,33 +12,28 @@ const {
   editLecture,
   getLectures,
 } = require("../contoller/studentController/scheduleController");
+const { lectureCheck } = require("../MiddleWare/lectureMiddleWare");
 const {
-  validtaeSignup,
+  getAllDormitoryPost,
+  getPost,
+} = require("../contoller/dormitory/externalController");
+const {
   validtaeAddLecture,
-  validtaeLogin,
   validtaeEditLecture,
-  validtaeForgetPassword,
-  validtaeResetPassword,
-  validtaeVerifyUpdatePassword,
+  validtaeCreateOrder,
+  validtaeSignup,
 } = require("../validation/validator");
 const { getMenu } = require("../contoller/restaurant/restaurantController");
-const { studentPermission } = require("../permission");
 const {
   createOrder,
   getOrders,
+  getOffers,
 } = require("../contoller/studentController/studnetOrder");
+const { studentPermission } = require("../permission");
 const router = express.Router();
-router.post("/login", validtaeLogin, login);
+//router.use(protect);
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
-router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
-router.post(
-  "/verifyUpdatePassword",
-  validtaeVerifyUpdatePassword,
-  verifyUpdatePassword
-);
-router.post("/restPassword", validtaeResetPassword, restPassword);
-//router.use(protect);
 router.post(
   "/addLecture/:userId",
   protect,
@@ -55,12 +45,14 @@ router.delete(
   "/deleteLecture/:lectureId/:userId",
   protect,
   studentPermission,
+  lectureCheck,
   deleteLecture
 );
 router.patch(
   "/editLecture/:lectureId/:userId",
   protect,
   studentPermission,
+  lectureCheck,
   validtaeEditLecture,
   editLecture
 );
@@ -71,6 +63,31 @@ router.get(
   studentPermission,
   getMenu
 );
-router.post("/createOrder/:userId", protect, studentPermission, createOrder);
+router.post(
+  "/createOrder/:userId",
+  protect,
+  studentPermission,
+  validtaeCreateOrder,
+  createOrder
+);
 router.get("/orders/:userId", protect, studentPermission, getOrders);
+router.get(
+  "/offer/:userId/:restaurantId",
+  protect,
+  studentPermission,
+  getOffers
+);
+router.get(
+  "/dormitoryposts/:userId",
+  protect,
+  studentPermission,
+  getAllDormitoryPost
+);
+router.get(
+  "/dormitoryposts/:userId/:dorimtoryId",
+  protect,
+  studentPermission,
+  getPost
+);
+
 module.exports = router;

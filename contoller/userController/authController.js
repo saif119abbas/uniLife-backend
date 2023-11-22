@@ -1,11 +1,11 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-const catchAsync = require("./../utils/catchAsync");
-const { createMessage, transportMessage } = require("./../utils/email");
-const { createSendToken } = require("./../utils/createToken");
+const catchAsync = require("../../utils/catchAsync");
+const { createMessage, transportMessage } = require("../../utils/email");
+const { createSendToken } = require("../../utils/createToken");
 
-const AppError = require("./../utils/appError");
-const { student, user } = require("../models");
+const AppError = require("../../utils/appError");
+const { student, user } = require("../../models");
 let verifyMessage = "";
 let expiresIn = "24h";
 
@@ -100,7 +100,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     verifyMessage = createMessage();
     transportMessage(verifyMessage, createdUser.email);
     stratTime = Date.now();
-    expiredIn = 60;
+    expiredIn = "60s";
     res.status(200).json({
       status: "success",
     });
@@ -136,7 +136,7 @@ exports.verify = catchAsync(async (req, res, next) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;
             console.log("student id:", req.session.studentId);
-            next();
+            return next();
           })
           .catch((err) => {
             console.log("My error:", err);
@@ -168,13 +168,14 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
+    console.log("Yes");
     token = req.headers.authorization.split(" ")[1];
   }
-  console.log("Making token", token.split(" "));
   if (!token) {
-    return next(
-      new AppError("You are not logged in! Please log in to get access.", 401)
-    );
+    return res.status(401).json({
+      status: "failed",
+      message: "Unauthorized",
+    });
   }
 
   /* if (localStorage.getItem("jwt") !== token)

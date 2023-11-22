@@ -4,8 +4,8 @@
 
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.addColumn("orders", "totalPrice", {
-      type: Sequelize.FLOAT,
+    return queryInterface.addColumn("fooditems", "category", {
+      type: Sequelize.STRING,
       allowNull: false,
       validator: {
         notEmpty: false,
@@ -14,6 +14,6 @@ module.exports = {
   },
 
   down: (queryInterface, Sequelize) => {
-    return queryInterface.removeColumn("orders", "totalPrice");
+    return queryInterface.removeColumn("fooditems", "category");
   },
 };
