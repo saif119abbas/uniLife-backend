@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 require("dotenv").config();
 const session = require("express-session");
 const studentRouter = require("./router/studentRouter");
@@ -15,6 +16,7 @@ app.use(
     saveUninitialized: true,
   })
 );
+//app.use(cors);
 app.use(process.env.BASE_URL, studentRouter);
 app.use(process.env.BASE_URL, adminRouter);
 app.use(process.env.BASE_URL, restaurantRouter);

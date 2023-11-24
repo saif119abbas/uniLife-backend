@@ -5,11 +5,6 @@ exports.scheduleValidation = Joi.object({
   ),
 });
 exports.addLectureValidation = Joi.object({
-  lectureId: Joi.number()
-    .required()
-    .error(new Error("❌ Please enter lecture id "))
-    .invalid()
-    .error(new Error("lecture id must be a number")),
   classNumber: Joi.string()
     .required()
     .error(new Error("❌ Please enter class number")),
@@ -29,9 +24,6 @@ exports.addLectureValidation = Joi.object({
   ),
 });
 exports.editLectureValidation = Joi.object({
-  lectureId: Joi.number()
-    .invalid()
-    .error(new Error("lecture id must be a number")),
   classNumber: Joi.string(),
   Name: Joi.string(),
   startTime: Joi.string(),

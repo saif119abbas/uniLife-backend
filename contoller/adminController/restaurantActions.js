@@ -203,13 +203,3 @@ exports.editCardID = catchAsync(async (req, res, next) => {
       return next(new AppError("An error occured please try again"), 500);
     });
 });
-exports.getResturants = catchAsync(async (_, res) => {
-  const data = await user.findAll({
-    attributes: ["id", "username", "email", "phoneNum"],
-    where: { role: process.env.RESTAURANT },
-  });
-  res.status(200).json({
-    status: "success",
-    data,
-  });
-});

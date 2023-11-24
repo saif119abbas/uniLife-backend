@@ -28,6 +28,7 @@ const {
   createOrder,
   getOrders,
   getOffers,
+  getPoular,
 } = require("../contoller/studentController/studnetOrder");
 const { studentPermission } = require("../permission");
 const router = express.Router();
@@ -71,6 +72,7 @@ router.post(
   createOrder
 );
 router.get("/orders/:userId", protect, studentPermission, getOrders);
+router.get("/poularmeat/:userId", protect, studentPermission, getPoular);
 router.get(
   "/offer/:userId/:restaurantId",
   protect,

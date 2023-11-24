@@ -56,6 +56,11 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
+    count: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+    },
     image: {
       type: DataTypes.BLOB,
     },

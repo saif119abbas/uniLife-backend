@@ -11,13 +11,6 @@ module.exports = (sequelize, DataTypes) => {
           notEmpty: false,
         },
       },
-      lectureId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        validator: {
-          notEmpty: false,
-        },
-      },
       classNumber: {
         type: DataTypes.STRING,
         allowNull: false,

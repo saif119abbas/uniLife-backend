@@ -1,5 +1,6 @@
 const AppError = require("../../utils/appError");
 const { Op } = require("sequelize");
+const Sequelize = require("sequelize");
 const {
   order,
   orderItem,
@@ -40,8 +41,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   for (let item of orderItemData) {
     const fooditemPrice = await foodItem.findOne({
       where: { foodId: item.foodId },
-      attributes: ["price", "offerPrice", "isOffer"],
+      attributes: ["price", "offerPrice", "isOffer", "count"],
     });
+    const count = fooditemPrice.count + 1;
     const unitPrice =
       item.Qauntity *
       (fooditemPrice.isOffer ? fooditemPrice.offerPrice : fooditemPrice.price);
@@ -58,7 +60,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
           foodItemFoodId: item.foodId,
           orderItemOrderItemId: myItems.orderItemId,
         })
-          .then(() => {})
+          .then(() => {
+            foodItem.update({ count }, { where: { foodId: item.foodId } });
+          })
           .catch((err) => {
             console.log(err);
             return next(new AppError("An error ouccured please try agin", 500));
@@ -253,4 +257,56 @@ exports.getOffers = catchAsync(async (req, res, next) => {
       message: "no offers",
     });
   return res.status(200).json({ myOffers });
+});
+exports.getPoular = catchAsync(async (req, res, next) => {
+  const data = [];
+  const poular = await foodItem.findAll({
+    attributes: [
+      "foodId",
+      "category",
+      "nameOfFood",
+      "price",
+      "description",
+      "menuMenuId",
+      [Sequelize.fn("MAX", Sequelize.col("count")), "maxCount"],
+    ],
+    group: ["menuMenuId"],
+    where: {
+      count: {
+        [Sequelize.Op.gt]: 0, // Exclude rows where count is 0
+      },
+    },
+  });
+  console.log("The poular", poular);
+  if (!poular || poular.length === 0)
+    return res.status(200).json({
+      status: "failed",
+      message: "no poular",
+    });
+  for (let item of poular) {
+    const myMenu = await menu.findOne({
+      attributes: ["restaurantId"],
+      where: { menuId: item.menuMenuId },
+    });
+    const restu = await restaurant.findOne({
+      attributes: ["userId"],
+      where: { id: myMenu.restaurantId },
+    });
+    const myUser = await user.findOne({
+      attributes: ["username"],
+      where: { id: restu.userId },
+    });
+    const myData = {
+      foodId: item.foodId,
+      category: item.category,
+      nameOfFood: item.nameOfFood,
+      price: item.price,
+      description: item.description,
+      restaurantId: myMenu.restaurantId,
+      name: myUser.username,
+    };
+
+    data.push(myData);
+  }
+  return res.status(200).json({ data });
 });

@@ -7,7 +7,6 @@ const {
   deleteMenu,
   createMenu,
   editCardID,
-  getResturants,
 } = require("../contoller/adminController/restaurantActions");
 const {
   addDormitoryOwner,
@@ -76,11 +75,5 @@ router.get(
   protect,
   adminPermission,
   getDormitoryOwners
-);
-router.get(
-  "/getAllRestarunts/:adminId",
-  protect,
-  adminPermission,
-  getResturants
 );
 module.exports = router;

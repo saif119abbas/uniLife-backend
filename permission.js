@@ -62,3 +62,20 @@ exports.dormitoryPermission = catchAsync(async (req, res, next) => {
     });
   return next();
 });
+exports.adminOrStuPermission = catchAsync(async (req, res, next) => {
+  const id = req.params.userId;
+  const myRole = await user.findOne({
+    attributes: ["role"],
+    where: { id },
+  });
+  if (
+    (myRole.role !== process.env.ADMIN &&
+      myRole.role !== process.env.STUDENT) ||
+    !myRole
+  )
+    return res.status(403).json({
+      status: "failed",
+      message: "not allowed",
+    });
+  return next();
+});
