@@ -22,6 +22,7 @@ const {
   createPost,
   getPostStudent,
   reservesdPost,
+  searchPost,
 } = require("../contoller/studentController/postController");
 const {
   validtaeAddLecture,
@@ -111,5 +112,6 @@ router.patch(
   studentPermission,
   reservesdPost
 );
+router.get("/post/search/:userId", protect, studentPermission, searchPost);
 
 module.exports = router;

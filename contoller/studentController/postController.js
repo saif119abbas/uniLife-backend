@@ -114,7 +114,6 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
   condition = { ...condition, id: { [Op.in]: ids } };
   console.log("ids", ids);
   const posts = await post.findAll({
-    attributes: ["image", "description", "studentId", "id"],
     where: condition,
   });
   if (!posts || posts.length === 0)
@@ -125,6 +124,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
   let data = [];
 
   for (let item of posts) {
+    const reserved = item.reservedBy ? true : false;
     const { description, id, image } = item;
     const myStudent = await student.findOne({
       attributes: ["userId"],
@@ -140,7 +140,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       where: { id: myStudent.userId },
     });
     const { username } = myUser;
-    data.push({ id, username, description, image });
+    data.push({ id, username, description, image, reserved });
   }
   res.status(200).json({ data });
 });
@@ -158,7 +158,10 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
   const reservedBy = myStudent.id;
   const id = req.params.postId;
   await post
-    .update({ reservedBy }, { where: { reservedBy: NULL, id } })
+    .update(
+      { reservedBy },
+      { where: { reservedBy: null, id, studentId: { [Op.not]: myStudent.id } } }
+    )
     .then((count) => {
       if (count[0] === 1)
         return res
@@ -170,4 +173,46 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
           message: "not found post",
         });
     });
+});
+exports.searchPost = catchAsync(async (req, res, next) => {
+  const desc = req.body.description;
+  const userId = req.params.userId;
+  const myStudent = await student.findOne({
+    attributes: ["id", "blocked"],
+    where: { userId },
+  });
+  const posts = await post.findAll({
+    where: {
+      description: { [Op.like]: `%${desc}%` },
+      studentId: { [Op.not]: myStudent.id },
+    },
+  });
+  if (!posts || posts.length === 0)
+    return res.status(404).json({ message: "no post found" });
+  /*if (myStudent.blocked)
+    return res.status(403).json({
+      status: "failed",
+      message:"not allowed"
+    })*/
+  let data = [];
+  for (let item of posts) {
+    const reserved = item.reservedBy ? true : false;
+    const { description, id, image } = item;
+    const myStudent = await student.findOne({
+      attributes: ["userId"],
+      where: { id: item.studentId },
+    });
+    if (!myStudent)
+      return res.status(404).json({
+        status: "failed",
+        message: "there is no post",
+      });
+    const myUser = await user.findOne({
+      attributes: ["username"],
+      where: { id: myStudent.userId },
+    });
+    const { username } = myUser;
+    data.push({ id, username, description, image, reserved });
+  }
+  res.status(200).json({ data });
 });
