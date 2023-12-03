@@ -3,13 +3,16 @@ const router = express.Router();
 const {
   login,
   protect,
+  storeData,
+  retriveData,
 } = require("../contoller/userController/authController");
+const { getMenu } = require("../contoller/restaurant/restaurantController");
 const {
   forrgetPassword,
   verifyUpdatePassword,
   restPassword,
 } = require("../contoller/userController/forgetPassword");
-
+const { uploadProcessData } = require("../firebaseConfig");
 const {
   validtaeLogin,
   validtaeForgetPassword,
@@ -18,9 +21,12 @@ const {
 } = require("../validation/validator");
 const {
   getResturants,
+  getResturant,
 } = require("../contoller/userController/generalController");
-const { required } = require("joi");
-const { adminOrStuPermission } = require("../permission");
+const {
+  adminOrStuPermission,
+  RestauarntOrStuPermission,
+} = require("../permission");
 router.post("/login", validtaeLogin, login);
 router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
 router.post(
@@ -30,6 +36,25 @@ router.post(
 );
 router.post("/restPassword", protect, validtaeResetPassword, restPassword);
 router.post("/restPassword", protect, validtaeResetPassword, restPassword);
-router.get("/resturants/:userId", protect, adminOrStuPermission, getResturants);
+router.get(
+  "/restaurants/:userId",
+  protect,
+  adminOrStuPermission,
+  getResturants
+);
+router.get(
+  "/restaurants/:userId/:resturantId",
+  protect,
+  adminOrStuPermission,
+  getResturant
+);
+/*router.get(
+  "/menu/:restaurantId/:userId",
+  protect,
+  RestauarntOrStuPermission,
+  getMenu
+);*/
+router.get("/firebase", storeData);
+router.get("/firebaseget", retriveData);
 //router.use(protect);
 module.exports = router;

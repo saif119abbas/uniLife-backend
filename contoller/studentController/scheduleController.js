@@ -20,7 +20,7 @@ exports.createSchedule = catchAsync(async (req, res, next) => {
     .catch((err) => {
       console.log("My error:", err);
       if (err.name === "SequelizeUniqueConstraintError")
-        return res.status(401).json({
+        return res.status(409).json({
           status: "success",
           message: "This account is already created",
         });

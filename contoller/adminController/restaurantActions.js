@@ -29,8 +29,9 @@ exports.addRestaurant = (req, res, next) => {
               next();
             })
             .catch((err) => {
+              console.log("the error occurred", err);
               if (err.name === "SequelizeUniqueConstraintError")
-                res.status(401).json({
+                res.status(409).json({
                   status: "failed",
                   message: "This account is already created",
                 });
@@ -41,8 +42,9 @@ exports.addRestaurant = (req, res, next) => {
             });
         })
         .catch((err) => {
+          console.log("An error", err);
           if (err.name === "SequelizeUniqueConstraintError")
-            res.status(401).json({
+            res.status(409).json({
               status: "failed",
               message: "This account is already created",
             });
@@ -59,12 +61,13 @@ exports.createMenu = catchAsync(async (req, res, next) => {
   menu
     .create(menuData)
     .then(() => {
-      res.status(201).json({
+      return res.status(201).json({
         status: "success",
         message: "created successfully",
       });
     })
-    .catch(() => {
+    .catch((err) => {
+      console.log("My err:", err);
       return next(new AppError("An error occured please try again ", 500));
     });
 });
@@ -113,6 +116,11 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
       }
     })
     .catch((err) => {
+      if (err.name === "SequelizeUniqueConstraintError")
+        res.status(409).json({
+          status: "failed",
+          message: "This account is already created",
+        });
       console.log("my error", err);
       if (err)
         return next(new AppError("1an error occurred please try again", 500));
@@ -180,7 +188,7 @@ exports.deleteMenu = catchAsync(async (req, res, next) => {
       return next(new AppError("An error occured please try again"), 500);
     });
 });
-exports.editCardID = catchAsync(async (req, res, next) => {
+/*exports.editCardID = catchAsync(async (req, res, next) => {
   const cardID = req.body.cardID;
   console.log("editCardID");
   if (!cardID) next();
@@ -202,4 +210,4 @@ exports.editCardID = catchAsync(async (req, res, next) => {
         });
       return next(new AppError("An error occured please try again"), 500);
     });
-});
+});*/

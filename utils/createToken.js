@@ -9,9 +9,8 @@ exports.createSendToken = (data, statusCode, expiresIn, res) => {
     expires: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
     httpOnly: true,
   };
-  // if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
-
-  // res.cookie("jwt", token, cookieOptions);
+  if (process.env.NODE_ENV === "production") cookieOptions.secure = true;
+  res.cookie("jwt", token, cookieOptions);
   //localStorage.setItem("jwt", token);
   // Remove password from output
   data.password = undefined;

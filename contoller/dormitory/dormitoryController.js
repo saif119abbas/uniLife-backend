@@ -49,7 +49,7 @@ exports.addDormitoryPost = catchAsync(async (req, res, next) => {
           .catch((err) => {
             console.log("Error creating", err);
             if (err.name === "SequelizeUniqueConstraintError")
-              return result.status(401).json({
+              return result.status(409).json({
                 status: "failed",
                 message: "This room is already created ",
               });
@@ -92,7 +92,7 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
             return res
               .status(204)
               .json({ status: "success", message: "deleted successfully" });
-          else if (count > 1)
+          else if (count === 0)
             return res
               .status(404)
               .json({ status: "failed", message: "not found" });

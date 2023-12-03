@@ -1,6 +1,6 @@
-"use strict";
+/*"use strict";
 
-module.exports = {
+/*module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.removeColumn("lectures", "lectureId");
   },
@@ -14,4 +14,4 @@ module.exports = {
       }, // Change to false if the column should not allow null values
     });
   },
-};
+};*/

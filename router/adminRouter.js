@@ -6,7 +6,6 @@ const {
   deleteRestaurant,
   deleteMenu,
   createMenu,
-  editCardID,
 } = require("../contoller/adminController/restaurantActions");
 const {
   addDormitoryOwner,
@@ -15,6 +14,7 @@ const {
   editSSN,
   getDormitoryOwners,
 } = require("../contoller/adminController/dormitoryActions");
+const { addMajor } = require("../contoller/adminController/majorAction");
 const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
@@ -26,7 +26,7 @@ const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
 router.post(
-  "/addRestaurant/:adminId",
+  "/restaurant/:adminId",
   protect,
   adminPermission,
   validtaeAddRestaurant,
@@ -35,15 +35,14 @@ router.post(
 );
 router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
 router.patch(
-  "/editRestaurant/:userId/:adminId",
+  "/restaurants/:adminId/:userId",
   protect,
   adminPermission,
   validtaeEditRestaurant,
-  editCardID,
   editRestaurant
 );
 router.delete(
-  "/deleteRestaurant/:userId/:adminId",
+  "/restaurants/:adminId/:userId",
   protect,
   adminPermission,
   deleteMenu,
@@ -76,4 +75,5 @@ router.get(
   adminPermission,
   getDormitoryOwners
 );
+router.post("/major/:adminId", protect, adminPermission, addMajor);
 module.exports = router;

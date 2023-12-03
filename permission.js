@@ -11,17 +11,22 @@ const myRole = catchAsync(async (req) => {
   return myRole.role;
 });
 exports.studentPermission = catchAsync(async (req, res, next) => {
-  const id = req.params.userId;
-  const myRole = await user.findOne({
-    attributes: ["role"],
-    where: { id },
-  });
-  if (myRole.role !== process.env.STUDENT || !myRole)
-    return res.status(403).json({
-      status: "failed",
-      message: "not allowed",
+  try {
+    const id = req.params.userId;
+    console.log(id);
+    const myRole = await user.findOne({
+      attributes: ["role"],
+      where: { id },
     });
-  return next();
+    if (myRole.role !== process.env.STUDENT || !myRole)
+      return res.status(403).json({
+        status: "failed",
+        message: "not allowed",
+      });
+    return next();
+  } catch (err) {
+    console.log("The err", err);
+  }
 });
 exports.adminPermission = catchAsync(async (req, res, next) => {
   const id = req.params.adminId;
@@ -70,6 +75,23 @@ exports.adminOrStuPermission = catchAsync(async (req, res, next) => {
   });
   if (
     (myRole.role !== process.env.ADMIN &&
+      myRole.role !== process.env.STUDENT) ||
+    !myRole
+  )
+    return res.status(403).json({
+      status: "failed",
+      message: "not allowed",
+    });
+  return next();
+});
+exports.RestauarntOrStuPermission = catchAsync(async (req, res, next) => {
+  const id = req.params.userId;
+  const myRole = await user.findOne({
+    attributes: ["role"],
+    where: { id },
+  });
+  if (
+    (myRole.role !== process.env.RESTAURANT &&
       myRole.role !== process.env.STUDENT) ||
     !myRole
   )

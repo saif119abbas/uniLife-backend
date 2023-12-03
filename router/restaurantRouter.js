@@ -6,6 +6,7 @@ const {
   deleteFoodItem,
   getOrders,
   endOrder,
+  getMenu,
 } = require("../contoller/restaurant/restaurantController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
@@ -17,6 +18,7 @@ const { restaurantPermission } = require("../permission");
 const { restaurantCheckOrder } = require("../MiddleWare/resturantMiddleWare");
 const { upload } = require("../images/handleImag");
 const router = express.Router();
+router.get("/menu/:userId", protect, restaurantPermission, getMenu);
 router.post(
   "/addFoodItem/:userId",
   protect,
@@ -40,7 +42,7 @@ router.delete(
   deleteFoodItem
 );
 router.get(
-  "/ordersrestaurnt/:userId",
+  "/orders/restaurant/:userId",
   protect,
   restaurantPermission,
   getOrders

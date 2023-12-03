@@ -31,7 +31,7 @@ exports.addDormitoryOwner = (req, res, next) => {
           })
           .catch((err) => {
             if (err.name === "SequelizeUniqueConstraintError")
-              res.status(401).json({
+              res.status(409).json({
                 status: "failed",
                 message: "This account is already created",
               });

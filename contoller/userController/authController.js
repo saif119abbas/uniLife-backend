@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt");
 const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
-
+const { uploadProcessData, getData } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
 let verifyMessage = "";
@@ -12,7 +12,10 @@ let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
   await user
-    .findOne({ where: { email: data.email } })
+    .findOne({
+      attributes: ["role", "id", "password", "email"],
+      where: { email: data.email },
+    })
     .then((result) => {
       if (result.length > 1)
         return res.status(403).json({
@@ -25,6 +28,7 @@ exports.login = catchAsync(async (req, res, next) => {
         result.password,
         (err, passwordIsCorrect) => {
           if (err) {
+            console.log("the er", err);
             return next(
               new AppError("An error occurred, please try again", 500)
             );
@@ -46,8 +50,9 @@ exports.login = catchAsync(async (req, res, next) => {
             req.session.email = data.email;
             req.session.userId = result.id;
             req.session.role = result.role;
-            expiresIn = `${24 * 60 * 60}s`;
+            expiresIn = `24h`;
             data.id = result.id;
+            data.role = result.role;
             createSendToken(data, 200, expiresIn, res);
           }
         }
@@ -141,7 +146,7 @@ exports.verify = catchAsync(async (req, res, next) => {
           .catch((err) => {
             console.log("My error:", err);
             if (err.name === "SequelizeUniqueConstraintError")
-              return res.status(401).json({
+              return res.status(409).json({
                 status: "failed",
                 message: "This account is already created",
               });
@@ -153,7 +158,7 @@ exports.verify = catchAsync(async (req, res, next) => {
       .catch((err) => {
         console.log("My error:", err);
         if (err.name === "SequelizeUniqueConstraintError")
-          return res.status(401).json({
+          return res.status(409).json({
             status: "failed",
             message: "This account is already created",
           });
@@ -193,7 +198,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     /* if (Date.now() / 1000 - res.iat <= res.exp)
       return next(new AppError("Timed out please try again", 401));*/
     // 3) Check if user still exists
-    user
+    /*user
       .findOne({
         where: { email: req.session.email },
       })
@@ -205,16 +210,24 @@ exports.protect = catchAsync(async (req, res, next) => {
               401
             )
           );
-        }
-        // 4) Check if user changed password after the token was issued
-        /*if (currentUser.changedPasswordAfter(decoded.iat)) {
+        }*/
+    // 4) Check if user changed password after the token was issued
+    /*if (currentUser.changedPasswordAfter(decoded.iat)) {
           return next(
             new AppError("User recently changed password! Please log in again.", 401)
           );
         }*/
-        // GRANT ACCESS TO PROTECTED ROUTE
-        req.session.user = data;
-        next();
-      });
+    // GRANT ACCESS TO PROTECTED ROUTE
+    /*req.session.user = data;
+      })*/ next();
   });
+});
+exports.storeData = catchAsync(async (_, res) => {
+  const data = await uploadProcessData();
+  res.status(200).json(data);
+});
+exports.retriveData = catchAsync(async (_, res) => {
+  const data = await getData();
+  console.log(data);
+  res.status(200).json(data);
 });

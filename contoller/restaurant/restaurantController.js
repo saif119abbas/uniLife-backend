@@ -10,22 +10,25 @@ const {
   OrderItem_FoodItem,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
+const { UploadFile } = require("../../firebaseConfig");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
-  const myRestaurant = await restaurant.findOne({
-    where: { userId },
-  });
+  const myRestaurant = await restaurant
+    .findOne({ attributes: ["id"], where: { userId } })
+    .then()
+    .catch((err) => console.log("the err", err));
   if (!myRestaurant)
-    return res.status(404).json({ status: "failed", message: "not found" });
+    return res.status(404).json({ status: "1failed", message: "not found" });
   const restaurantId = myRestaurant.id;
   const myMenu = await menu.findOne({ where: { restaurantId } });
   if (!myMenu)
-    return res.status(404).json({ status: "failed", message: "not found" });
+    return res.status(404).json({ status: "2failed", message: "not found" });
   const menuId = myMenu.menuId;
   console.log("menuId: ", restaurantId);
   req.session.menuId = menuId;
   let myFoodItem = JSON.parse(req.body.data);
   const myImage = req.file;
+  UploadFile(myImage);
   console.log("The image: ", myImage);
   console.log("The food", req.body);
   /*myFoodItem.menuMenuId = menuId;
@@ -46,9 +49,9 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
         .json({ status: "success", message: "created successfully" });
     })
     .catch((err) => {
-      console.log(err);
+      console.log("The err", err);
       if (err.name === "SequelizeUniqueConstraintError")
-        return res.status(401).json({
+        return res.status(409).json({
           status: "failed",
           message: "this food is already exists",
         });
@@ -56,7 +59,16 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
     });
 });
 exports.getMenu = catchAsync(async (req, res, next) => {
-  const restaurantId = req.params.restaurantId;
+  let restaurantId = req.params.restaurantId;
+  if (!restaurantId) {
+    const userId = req.params.userId;
+    const myUser = await restaurant.findOne({
+      attributes: ["id"],
+      where: { userId },
+    });
+    restaurantId = myUser.id;
+  }
+
   const myMenu = await menu.findOne({
     where: { restaurantId },
   });
@@ -173,6 +185,7 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occurred please try again", 500));
     });
 });
+
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -182,11 +195,11 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     });
     if (!myRestaurant) {
       return res.status(403).json({
-        status: "Not allowed action",
-        message: "Something went wrong please try again",
+        status: "failed",
+        message: "not allowed",
       });
     }
-    console.log("the student", myRestaurant);
+    //console.log("the student", myRestaurant);
     const restaurantId = myRestaurant.id;
     let retrieveData = [];
     const myOrders = await order.findAll({
@@ -231,11 +244,11 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           message: "You do not have any orders",
         });
       data.studentName = studentUser.username;
-      console.log(
+      /* console.log(
         "data with restaurant name: ",
         data.studentName,
         studentUser.username
-      );
+      );*/
 
       const items = [];
       const orderItems = await orderItem.findAll({
@@ -247,7 +260,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           status: "failed",
           message: "You do not have any orders",
         });
-      console.log("oreders Item with quntity and unit price :", orderItems);
+      //console.log("oreders Item with quntity and unit price :", orderItems);
       for (let i = 0; i < orderItems.length; i++) {
         const itemData = {
           Qauntity: "",
@@ -258,16 +271,19 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         const itemId = orderItems[i];
         itemData.Qauntity = itemId.Qauntity;
         itemData.unitPrice = itemId.unitPrice;
+        console.log("ordere item id:", itemId.orderItemId);
         const records = await OrderItem_FoodItem.findOne({
           attributes: ["foodItemFoodId"],
           where: { orderItemOrderItemId: itemId.orderItemId },
         });
-        console.log("reords Item with foodItemFoodId:", records);
+        console.log("11records Item with foodItemFoodId:", records);
+        if (!records) continue;
+
         const foodItems = await foodItem.findOne({
           attributes: ["price", "nameOfFood"],
           where: { foodId: records.foodItemFoodId },
         });
-        console.log("food Items Item with price and name of food:", foodItems);
+        // console.log("food Items Item with price and name of food:", foodItems);
         itemData.price = foodItems.price;
         itemData.nameOfFood = foodItems.nameOfFood;
         items.push(itemData);

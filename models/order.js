@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
+    notes: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   });
   order.associate = (models) => {
     order.hasMany(models.orderItem);

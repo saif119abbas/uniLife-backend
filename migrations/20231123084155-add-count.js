@@ -1,6 +1,6 @@
-"use strict";
+/*"use strict";
 
-module.exports = {
+/*module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.addColumn("fooditems", "count", {
       type: Sequelize.INTEGER,
@@ -12,4 +12,4 @@ module.exports = {
   down: async (queryInterface, Sequelize) => {
     await queryInterface.removeColumn("fooditems", "count");
   },
-};
+};*/

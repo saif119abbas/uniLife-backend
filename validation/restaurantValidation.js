@@ -26,10 +26,6 @@ exports.addResturantValidation = Joi.object({
     .message("❌ Must be exactly 10 digits")
     .max(10)
     .message("❌ Must be exactly 10 digits"),
-  cardID: Joi.number()
-    .required()
-    .invalid()
-    .error(new Error("cardId must be a number")),
 });
 exports.editRestaurantValidation = Joi.object({
   username: Joi.string()
@@ -58,7 +54,6 @@ exports.editRestaurantValidation = Joi.object({
     .message("❌ Must be exactly 10 digits")
     .max(10)
     .message("❌ Must be exactly 10 digits"),
-  cardID: Joi.number().invalid().error(new Error("cardId must be a number")),
 })
   .min(1)
   .message("provide the inforamtiom you want to edit");

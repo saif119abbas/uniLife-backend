@@ -132,7 +132,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     if (!myOrders || myOrders.length === 0) {
       return res.status(404).json({
         status: "failed",
-        message: "You do not have any orders",
+        message: "1You do not have any orders",
       });
     }
     console.log("MyOrders", myOrders);
@@ -147,7 +147,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       if (!restaurants)
         return res.status(404).json({
           status: "failed",
-          message: "You do not have any orders",
+          message: "2You do not have any orders",
         });
       const restaurantUser = await user.findOne({
         attributes: ["username"],
@@ -156,7 +156,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       if (!restaurantUser)
         return res.status(404).json({
           status: "failed",
-          message: "You do not have any orders",
+          message: "3You do not have any orders",
         });
       data.restaurantName = restaurantUser.username;
       console.log(
@@ -173,9 +173,8 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       if (!orderItems || orderItems.length === 0)
         return res.status(404).json({
           status: "failed",
-          message: "You do not have any orders",
+          message: "4You do not have any orders",
         });
-      console.log("oreders Item with quntity and unit price :", orderItems);
       for (let i = 0; i < orderItems.length; i++) {
         const itemData = {
           Qauntity: "",
@@ -187,11 +186,12 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         const itemId = orderItems[i];
         itemData.Qauntity = itemId.Qauntity;
         itemData.unitPrice = itemId.unitPrice;
+        console.log("orderItemId:", itemId.orderItemId);
         const records = await OrderItem_FoodItem.findOne({
           attributes: ["foodItemFoodId"],
           where: { orderItemOrderItemId: itemId.orderItemId },
         });
-        console.log("reords Item with foodItemFoodId:", records);
+        console.log("11records Item with foodItemFoodId:", records);
         const foodItems = await foodItem.findOne({
           attributes: [
             "price",

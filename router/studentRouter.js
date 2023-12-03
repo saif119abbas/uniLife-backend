@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const {
   signup,
   verify,
@@ -18,6 +19,11 @@ const {
   getPost,
 } = require("../contoller/dormitory/externalController");
 const {
+  createPost,
+  getPostStudent,
+  reservesdPost,
+} = require("../contoller/studentController/postController");
+const {
   validtaeAddLecture,
   validtaeEditLecture,
   validtaeCreateOrder,
@@ -33,6 +39,8 @@ const {
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
 router.post(
@@ -58,12 +66,7 @@ router.patch(
   editLecture
 );
 router.get("/getLectures/:userId", protect, studentPermission, getLectures);
-router.get(
-  "/getMenu/:restaurantId/:userId",
-  protect,
-  studentPermission,
-  getMenu
-);
+router.get("/menu/:restaurantId/:userId", protect, studentPermission, getMenu);
 router.post(
   "/createOrder/:userId",
   protect,
@@ -90,6 +93,23 @@ router.get(
   protect,
   studentPermission,
   getPost
+);
+router.post(
+  "/post/:userId",
+  upload.fields([
+    { name: "data", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+  ]),
+  protect,
+  studentPermission,
+  createPost
+);
+router.get("/post/all/:userId", protect, studentPermission, getPostStudent);
+router.patch(
+  "/post/reserve/:userId/:postId",
+  protect,
+  studentPermission,
+  reservesdPost
 );
 
 module.exports = router;

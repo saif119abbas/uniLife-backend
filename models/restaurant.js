@@ -1,12 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const restaurant = sequelize.define("restaurant", {
-    cardID: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      unique: true,
-      validator: {
-        notEmpty: false,
-      },
+    image: {
+      type: DataTypes.BLOB,
     },
   });
   restaurant.associate = (models) => {
