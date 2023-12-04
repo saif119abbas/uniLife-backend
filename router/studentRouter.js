@@ -38,6 +38,10 @@ const {
   getOffers,
   getPoular,
 } = require("../contoller/studentController/studnetOrder");
+const {
+  sendMessage,
+  getMessage,
+} = require("../contoller/studentController/messageController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
@@ -109,5 +113,17 @@ router.patch(
   reservesdPost
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
+router.post(
+  "/messgae/:senderId/:receiverId",
+  protect,
+  studentPermission,
+  sendMessage
+);
+router.get(
+  "/messgae/:senderId/:receiverId",
+  protect,
+  studentPermission,
+  getMessage
+);
 
 module.exports = router;
