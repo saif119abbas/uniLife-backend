@@ -101,6 +101,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.password = hash;
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
+    req.session.major = createdUser.major;
 
     verifyMessage = createMessage();
     transportMessage(verifyMessage, createdUser.email);
@@ -136,7 +137,7 @@ exports.verify = catchAsync(async (req, res, next) => {
       .create(myData)
       .then((data) => {
         student
-          .create({ userId: data.id })
+          .create({ userId: data.id, major: req.session.major })
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;

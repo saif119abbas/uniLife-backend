@@ -48,7 +48,8 @@ exports.createPost = catchAsync(async (req, res, next) => {
     where: { userId },
   });
   const studentId = myStudent.id;
-  const image = req.files.image[0];
+  const image = req.file.buffer;
+  console.log("Image:", image);
   const postData = {
     description: data.description,
     studentId,
