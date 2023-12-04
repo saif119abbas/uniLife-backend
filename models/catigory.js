@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   catigory.associate = (models) => {
-    catigory.belongsTo(models.post);
+    catigory.hasMany(models.post);
   };
 
   return catigory;

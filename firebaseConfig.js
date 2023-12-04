@@ -1,4 +1,5 @@
 const { initializeApp } = require("firebase/app");
+const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const {
   getFirestore,
   doc,
@@ -26,11 +27,13 @@ const firebaseConfig = {
 let App;
 let firestoreDB;
 let storage;
+let bucket;
 const initializeFirebaseApp = () => {
   try {
     App = initializeApp(firebaseConfig);
     firestoreDB = getFirestore();
     storage = getStorage();
+    bucket = storage.bucket();
     return App;
   } catch (err) {
     return err;
@@ -67,12 +70,57 @@ const getData = async (to, from) => {
     return err;
   }
 };
-const UploadFile = async (file) => {
-  console.log("myfile", file);
+const UploadFile = async (file, nameImage) => {
+  console.log("from upload file myfile", file);
   console.log("my storage", storage);
-  const nameImage = `foodItem 40`;
-  const storageRef = ref(storage, nameImage, "foodItem");
+  //const nameImage = `foodItem 40`;
+  const storageRef = ref(storage, nameImage);
   await uploadBytes(storageRef, file);
+  //const File=
+};
+const getURL = async (nameImage) => {
+  const pathReference = ref(storage, nameImage);
+  const URL = await new Promise((resolve, reject) => {
+    getDownloadURL(pathReference).then((url) => resolve(url));
+  });
+  console.log("URL: ", URL);
+  return URL;
+};
+const getFiles = async (URL) => {
+  const xmlhttp = new XMLHttpRequest();
+  xmlhttp.responseType = "blob";
+  xmlhttp.onload = (event) => {
+    const blob = xmlhttp.response;
+    console.log(blob);
+  };
+  xmlhttp.onreadystatechange = myfunction();
+  xmlhttp.open("GET", URL, true);
+  xmlhttp.send();
+
+  function myfunction() {
+    let y = "";
+    if (xmlhttp.readyState == 0) {
+      //window.alert("Uninitialized");
+      y = "Uninitialized";
+    }
+    if (xmlhttp.readyState == 1) {
+      //window.alert("loading");
+      y = "loading";
+    }
+    if (xmlhttp.readyState == 2) {
+      //window.alert("loaded");
+      y = "loaded";
+    }
+    if (xmlhttp.readyState == 3) {
+      // window.alert("waiting");
+      y = "waiting";
+    }
+    if (xmlhttp.readyState == 4) {
+      // window.alert("completed");
+      y = JSON.parse(xmlhttp.responseText);
+    }
+    console.log(y);
+  }
 };
 const getFirebaseApp = () => App;
 const getMyStoarge = () => storage;
@@ -83,4 +131,6 @@ module.exports = {
   getData,
   getMyStoarge,
   UploadFile,
+  getURL,
+  getFiles,
 };

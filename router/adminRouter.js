@@ -14,7 +14,10 @@ const {
   editSSN,
   getDormitoryOwners,
 } = require("../contoller/adminController/dormitoryActions");
-const { addMajor } = require("../contoller/adminController/majorAction");
+const {
+  addMajor,
+  addCatigory,
+} = require("../contoller/adminController/postAction");
 const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
@@ -76,4 +79,5 @@ router.get(
   getDormitoryOwners
 );
 router.post("/major/:adminId", protect, adminPermission, addMajor);
+router.post("/catigory/:adminId", protect, adminPermission, addCatigory);
 module.exports = router;

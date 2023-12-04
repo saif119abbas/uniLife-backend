@@ -5,6 +5,7 @@ const {
   protect,
   storeData,
   retriveData,
+  downloadFile,
 } = require("../contoller/userController/authController");
 const { getMenu } = require("../contoller/restaurant/restaurantController");
 const {
@@ -56,5 +57,6 @@ router.get(
 );*/
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
+router.get("/downloadFile", downloadFile);
 //router.use(protect);
 module.exports = router;
