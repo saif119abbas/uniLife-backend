@@ -55,15 +55,27 @@ exports.createPost = catchAsync(async (req, res, next) => {
     const studentId = myStudent.id;
     console.log("req.file:", req.file); // Correctly log the uploaded file
 
+    const catigoryId = await new Promise((resolve, reject) => {
+      catigory
+        .findOne({ attributes: ["id"], where: { name: data.catigory } })
+        .then((record) => {
+          if (!record || record.length === 0)
+            return resolve.status(404).json({
+              status: "failed",
+              message: "this catigory is not found",
+            });
+          resolve(record.id);
+        });
+    });
     const postData = {
       description: data.description,
       studentId,
-      image: req.file.buffer, // Save the image data to the database (assuming Sequelize model is configured appropriately)
+      image: req.file.buffer,
+      catigoryId,
     };
-
     await post.create(postData).then((record) => {
       const majors = data.majors;
-      catigory.create({ postId: record.id, name: data.catigory });
+      // catigory.create({ postId: record.id, name: data.catigory });
       addMajors({ majors, postId: record.id }, res, next);
     });
 

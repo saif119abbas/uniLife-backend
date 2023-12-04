@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     post.belongsToMany(models.major, {
       through: models.postMajor,
     });
-    post.hasOne(models.catigory);
+    post.belongsTo(models.catigory);
     post.belongsTo(models.student, { foreignKey: "studentId" });
   };
 
