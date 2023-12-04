@@ -48,8 +48,7 @@ exports.createPost = catchAsync(async (req, res, next) => {
     where: { userId },
   });
   const studentId = myStudent.id;
-  const image = req.file.buffer;
-  console.log("Image:", image);
+  const image = req.files.image[0];
   const postData = {
     description: data.description,
     studentId,
@@ -61,16 +60,25 @@ exports.createPost = catchAsync(async (req, res, next) => {
       const majors = data.majors;
       catigory.create({ postId: record.id, name: data.catigory });
       addMajors({ majors, postId: record.id }, res, next);
-    })
-    .catch((err) => {
-      console.log("The err:", err);
-      if (err.name === "SequelizeUniqueConstraintError")
-        return res.status(409).json({
-          status: "failed",
-          message: "already created",
-        });
-      return next(new AppError("An error occurred please try again", 500));
     });
+
+    res.status(201).json({
+      status: "success",
+      message: "Post created successfully",
+      // Include any additional data you want to send back
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        status: "failed",
+        message: "Already created",
+      });
+    }
+
+    return next(new AppError("An error occurred, please try again", 500));
+  }
 });
 exports.getPostStudent = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
