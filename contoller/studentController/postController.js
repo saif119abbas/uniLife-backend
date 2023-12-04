@@ -53,12 +53,12 @@ exports.createPost = catchAsync(async (req, res, next) => {
     });
 
     const studentId = myStudent.id;
-    console.log("req.file:", req.file); // Correctly log the uploaded file
+    console.log("req.file:", req.file);
 
     const postData = {
       description: data.description,
       studentId,
-      image: req.file.buffer, // Save the image data to the database (assuming Sequelize model is configured appropriately)
+      image: req.file.buffer,
     };
 
     await post.create(postData).then((record) => {
