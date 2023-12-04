@@ -1,5 +1,6 @@
 const express = require("express");
 const multer = require("multer");
+const { upload } = require("../images/handleImag");
 const {
   signup,
   verify,
@@ -40,8 +41,6 @@ const {
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
 router.post(
@@ -97,10 +96,7 @@ router.get(
 );
 router.post(
   "/post/:userId",
-  upload.fields([
-    { name: "data", maxCount: 1 },
-    { name: "image", maxCount: 1 },
-  ]),
+  upload.single("image"),
   protect,
   studentPermission,
   createPost

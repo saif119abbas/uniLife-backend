@@ -92,6 +92,7 @@ exports.signup = catchAsync(async (req, res, next) => {
       status: "falied",
       message: "This account is already creted",
     });
+
   bcrypt.hash(createdUser.password, 12, (err, hash) => {
     if (err) {
       return new AppError("An error occured please try again ", 500);
@@ -101,11 +102,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.password = hash;
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
+    req.session.major = createdUser.major;
 
     verifyMessage = createMessage();
     transportMessage(verifyMessage, createdUser.email);
     stratTime = Date.now();
-    expiredIn = "60s";
+    expiresIn = "60s";
     res.status(200).json({
       status: "success",
     });
@@ -124,19 +126,25 @@ exports.verify = catchAsync(async (req, res, next) => {
   if (req.body.verifyCode === verifyMessage) {
     verifyMessage = "";
     //expiresIn = "24h";
-    console.log(req.session.email, req.session.password, req.session.phoneNum);
+    console.log(
+      req.session.email,
+      req.session.password,
+      req.session.phoneNum,
+      req.session.major
+    );
     const myData = {
       email: req.session.email,
       password: req.session.password,
       phoneNum: req.session.phoneNum,
       username: req.session.username,
+
       role: process.env.student,
     };
     await user
       .create(myData)
       .then((data) => {
         student
-          .create({ userId: data.id })
+          .create({ userId: data.id, major: req.session.major })
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;

@@ -41,35 +41,49 @@ const addMajors = async (data, res, next) => {
 };
 exports.createPost = catchAsync(async (req, res, next) => {
   console.log("The body:", req.body.data);
-  const data = JSON.parse(req.body.data);
-  const userId = req.params.userId;
-  const myStudent = await student.findOne({
-    attributes: ["id"],
-    where: { userId },
-  });
-  const studentId = myStudent.id;
-  const image = req.files.image[0];
-  const postData = {
-    description: data.description,
-    studentId,
-    image,
-  };
-  await post
-    .create(postData)
-    .then((record) => {
+
+  try {
+    const data = JSON.parse(req.body.data);
+    const userId = req.params.userId;
+
+    // Assuming you have the necessary Sequelize models defined
+    const myStudent = await student.findOne({
+      attributes: ["id"],
+      where: { userId },
+    });
+
+    const studentId = myStudent.id;
+    console.log("req.file:", req.file); // Correctly log the uploaded file
+
+    const postData = {
+      description: data.description,
+      studentId,
+      image: req.file.buffer, // Save the image data to the database (assuming Sequelize model is configured appropriately)
+    };
+
+    await post.create(postData).then((record) => {
       const majors = data.majors;
       catigory.create({ postId: record.id, name: data.catigory });
       addMajors({ majors, postId: record.id }, res, next);
-    })
-    .catch((err) => {
-      console.log("The err:", err);
-      if (err.name === "SequelizeUniqueConstraintError")
-        return res.status(409).json({
-          status: "failed",
-          message: "already created",
-        });
-      return next(new AppError("An error occurred please try again", 500));
     });
+
+    res.status(201).json({
+      status: "success",
+      message: "Post created successfully",
+      // Include any additional data you want to send back
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        status: "failed",
+        message: "Already created",
+      });
+    }
+
+    return next(new AppError("An error occurred, please try again", 500));
+  }
 });
 exports.getPostStudent = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
