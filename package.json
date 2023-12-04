@@ -23,6 +23,7 @@
     "express-rate-limit": "^7.1.0",
     "express-session": "^1.17.3",
     "firebase": "^10.7.0",
+    "firebase-admin": "^11.11.1",
     "fs": "^0.0.1-security",
     "googleapis": "^127.0.0",
     "helmet": "^7.0.0",
@@ -36,9 +37,11 @@
     "path": "^0.12.7",
     "promisify": "^0.0.3",
     "qrcode": "^1.5.3",
+    "request": "^2.88.2",
     "sequelize": "^6.33.0",
     "sequelize-cli": "^6.6.1",
-    "validator": "^13.11.0"
+    "validator": "^13.11.0",
+    "xmlhttprequest": "^1.8.0"
   },
   "devDependencies": {
     "eslint": "^8.50.0",

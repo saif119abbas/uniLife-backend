@@ -1,6 +1,7 @@
-const { Op } = require("sequelize");
+const { Op, where } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
+const { UploadFile, getURL } = require("../../firebaseConfig");
 const { intersection } = require("../../utils/arrayActions");
 const {
   student,
@@ -34,10 +35,10 @@ const addMajors = async (data, res, next) => {
       return next(new AppError("An error occurred please try again", 500));
     }
   }
-  return res.status(201).json({
+  /*return res.status(201).json({
     status: "success",
     message: "created successfully",
-  });
+  });*/
 };
 exports.createPost = catchAsync(async (req, res, next) => {
   console.log("The body:", req.body.data);
@@ -60,25 +61,33 @@ exports.createPost = catchAsync(async (req, res, next) => {
         .findOne({ attributes: ["id"], where: { name: data.catigory } })
         .then((record) => {
           if (!record || record.length === 0)
-            return resolve.status(404).json({
+            return res.status(404).json({
               status: "failed",
               message: "this catigory is not found",
             });
           resolve(record.id);
         });
     });
+    const file = req.file;
+
     const postData = {
       description: data.description,
       studentId,
-      image: req.file.buffer,
       catigoryId,
     };
-    await post.create(postData).then((record) => {
-      const majors = data.majors;
-      // catigory.create({ postId: record.id, name: data.catigory });
-      addMajors({ majors, postId: record.id }, res, next);
+    const id = await new Promise((resolve, reject) => {
+      post.create(postData).then((record) => {
+        const majors = data.majors;
+        // catigory.create({ postId: record.id, name: data.catigory });
+        addMajors({ majors, postId: record.id }, res, next);
+        resolve(record.id);
+      });
     });
-
+    const nameImage = `/images/${data.catigory}/${id}_${file.originalname}`;
+    console.log("catigory", catigoryId);
+    await UploadFile(file, nameImage);
+    const image = await getURL(nameImage);
+    await post.update({ image }, { where: { id } });
     res.status(201).json({
       status: "success",
       message: "Post created successfully",
@@ -114,14 +123,20 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
   // console.log("body", req.body);
   const { myCatigory, myMajor } = req.body;
   let condition = { studentId: { [Op.not]: studentId } };
+  console.log(myCatigory, myMajor);
   let ids = [];
   if (myCatigory) {
-    const catigories = await catigory.findAll({
-      attributes: ["postId"],
-      where: { name: myCatigory },
+    const catigoryId = await new Promise((resolve, reject) => {
+      catigory
+        .findOne({
+          attributes: ["id"],
+          where: { name: myCatigory },
+        })
+        .then((record) => {
+          if (record.id) resolve(record.id);
+        });
     });
-
-    ids = catigories.map((item) => item.postId);
+    if (catigoryId) condition = { ...condition, catigoryId };
   }
   if (myMajor) {
     const majors = await major.findAll({
@@ -133,11 +148,9 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       attributes: ["postId"],
       where: { majorId: { [Op.in]: majorsId } },
     });
-    const tempArray = Items.map((item) => item.postId);
-    if (ids.length > 0) ids = intersection(ids, tempArray);
-    else ids = [...tempArray];
+    ids = Items.map((item) => item.postId);
+    condition = { ...condition, id: { [Op.in]: ids } };
   }
-  condition = { ...condition, id: { [Op.in]: ids } };
   console.log("ids", ids);
   const posts = await post.findAll({
     where: condition,

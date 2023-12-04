@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const restaurant = sequelize.define("restaurant", {
     image: {
-      type: DataTypes.BLOB,
+      type: DataTypes.STRING,
     },
   });
   restaurant.associate = (models) => {

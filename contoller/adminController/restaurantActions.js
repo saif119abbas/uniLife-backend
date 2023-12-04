@@ -15,13 +15,11 @@ exports.addRestaurant = (req, res, next) => {
       if (err)
         return next(new AppError("an error occurred please try again", 500));
       restaurantData.password = hash;
-      const cardID = restaurantData.cardID;
-      restaurantData.cardID = undefined;
       restaurantData.role = process.env.RESTAURANT;
       user
         .create(restaurantData)
         .then((data) => {
-          const myData = { userId: data.id, cardID };
+          const myData = { userId: data.id };
           restaurant
             .create(myData)
             .then((resData) => {

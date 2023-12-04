@@ -3,7 +3,11 @@ const bcrypt = require("bcrypt");
 const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
-const { uploadProcessData, getData } = require("../../firebaseConfig");
+const {
+  uploadProcessData,
+  getData,
+  getFiles,
+} = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
 let verifyMessage = "";
@@ -230,8 +234,14 @@ exports.protect = catchAsync(async (req, res, next) => {
       })*/ next();
   });
 });
-exports.storeData = catchAsync(async (_, res) => {
+exports.storeData = catchAsync(async (req, res) => {
+  const image = req.file.buffer || req.files.image[0];
   const data = await uploadProcessData();
+  res.status(200).json(data);
+});
+exports.downloadFile = catchAsync(async (req, res) => {
+  const URL = req.body.URL;
+  const data = await getFiles(URL);
   res.status(200).json(data);
 });
 exports.retriveData = catchAsync(async (_, res) => {
