@@ -1,8 +1,8 @@
-/*"use strict";
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-     await queryInterface.addColumn("students", "major", {
+    await queryInterface.addColumn("students", "major", {
       type: Sequelize.STRING,
       allowNull: false,
       validator: {
@@ -28,4 +28,4 @@ module.exports = {
     await queryInterface.removeColumn("students", "blocked");
     await queryInterface.removeColumn("orders", "notes");
   },
-};*/
+};

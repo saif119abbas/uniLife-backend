@@ -31,6 +31,7 @@ exports.signupValidation = Joi.object({
     .message("❌ Must be exactly 10 digits")
     .max(10)
     .message("❌ Must be exactly 10 digits"),
+  major: Joi.string().required().error(new Error("❌ Please enter your major")),
 });
 exports.loginValidation = Joi.object({
   email: Joi.string()
