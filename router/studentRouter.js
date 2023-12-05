@@ -41,6 +41,7 @@ const {
 const {
   sendMessage,
   getMessage,
+  getMyMessage,
 } = require("../contoller/studentController/messageController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
@@ -114,16 +115,17 @@ router.patch(
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
 router.post(
-  "/message/:userId/:receiverId",
+  "/message/:userId/:userIdReceiver",
   protect,
   studentPermission,
   sendMessage
 );
 router.get(
-  "/message/:userId/:receiverId",
+  "/message/:userId/:userIdReceiver",
   protect,
   studentPermission,
   getMessage
 );
+router.get("/message/:userId", protect, studentPermission, getMyMessage);
 
 module.exports = router;

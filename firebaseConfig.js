@@ -1,5 +1,9 @@
 const { initializeApp } = require("firebase/app");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+const { Buffer } = require("buffer");
+const fs = require("fs");
+const keyFile = require("./keyFile.json");
+const { Storage } = require("@google-cloud/storage");
 const {
   getFirestore,
   doc,
@@ -15,6 +19,9 @@ const {
   uploadBytes,
   getDownloadURL,
 } = require("firebase/storage");
+//const serviceAccount = require("./serviceAccountKey.json");
+
+const admin = require("firebase-admin");
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_APIKEY,
   authDomain: process.env.FIREBASE_AUTHDOMAIN,
@@ -27,12 +34,17 @@ const firebaseConfig = {
 let App;
 let firestoreDB;
 let storage;
+let storage2;
 let bucket;
 const initializeFirebaseApp = () => {
   try {
     App = initializeApp(firebaseConfig);
     firestoreDB = getFirestore();
     storage = getStorage();
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: "gs://learnfirebase-39b36.appspot.com",
+    });
     bucket = storage.bucket();
     return App;
   } catch (err) {
@@ -72,13 +84,55 @@ const getData = async (to, from) => {
 };
 const UploadFile = async (file, nameImage) => {
   console.log("from upload file myfile", file);
-  console.log("my storage", storage);
-  //const nameImage = `foodItem 40`;
+  /* console.log("my storage", storage);
   const storageRef = ref(storage, nameImage);
-  await uploadBytes(storageRef, file);
-  //const File=
+  await uploadBytes(storageRef, file.buffer);*/
+  storage2 = new Storage({
+    projectId: process.env.FIREBASE_PROJECTID,
+    keyFilename: keyFile,
+  });
+  const fileBuffer = fs.readFileSync(file.path);
+  console.log("The buffer", file.buffer);
+  const blob = Buffer.from(fileBuffer, "base64"); // Assuming the image data is in base64 format
+
+  // Upload the blob to Firebase Storage
+  const myFile = storage2
+    .bucket(process.env.FIREBASE_STORAGEBUCKET)
+    .file("images/drawing tools");
+  console.log("My file", myFile);
+  const writeStream = myFile.createWriteStream({
+    metadata: {
+      contentType: file.mimetype,
+    },
+    resumable: false,
+  });
+  /* myFile
+    .createWriteStream({
+      metadata: {
+        contentType: "image/jpeg", // Adjust the content type based on your image type
+      },
+      resumable: false,
+    })
+    .on("error", (err) => {
+      console.error("Error uploading image:", err);
+    })
+    .on("finish", () => {
+      console.log("Image uploaded successfully.");
+    })
+    .end(blob);*/
+  writeStream.on("error", (error) => {
+    console.error("Error uploading image:", error.message);
+  });
+
+  writeStream.on("finish", () => {
+    console.log("Image uploaded successfully.");
+  });
+
+  // Write the blob to the stream
+  writeStream.end(blob);
 };
 const getURL = async (nameImage) => {
+  console.log("getUrl");
   const pathReference = ref(storage, nameImage);
   const URL = await new Promise((resolve, reject) => {
     getDownloadURL(pathReference).then((url) => resolve(url));
@@ -86,6 +140,7 @@ const getURL = async (nameImage) => {
   console.log("URL: ", URL);
   return URL;
 };
+const uploadFileFormAdmin = (bucket, nameImage) => {};
 const getFiles = async (URL) => {
   const xmlhttp = new XMLHttpRequest();
   xmlhttp.responseType = "blob";
