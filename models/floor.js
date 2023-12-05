@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const floor = sequelize.define("floor", {
     name: {
       type: DataTypes.STRING,
-      uniqe: true,
+      unique: true,
       validator: {
         notEmpty: false,
       },

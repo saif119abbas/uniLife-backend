@@ -28,6 +28,10 @@ const {
 const { createOrderValidation } = require("./orderValidation");
 const { createRoomValidation } = require("./roomValidation");
 const { addOfferValidation } = require("./offerValidation");
+const {
+  addFacultyValidation,
+  addFloorValidation,
+} = require("./facultyValidation");
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
@@ -222,6 +226,39 @@ exports.validtaeCreateOrder = (req, res, next) => {
 exports.validtaeAddOffer = (req, res, next) => {
   const data = req.body;
   const { error, _ } = addOfferValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddFaculty = (req, res, next) => {
+  const data = req.body;
+  const { error, _ } = addFacultyValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddFloor = (req, res, next) => {
+  const data = req.body;
+  const { error, _ } = addFloorValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeAddClassroom = (req, res, next) => {
+  const data = req.body;
+  const { error, _ } = addFloorValidation.validate(data);
   if (error) {
     return res.status(400).json({
       status: "failed",

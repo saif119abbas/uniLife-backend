@@ -9,6 +9,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     facultyNumber: {
       type: DataTypes.INTEGER,
+      primaryKey: true,
       unique: true,
       validator: {
         notEmpty: false,

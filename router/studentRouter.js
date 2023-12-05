@@ -114,13 +114,13 @@ router.patch(
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
 router.post(
-  "/messgae/:senderId/:receiverId",
+  "/message/:userId/:receiverId",
   protect,
   studentPermission,
   sendMessage
 );
 router.get(
-  "/messgae/:senderId/:receiverId",
+  "/message/:userId/:receiverId",
   protect,
   studentPermission,
   getMessage

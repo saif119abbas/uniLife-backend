@@ -19,11 +19,17 @@ const {
   addCatigory,
 } = require("../contoller/adminController/postAction");
 const {
+  addFloor,
+  addFaculty,
+} = require("../contoller/adminController/facultyAction");
+const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
   validtaeAddDormitoryOwner,
   validtaeEditDormitoryOwner,
   validtaeSignup,
+  validtaeAddFaculty,
+  validtaeAddFloor,
 } = require("../validation/validator");
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
@@ -80,4 +86,18 @@ router.get(
 );
 router.post("/major/:adminId", protect, adminPermission, addMajor);
 router.post("/catigory/:adminId", protect, adminPermission, addCatigory);
+router.post(
+  "/faculty/:adminId",
+  protect,
+  adminPermission,
+  validtaeAddFaculty,
+  addFaculty
+);
+router.post(
+  "/floor/:adminId/:facultyId",
+  protect,
+  adminPermission,
+  validtaeAddFloor,
+  addFloor
+);
 module.exports = router;
