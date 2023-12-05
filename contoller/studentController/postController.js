@@ -86,6 +86,11 @@ exports.createPost = catchAsync(async (req, res, next) => {
     const nameImage = `/images/${data.catigory}/${id}_${file.originalname}`;
     console.log("catigory", catigoryId);
     await UploadFile(file, nameImage);
+    /* res.status(201).json({
+      status: "success",
+      message: "Post created successfully",
+    });*/
+    // Include any additional data you want to send back
     const image = await getURL(nameImage);
     await post.update({ image }, { where: { id } });
     res.status(201).json({

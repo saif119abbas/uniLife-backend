@@ -41,10 +41,14 @@ const initializeFirebaseApp = () => {
     App = initializeApp(firebaseConfig);
     firestoreDB = getFirestore();
     storage = getStorage();
-    admin.initializeApp({
+    /*admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: "gs://learnfirebase-39b36.appspot.com",
-    });
+    });*/
+    /*storage2 = new Storage({
+      projectId: process.env.FIREBASE_PROJECTID,
+      keyFilename: keyFile,
+    });*/
     bucket = storage.bucket();
     return App;
   } catch (err) {
@@ -84,29 +88,23 @@ const getData = async (to, from) => {
 };
 const UploadFile = async (file, nameImage) => {
   console.log("from upload file myfile", file);
-  /* console.log("my storage", storage);
-  const storageRef = ref(storage, nameImage);
-  await uploadBytes(storageRef, file.buffer);*/
-  storage2 = new Storage({
-    projectId: process.env.FIREBASE_PROJECTID,
-    keyFilename: keyFile,
-  });
+  console.log("my storage", storage);
   const fileBuffer = fs.readFileSync(file.path);
-  console.log("The buffer", file.buffer);
+  const storageRef = ref(storage, nameImage);
+  const metadata = {
+    contentType: "image/jpeg",
+  };
+
+  await uploadBytes(storageRef, fileBuffer, metadata);
+  /* const fileBuffer = fs.readFileSync(file.path);
   const blob = Buffer.from(fileBuffer, "base64"); // Assuming the image data is in base64 format
 
   // Upload the blob to Firebase Storage
-  const myFile = storage2
+  /*const myFile = storage
     .bucket(process.env.FIREBASE_STORAGEBUCKET)
-    .file("images/drawing tools");
+    .file(nameImage);
   console.log("My file", myFile);
-  const writeStream = myFile.createWriteStream({
-    metadata: {
-      contentType: file.mimetype,
-    },
-    resumable: false,
-  });
-  /* myFile
+  myFile
     .createWriteStream({
       metadata: {
         contentType: "image/jpeg", // Adjust the content type based on your image type
@@ -120,16 +118,6 @@ const UploadFile = async (file, nameImage) => {
       console.log("Image uploaded successfully.");
     })
     .end(blob);*/
-  writeStream.on("error", (error) => {
-    console.error("Error uploading image:", error.message);
-  });
-
-  writeStream.on("finish", () => {
-    console.log("Image uploaded successfully.");
-  });
-
-  // Write the blob to the stream
-  writeStream.end(blob);
 };
 const getURL = async (nameImage) => {
   console.log("getUrl");
