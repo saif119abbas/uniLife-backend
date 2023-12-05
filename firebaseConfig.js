@@ -34,22 +34,12 @@ const firebaseConfig = {
 let App;
 let firestoreDB;
 let storage;
-let storage2;
 let bucket;
 const initializeFirebaseApp = () => {
   try {
     App = initializeApp(firebaseConfig);
     firestoreDB = getFirestore();
     storage = getStorage();
-    /*admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: "gs://learnfirebase-39b36.appspot.com",
-    });*/
-    /*storage2 = new Storage({
-      projectId: process.env.FIREBASE_PROJECTID,
-      keyFilename: keyFile,
-    });*/
-    bucket = storage.bucket();
     return App;
   } catch (err) {
     return err;
@@ -80,7 +70,7 @@ const getData = async (to, from) => {
     });
     //for (let doc of snapData) finalData.push(doc.data());
     //finalData.push(snapData.data());
-    console.log("final data: ", finalData);
+    console.log("final data: ", finalfData);
     return finalData;
   } catch (err) {
     return err;
@@ -96,31 +86,8 @@ const UploadFile = async (file, nameImage) => {
   };
 
   await uploadBytes(storageRef, fileBuffer, metadata);
-  /* const fileBuffer = fs.readFileSync(file.path);
-  const blob = Buffer.from(fileBuffer, "base64"); // Assuming the image data is in base64 format
-
-  // Upload the blob to Firebase Storage
-  /*const myFile = storage
-    .bucket(process.env.FIREBASE_STORAGEBUCKET)
-    .file(nameImage);
-  console.log("My file", myFile);
-  myFile
-    .createWriteStream({
-      metadata: {
-        contentType: "image/jpeg", // Adjust the content type based on your image type
-      },
-      resumable: false,
-    })
-    .on("error", (err) => {
-      console.error("Error uploading image:", err);
-    })
-    .on("finish", () => {
-      console.log("Image uploaded successfully.");
-    })
-    .end(blob);*/
 };
 const getURL = async (nameImage) => {
-  console.log("getUrl");
   const pathReference = ref(storage, nameImage);
   const URL = await new Promise((resolve, reject) => {
     getDownloadURL(pathReference).then((url) => resolve(url));
