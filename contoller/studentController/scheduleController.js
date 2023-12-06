@@ -28,7 +28,7 @@ exports.createSchedule = catchAsync(async (req, res, next) => {
     });
 });
 exports.addLecture = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
+  //const studentId = req.params.studentId;
   const myStudent = await student.findOne({
     attributes: ["id"],
     where: { userId },
@@ -83,7 +83,7 @@ exports.addLecture = catchAsync(async (req, res, next) => {
   }
 });
 exports.editLecture = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
+  // const studentId = req.params.studentId;
   const myStudent = await student.findOne({
     attributes: ["id"],
     where: { userId },
@@ -103,20 +103,19 @@ exports.editLecture = catchAsync(async (req, res, next) => {
   await lecture.update(data, { where: { id } }).then((count) => {
     console.log("Updated", count[0]);
     if (count[0] === 0)
-      res.status(404).json({
+      return res.status(404).json({
         status: "faield",
         message: "This lecture was not found",
       });
     else
-      res.status(200).json({
+      return res.status(200).json({
         status: "success",
         message: " successfully updated",
       });
-    console.log("Updated");
   });
 });
 exports.deleteLecture = catchAsync(async (req, res, next) => {
-  let id = req.params.id;
+  let id = req.params.lectureId;
   console.log("Lecture ID=", id);
   if (!id)
     return next(new AppError("You need to provide lecture to delete", 400));
@@ -142,7 +141,8 @@ exports.deleteLecture = catchAsync(async (req, res, next) => {
     });
 });
 exports.getLectures = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
+  //const studentId = req.params.studentId;
+  console.log(studentId);
   const myStudent = await student.findOne({
     attributes: ["id"],
     where: { userId },
@@ -157,6 +157,7 @@ exports.getLectures = catchAsync(async (req, res, next) => {
   const mySchedule = await schedule.findOne({
     where: { studentId },
   });
+  console.log(mySchedule);
   await lecture
     .findAll({
       attributes: [

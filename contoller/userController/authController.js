@@ -69,6 +69,42 @@ exports.login = catchAsync(async (req, res, next) => {
         message: "Incorrect email or password",
       });
     });
+  /*if (!myUser)
+    return res.status(400).json({
+      status: "failed",
+      message: "Incorrect email or password",
+    });
+  const password = myUser.password;
+  const passwordIsCorrect = await new Promise((resolve, reject) => {
+    bcrypt.compare(data.password, password, (err, passwordIsCorrect) => {
+      if (err) reject(err);
+      resolve(passwordIsCorrect);
+    });
+  });
+  if (!passwordIsCorrect)
+    return res.status(400).json({
+      status: "failed",
+      message: "Incorrect email or password",
+    });
+  const id = await new Promise((resolve, reject) => {
+    student.findOne({ where: { userId: myUser.id } }).then((record) => {
+      if (record.id) resolve(record.id);
+      else
+        return res
+          .status(400)
+          .json({
+            status: "failed",
+            message: "Incorrect email or password",
+          })
+          .catch((err) => {
+            reject(err);
+          });
+    });
+  });
+  expiresIn = `24h`;
+  data.id = id;
+  data.role = myUser.role;
+  createSendToken(data, 200, expiresIn, res);*/
 });
 
 exports.signup = catchAsync(async (req, res, next) => {

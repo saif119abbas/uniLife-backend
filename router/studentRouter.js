@@ -88,13 +88,13 @@ router.get(
   getOffers
 );
 router.get(
-  "/dormitoryposts/:userId",
+  "/dormitory/:userId",
   protect,
   studentPermission,
   getAllDormitoryPost
 );
 router.get(
-  "/dormitoryposts/:userId/:dorimtoryId",
+  "/dormitory/:userId/:dorimtoryId",
   protect,
   studentPermission,
   getPost
@@ -126,6 +126,6 @@ router.get(
   studentPermission,
   getMessage
 );
-router.get("/message/:userId", protect, studentPermission, getMyMessage);
+router.get("/message/:studentId", protect, studentPermission, getMyMessage);
 
 module.exports = router;

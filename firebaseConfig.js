@@ -70,7 +70,7 @@ const getData = async (to, from) => {
     });
     //for (let doc of snapData) finalData.push(doc.data());
     //finalData.push(snapData.data());
-    console.log("final data: ", finalfData);
+    console.log("final data: ", finalData);
     return finalData;
   } catch (err) {
     return err;

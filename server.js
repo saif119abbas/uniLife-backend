@@ -46,6 +46,11 @@ io.on("connection", (socket) => {
       console.log(`User ${userId} disconnected.`);
     }
   });
+
+  // Handle user reconnect
+  socket.on("connect", () => {
+    userSocketMap[userId] = socket.id;
+  });
 });
 
 db.sequelize.sync().then(() => {

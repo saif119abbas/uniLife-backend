@@ -14,6 +14,16 @@ exports.studentPermission = catchAsync(async (req, res, next) => {
   try {
     const id = req.params.userId;
     console.log(id);
+    /*const userId = await new Promise((resolve, reject) => {
+      student.findOne({ where: { id } }).then((record) => {
+        resolve(record.userId);
+      });
+    });
+    if (!userId)
+      return res.status(403).json({
+        status: "failed",
+        message: "not allowed",
+      });*/
     const myRole = await user.findOne({
       attributes: ["role"],
       where: { id },
