@@ -1,11 +1,27 @@
 const AppError = require("../../utils/appError");
-const { user } = require("../../models");
+const { user, restaurant } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 exports.getResturants = catchAsync(async (_, res) => {
-  const data = await user.findAll({
+  const users = await user.findAll({
     attributes: ["id", "username", "email", "phoneNum"],
     where: { role: process.env.RESTAURANT },
   });
+  let data = [];
+  for (const user of users) {
+    const item = { id: "", username: "", email: "", phoneNum: "" };
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ attributes: ["id"], where: { userId: user.id } })
+        .then((record) => {
+          resolve(record.id);
+        });
+    });
+    item.id = restaurantId;
+    item.username = user.username;
+    item.email = user.email;
+    item.phoneNum = user.phoneNum;
+    data.push(item);
+  }
   if (data.length === 0)
     return res.status(404).json({
       status: "failed",
@@ -17,7 +33,14 @@ exports.getResturants = catchAsync(async (_, res) => {
   });
 });
 exports.getResturant = catchAsync(async (req, res) => {
-  const id = req.params.resturantId;
+  const resturantId = req.params.resturantId;
+  const id = await new Promise((resolve, reject) => {
+    restaurant
+      .findOne({ attributes: ["userId"], where: { id: resturantId } })
+      .then((record) => {
+        resolve(record.userId);
+      });
+  });
   const data = await user.findOne({
     attributes: ["id", "username", "email", "phoneNum"],
     where: { id, role: process.env.RESTAURANT },

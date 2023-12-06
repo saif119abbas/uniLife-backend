@@ -98,6 +98,7 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
       where: {
         senderId,
       },
+      group: ["receiverId"],
       order: [["createdAt", "DESC"]],
     })
     .catch((err) => {

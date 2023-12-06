@@ -48,7 +48,7 @@ router.get(
   protect,
   adminOrStuPermission,
   getResturant
-);
+); //may be not neccessary
 /*router.get(
   "/menu/:restaurantId/:userId",
   protect,

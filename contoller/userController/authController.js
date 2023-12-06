@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
+const { pushNotification } = require("../../notification");
 const {
   uploadProcessData,
   getData,
@@ -10,6 +11,7 @@ const {
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
+const { resolve } = require("path");
 let verifyMessage = "";
 let expiresIn = "24h";
 
@@ -57,6 +59,8 @@ exports.login = catchAsync(async (req, res, next) => {
             expiresIn = `24h`;
             data.id = result.id;
             data.role = result.role;
+            //  pushNotification();
+            //console.log("success", success);
             createSendToken(data, 200, expiresIn, res);
           }
         }

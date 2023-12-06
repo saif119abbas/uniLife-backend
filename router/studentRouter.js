@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const { upload } = require("../images/handleImag");
+const { pushNotification } = require("../notification");
 const {
   signup,
   verify,
@@ -80,7 +81,7 @@ router.post(
   createOrder
 );
 router.get("/orders/:userId", protect, studentPermission, getOrders);
-router.get("/poularmeat/:userId", protect, studentPermission, getPoular);
+router.get("/poularmeal/:userId", protect, studentPermission, getPoular);
 router.get(
   "/offer/:userId/:restaurantId",
   protect,
@@ -126,6 +127,6 @@ router.get(
   studentPermission,
   getMessage
 );
-router.get("/message/:studentId", protect, studentPermission, getMyMessage);
+router.get("/message/:userId", protect, studentPermission, getMyMessage);
 
 module.exports = router;

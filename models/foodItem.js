@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       unique: [true, "This food is already exists"],
     },
     image: {
-      type: DataTypes.BLOB,
+      type: DataTypes.STRING,
     },
     category: {
       type: DataTypes.STRING,

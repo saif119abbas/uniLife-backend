@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn("students", "major", {
+    /*   await queryInterface.addColumn("students", "major", {
       type: Sequelize.STRING,
       allowNull: false,
       validator: {
@@ -15,8 +15,8 @@ module.exports = {
       defaultValue: false,
       validator: {
         notEmptyString: false,
-      },
-    });
+      }
+    });*/
     await queryInterface.addColumn("orders", "notes", {
       type: Sequelize.STRING,
       allowNull: true,
@@ -24,8 +24,8 @@ module.exports = {
   },
 
   down: async (queryInterface, _) => {
-    await queryInterface.removeColumn("students", "major");
+    /* await queryInterface.removeColumn("students", "major");
     await queryInterface.removeColumn("students", "blocked");
-    await queryInterface.removeColumn("orders", "notes");
+    await queryInterface.removeColumn("orders", "notes");*/
   },
 };

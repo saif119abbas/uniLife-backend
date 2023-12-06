@@ -3,7 +3,8 @@ const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 exports.addRestaurant = (req, res, next) => {
-  const restaurantData = req.body;
+  const restaurantData = req.body.data;
+  const file = req.file;
   if (restaurantData.password !== restaurantData.confirmPassword)
     res.status(400).json({
       status: "falied",

@@ -1,4 +1,5 @@
 const express = require("express");
+const { upload } = require("../images/handleImag");
 const router = express.Router();
 const {
   addRestaurant,
@@ -38,6 +39,7 @@ router.post(
   "/restaurant/:adminId",
   protect,
   adminPermission,
+  upload.single("image"),
   validtaeAddRestaurant,
   addRestaurant,
   createMenu

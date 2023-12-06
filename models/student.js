@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       },
     },
     image: {
-      type: DataTypes.BLOB,
+      type: DataTypes.STRING,
     },
   });
   student.associate = (models) => {
@@ -25,6 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     student.hasMany(models.order, { foreignKey: "studentId" });
     student.hasMany(models.post, { foreignKey: "studentId" });
     student.hasMany(models.message, { foreignKey: "studentId" });
+    student.hasMany(models.FCM);
   };
   return student;
 };
