@@ -36,7 +36,7 @@ const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
 router.post(
-  "/restaurant/:adminId",
+  "/restaurants/:userId",
   protect,
   adminPermission,
   upload.single("image"),
@@ -46,14 +46,14 @@ router.post(
 );
 router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
 router.patch(
-  "/restaurants/:adminId/:userId",
+  "/restaurants/:userId/:restaurantId",
   protect,
   adminPermission,
   validtaeEditRestaurant,
   editRestaurant
 );
 router.delete(
-  "/restaurants/:adminId/:userId",
+  "/restaurants/:userId/:restaurantId",
   protect,
   adminPermission,
   deleteMenu,
@@ -61,42 +61,42 @@ router.delete(
 );
 
 router.post(
-  "/addDormitoryOwner/:adminId",
+  "/dormitoryowner/:userId",
   protect,
   adminPermission,
   validtaeAddDormitoryOwner,
   addDormitoryOwner
 );
 router.patch(
-  "/editDormitoryOwner/:userId/:adminId",
+  "/dormitoryowner/:userId/:dormitoryId",
   protect,
   adminPermission,
   validtaeEditDormitoryOwner,
   editDormitoryOwner
 );
 router.delete(
-  "/deleteDormitoryOwner/:userId/:adminId",
+  "/dormitoryowner/:userId/:dormitoryId",
   protect,
   adminPermission,
   deleteDormitoryOwner
 );
 router.get(
-  "/getAllDormitories/:adminId",
+  "/dormitoryowner/:userId",
   protect,
   adminPermission,
   getDormitoryOwners
 );
-router.post("/major/:adminId", protect, adminPermission, addMajor);
-router.post("/catigory/:adminId", protect, adminPermission, addCatigory);
+router.post("/major/:userId", protect, adminPermission, addMajor);
+router.post("/catigory/:userId", protect, adminPermission, addCatigory);
 router.post(
-  "/faculty/:adminId",
+  "/faculty/:userId",
   protect,
   adminPermission,
   validtaeAddFaculty,
   addFaculty
 );
 router.post(
-  "/floor/:adminId/:facultyId",
+  "/floor/:userId/:facultyId",
   protect,
   adminPermission,
   validtaeAddFloor,

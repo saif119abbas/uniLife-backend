@@ -78,7 +78,14 @@ exports.getMenu = catchAsync(async (req, res, next) => {
       message: "not found",
     });
   const data = await foodItem.findAll({
-    attributes: ["foodId", "description", "price", "nameOfFood", "image"],
+    attributes: [
+      "foodId",
+      "description",
+      "price",
+      "nameOfFood",
+      "image",
+      "category",
+    ],
     where: { menuMenuId: myMenu.menuId },
   });
   if (!data)

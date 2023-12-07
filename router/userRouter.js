@@ -49,12 +49,12 @@ router.get(
   adminOrStuPermission,
   getResturant
 ); //may be not neccessary
-/*router.get(
+router.get(
   "/menu/:restaurantId/:userId",
   protect,
   RestauarntOrStuPermission,
   getMenu
-);*/
+);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);

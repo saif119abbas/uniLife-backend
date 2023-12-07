@@ -83,23 +83,8 @@ exports.addLecture = catchAsync(async (req, res, next) => {
   }
 });
 exports.editLecture = catchAsync(async (req, res, next) => {
-  // const studentId = req.params.studentId;
-  const myStudent = await student.findOne({
-    attributes: ["id"],
-    where: { userId },
-  });
-  if (!myStudent) {
-    return res.status(403).json({
-      status: "Not allowed action",
-      message: "Something went wrong please try again",
-    });
-  }
-  const studentId = myStudent.Id;
   const data = req.body;
-  if (data.lectureId) {
-    data.lectureId = parseInt(data.lectureId);
-  }
-  const id = req.params.lectureId;
+  const id = req.params.id;
   await lecture.update(data, { where: { id } }).then((count) => {
     console.log("Updated", count[0]);
     if (count[0] === 0)
@@ -141,8 +126,8 @@ exports.deleteLecture = catchAsync(async (req, res, next) => {
     });
 });
 exports.getLectures = catchAsync(async (req, res, next) => {
-  //const studentId = req.params.studentId;
-  console.log(studentId);
+  const userId = req.params.userId;
+  // console.log(studentId);
   const myStudent = await student.findOne({
     attributes: ["id"],
     where: { userId },
@@ -160,15 +145,7 @@ exports.getLectures = catchAsync(async (req, res, next) => {
   console.log(mySchedule);
   await lecture
     .findAll({
-      attributes: [
-        "id",
-        "lectureId",
-        "classNumber",
-        "Name",
-        "startTime",
-        "endTime",
-        "day",
-      ],
+      attributes: ["id", "classNumber", "Name", "startTime", "endTime", "day"],
       where: {
         scheduleScheduleId: mySchedule.scheduleId,
       },

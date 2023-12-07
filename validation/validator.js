@@ -111,9 +111,11 @@ exports.validtaeResetPassword = (req, res, next) => {
   next();
 };
 exports.validtaeAddRestaurant = (req, res, next) => {
-  const data = req.body;
-  const { error, val } = addResturantValidation.validate(data);
+  const data = JSON.parse(req.body.data);
+  console.log("validtaeAddRestaurant", data);
+  const { error, _ } = addResturantValidation.validate(data);
   if (error) {
+    console.log("The err", err);
     return res.status(400).json({
       status: "failed",
       message: error.message,

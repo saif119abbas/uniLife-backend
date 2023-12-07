@@ -3,7 +3,8 @@ const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 exports.addRestaurant = (req, res, next) => {
-  const restaurantData = req.body.data;
+  const restaurantData = JSON.parse(req.body.data);
+  console.log("The restaurant:", restaurantData);
   const file = req.file;
   if (restaurantData.password !== restaurantData.confirmPassword)
     res.status(400).json({
@@ -71,7 +72,7 @@ exports.createMenu = catchAsync(async (req, res, next) => {
     });
 });
 exports.editRestaurant = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
+  const restaurantId = req.params.restaurantId;
   const restaurantData = req.body;
   console.log(restaurantData);
   let hash = undefined;
@@ -94,10 +95,21 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
     });
   }
   restaurantData.password = hash;
-  console.log("hash password", hash);
+  const id = await new Promise((resolve, reject) => {
+    restaurant
+      .findOne({ attributes: ["userId"], where: { id: restaurantId } })
+      .then((record) => {
+        if (record) resolve(record.userId);
+        else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "not found restaurant" });
+      });
+  });
+  // console.log("userId", userId);
   await user
     .update(restaurantData, {
-      where: { id: userId, role: process.env.RESTAURANT },
+      where: { id, role: process.env.RESTAURANT },
     })
     .then((count) => {
       console.log(count);
@@ -126,28 +138,43 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
     });
 });
 exports.deleteRestaurant = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
+  const restaurantId = req.params.restaurantId;
+  const userId = await new Promise((resolve, reject) => {
+    restaurant
+      .findOne({ attributes: ["userId"], where: { id: restaurantId } })
+      .then((record) => {
+        if (record) resolve(record.userId);
+        else
+          return res.status(404).json({
+            status: "failed",
+            message: "not found1",
+          });
+      });
+  });
+  console.log("delete restaurant", userId);
   await restaurant
-    .destroy({ where: { userId } })
+    .destroy({ where: { id: restaurantId } })
     .then((deleteCount) => {
       if (deleteCount > 1)
         return next(new AppError("Somethig went wrong please try again", 500));
       else if (deleteCount === 1) {
         user
           .destroy({ where: { id: userId, role: process.env.RESTAURANT } })
-          .then((deleteCount) => {
-            if (deleteCount > 1)
+          .then((count2) => {
+            console.log("deleteCount=", count2);
+            if (count2 > 1)
               return next(
                 new AppError("Somethig went wrong please try again", 500)
               );
-            else if (deleteCount === 1) return res.status(204).json({});
-            else if (deleteCount === 0)
+            else if (count2 === 1) return res.status(204).json({});
+            else if (count2 === 0)
               res.status(404).json({
                 status: "failed",
-                message: "This restaurant was not found2",
+                message: "not found1",
               });
           })
           .catch((err) => {
+            console.log("my error: ", err);
             if (err)
               return next(
                 new AppError("An error occured please try again"),
@@ -166,17 +193,14 @@ exports.deleteRestaurant = catchAsync(async (req, res, next) => {
     });
 });
 exports.deleteMenu = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const myRestaurant = await restaurant.findOne({ where: { userId } });
-  if (!myRestaurant)
-    return res.status(404).json({ status: "failed", message: "not found" });
-  const restaurantId = myRestaurant.id;
+  const restaurantId = req.params.restaurantId;
+
   menu
     .destroy({ where: { restaurantId } })
     .then((deleteCount) => {
       if (deleteCount > 1)
         return next(new AppError("Somethig went wrong please try again", 500));
-      else if (deleteCount == 1) next();
+      else if (deleteCount === 1) return next();
       else if (deleteCount == 0)
         res.status(404).json({
           status: "failed",

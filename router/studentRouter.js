@@ -1,7 +1,5 @@
 const express = require("express");
-const multer = require("multer");
 const { upload } = require("../images/handleImag");
-const { pushNotification } = require("../notification");
 const {
   signup,
   verify,
@@ -64,7 +62,7 @@ router.delete(
   deleteLecture
 );
 router.patch(
-  "/editLecture/:lectureId/:userId",
+  "/editLecture/:userId/:id",
   protect,
   studentPermission,
   lectureCheck,

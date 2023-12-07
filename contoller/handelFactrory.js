@@ -1,10 +1,9 @@
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
-exports.addDocument = catchAsync(async (modle, myData, res, next = null) => {
+exports.addDocument = async (modle, myData, res, next = null) => {
   const result = await new Promise(async (resolve, reject) => {
     let myJson = { status: "", message: "" };
-
     try {
       console.log("MY DATA: ", myData);
       await modle.create(myData);
@@ -23,4 +22,4 @@ exports.addDocument = catchAsync(async (modle, myData, res, next = null) => {
     }
   });
   return result;
-});
+};

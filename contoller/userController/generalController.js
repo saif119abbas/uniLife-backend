@@ -8,18 +8,19 @@ exports.getResturants = catchAsync(async (_, res) => {
   });
   let data = [];
   for (const user of users) {
-    const item = { id: "", username: "", email: "", phoneNum: "" };
-    const restaurantId = await new Promise((resolve, reject) => {
+    const item = { id: "", username: "", email: "", phoneNum: "", image: "" };
+    const { id, image } = await new Promise((resolve, reject) => {
       restaurant
-        .findOne({ attributes: ["id"], where: { userId: user.id } })
+        .findOne({ attributes: ["id", "image"], where: { userId: user.id } })
         .then((record) => {
-          resolve(record.id);
+          resolve(record);
         });
     });
-    item.id = restaurantId;
+    item.id = id;
     item.username = user.username;
     item.email = user.email;
     item.phoneNum = user.phoneNum;
+    item.image = image;
     data.push(item);
   }
   if (data.length === 0)

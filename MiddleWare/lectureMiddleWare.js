@@ -9,22 +9,23 @@ exports.lectureCheck = catchAsync(async (req, res, next) => {
   });
   if (!myStudent) {
     return res.status(403).json({
-      status: "Not allowed action",
-      message: "Something went wrong please try again",
+      status: "failed",
+      message: "Not allowed action",
     });
   }
   const studentId = myStudent.id;
+  console.log("lectureCheck", studentId);
   const mySchedule = await schedule.findOne({
     attributes: ["scheduleId"],
     where: { studentId },
   });
   if (!mySchedule) {
     return res.status(403).json({
-      status: "Not allowed action",
-      message: "Something went wrong please try again",
+      status: "failed",
+      message: "Not allowed action",
     });
   }
-  const id = req.params.lectureId;
+  const id = req.params.id;
   const myLecture = await lecture.findOne({
     attributes: ["scheduleScheduleId"],
     where: { id },
@@ -40,5 +41,7 @@ exports.lectureCheck = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "not allowed",
     });
-  else return next();
+  else {
+    return next();
+  }
 });

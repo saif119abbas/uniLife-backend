@@ -239,40 +239,54 @@ exports.protect = catchAsync(async (req, res, next) => {
     return next(new AppError("someerror happen please try again", 401));*/
 
   // 2) Verification token
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, res) => {
-    if (err) {
-      console.log(err);
-      return next(
-        new AppError("An error occurred while verifying the token.", 500)
-      );
-    }
-    console.log("##", res.iat - Date.now());
-    /* if (Date.now() / 1000 - res.iat <= res.exp)
-      return next(new AppError("Timed out please try again", 401));*/
-    // 3) Check if user still exists
-    /*user
+  const id = await new Promise((resolve, reject) => {
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+      if (err) {
+        console.log(err);
+        return next(
+          new AppError("An error occurred while verifying the token.", 500)
+        );
+      }
+      resolve(decoded.id);
+      /* if (Date.now() / 1000 - res.iat <= res.exp)
+        return next(new AppError("Timed out please try again", 401));*/
+    });
+  });
+  if (parseInt(req.params.userId) !== id)
+    return res.status(403).json({
+      status: "failed",
+      message: "not allowed",
+    });
+  // 3) Check if user still exists
+
+  const role = await new Promise((resolve, reject) => {
+    user
       .findOne({
-        where: { email: req.session.email },
+        attributes: ["role"],
+        where: { id },
       })
       .then((data) => {
         if (!data) {
-          return next(
-            new AppError(
-              "The user belonging to this token does no longer exist.",
-              401
-            )
-          );
-        }*/
-    // 4) Check if user changed password after the token was issued
-    /*if (currentUser.changedPasswordAfter(decoded.iat)) {
+          return res.status(401).json({
+            status: "failed",
+            message: "Unauthorized",
+          });
+        }
+        console.log("my data", data.role);
+        resolve(data.role);
+      });
+  });
+  res.locals.role = role;
+  next();
+  // 4) Check if user changed password after the token was issued
+  /*if (currentUser.changedPasswordAfter(decoded.iat)) {
           return next(
             new AppError("User recently changed password! Please log in again.", 401)
           );
         }*/
-    // GRANT ACCESS TO PROTECTED ROUTE
-    /*req.session.user = data;
-      })*/ next();
-  });
+  // GRANT ACCESS TO PROTECTED ROUTE
+  /*req.session.user = data;
+      })*/
 });
 exports.storeData = catchAsync(async (req, res) => {
   const image = req.file.buffer || req.files.image[0];
