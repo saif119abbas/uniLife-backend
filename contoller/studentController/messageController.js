@@ -1,6 +1,8 @@
 const { Op } = require("sequelize");
-const { Sequelize } = require("../../models/index");
+//const { Sequelize } = require("../../models/index");
 const sql = require("@sequelize/core");
+const Sequelize = require("sequelize");
+const { QueryTypes } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const { student, user, message } = require("../../models");
 const AppError = require("../../utils/appError");
@@ -70,7 +72,11 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   res.status(200).json({ data });
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
-  console.log("getMessage");
+  const Sequelize = require("sequelize");
+  const sequelize = new Sequelize("uniLife2", "root", "", {
+    host: "localhost",
+    dialect: "mysql",
+  });
   const userId = req.params.userId;
   const senderId = await new Promise((resolve, reject) => {
     student.findOne({ where: { userId } }).then((record) => {
@@ -78,33 +84,30 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
     });
   });
   console.log("senderId", senderId);
-  const messages = await message
-    .findAll({
-      attributes: [
-        "receiverId",
-        "senderId",
-        "text",
-        "createdAt",
-        //  [Sequelize.fn("MAX", Sequelize.col("createdAt")), "text"],
-      ],
-      where: {
-        [Op.or]: [{ senderId }, { receiverId: senderId }],
-      },
-      order: [["createdAt", "DESC"]],
-      group: ["receiverId"],
-    })
-    .catch((err) => {
-      console.log("my error", err);
-      return next(new AppError("An error occurred, please try again", 500));
-    });
+  const messages = await sequelize.query(
+    `SELECT m.*
+  FROM messages m
+  JOIN (
+      SELECT 
+          MAX(createdAt) AS lastMessageTime,
+          CASE
+              WHEN senderId = ${senderId} THEN receiverId
+              ELSE senderId
+          END AS otherPersonId
+      FROM messages
+      WHERE senderId =  ${senderId} OR receiverId =  ${senderId}
+      GROUP BY otherPersonId
+  ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
+  WHERE (m.senderId = ${senderId} OR m.receiverId =  ${senderId})
+  ORDER BY m.createdAt DESC;
+  `,
+    {
+      type: QueryTypes.SELECT,
+    }
+  );
   console.log("messages", messages);
   let data = [];
   for (const message of messages) {
-    /*   if (
-      data.length > 0 &&
-      message.receiverId === data[data.length - 1].receiverId
-    )
-      continue;*/
     let id = message.receiverId;
     if (id === senderId) id = message.senderId;
 
@@ -140,6 +143,7 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
       image: image,
       receiverId: id,
       lastMessage: message.text,
+      createdAt: message.createdAt,
     });
   }
   res.status(200).json({ data });

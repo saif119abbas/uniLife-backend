@@ -115,6 +115,8 @@ exports.createPost = catchAsync(async (req, res, next) => {
 });
 exports.getPostStudent = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
+  const pageNumber = req.params.pageNumber;
+  // const pageSize = req.params.pageSize;
   const studentId = await new Promise((resolve, reject) => {
     student
       .findOne({ attributes: ["id"], where: { userId } })
@@ -161,6 +163,8 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
   console.log("ids", ids);
   const posts = await post.findAll({
     where: condition,
+    offset: (pageNumber - 1) * 2,
+    limit: 2,
   });
   if (!posts || posts.length === 0)
     return res.status(404).json({

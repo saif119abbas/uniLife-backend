@@ -108,7 +108,12 @@ router.post(
   studentPermission,
   createPost
 );
-router.get("/post/all/:userId", protect, studentPermission, getPostStudent);
+router.get(
+  "/post/all/:userId/:pageNumber",
+  protect,
+  studentPermission,
+  getPostStudent
+);
 router.get("/post/:userId", protect, studentPermission, getMyPost);
 router.patch(
   "/post/reserve/:userId/:postId",
