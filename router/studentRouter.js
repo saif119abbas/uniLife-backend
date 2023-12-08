@@ -22,7 +22,9 @@ const {
   createPost,
   getPostStudent,
   reservesdPost,
+  unReservesdPost,
   searchPost,
+  getMyPost,
 } = require("../contoller/studentController/postController");
 const {
   validtaeAddLecture,
@@ -55,29 +57,30 @@ router.post(
   addLecture
 );
 router.delete(
-  "/deleteLecture/:lectureId/:userId",
+  "/lecture/:userId/:id",
   protect,
   studentPermission,
   lectureCheck,
   deleteLecture
 );
 router.patch(
-  "/editLecture/:userId/:id",
+  "/lecture/:userId/:id",
   protect,
   studentPermission,
   lectureCheck,
   validtaeEditLecture,
   editLecture
 );
-router.get("/getLectures/:userId", protect, studentPermission, getLectures);
+router.get("/lecture/:userId", protect, studentPermission, getLectures);
 router.get("/menu/:restaurantId/:userId", protect, studentPermission, getMenu);
 router.post(
-  "/createOrder/:userId",
+  "/order/:userId",
   protect,
   studentPermission,
   validtaeCreateOrder,
   createOrder
 );
+router.get("/orders/:userId", protect, studentPermission, getOrders);
 router.get("/orders/:userId", protect, studentPermission, getOrders);
 router.get("/poularmeal/:userId", protect, studentPermission, getPoular);
 router.get(
@@ -106,21 +109,28 @@ router.post(
   createPost
 );
 router.get("/post/all/:userId", protect, studentPermission, getPostStudent);
+router.get("/post/:userId", protect, studentPermission, getMyPost);
 router.patch(
   "/post/reserve/:userId/:postId",
   protect,
   studentPermission,
   reservesdPost
 );
+router.patch(
+  "/post/unreserve/:userId/:postId",
+  protect,
+  studentPermission,
+  unReservesdPost
+);
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
 router.post(
-  "/message/:userId/:userIdReceiver",
+  "/message/:userId/:receiverId",
   protect,
   studentPermission,
   sendMessage
 );
 router.get(
-  "/message/:userId/:userIdReceiver",
+  "/message/:userId/:receiverId",
   protect,
   studentPermission,
   getMessage

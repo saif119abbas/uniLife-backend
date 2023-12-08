@@ -21,8 +21,8 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   });
   if (!myStudent) {
     return res.status(403).json({
-      status: "Not allowed action",
-      message: "Something went wrong please try again",
+      status: "failed",
+      message: "Not allowed action",
     });
   }
   const studentId = myStudent.id;
@@ -33,8 +33,9 @@ exports.createOrder = catchAsync(async (req, res, next) => {
   const myOrders = await order.create({
     restaurantId: data.restaurantId,
     studentId,
-    status: "on progress",
+    status: "pending",
     totalPrice,
+    notes: data.notes,
   });
 
   const orderItemData = data.orderItem;
@@ -137,9 +138,16 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     }
     console.log("MyOrders", myOrders);
     for (const myOrder of myOrders) {
-      const data = { status: "", restaurantName: "", items: [], totalPrice: 0 };
+      const data = {
+        status: "",
+        restaurantName: "",
+        items: [],
+        totalPrice: 0,
+        orderId: "",
+      };
       data.status = myOrder.status;
       data.totalPrice = myOrder.totalPrice;
+      data.orderId = myOrder.orderId;
       const restaurants = await restaurant.findOne({
         attributes: ["userId"],
         where: { id: myOrder.restaurantId },
@@ -182,6 +190,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           price: "",
           nameOfFood: "",
           offerPrice: "",
+          orderId: "",
         };
         const itemId = orderItems[i];
         itemData.Qauntity = itemId.Qauntity;

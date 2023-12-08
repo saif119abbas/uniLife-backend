@@ -1,25 +1,17 @@
-const { Op, where } = require("sequelize");
+const { Op } = require("sequelize");
+const { Sequelize } = require("../../models/index");
+const sql = require("@sequelize/core");
 const catchAsync = require("../../utils/catchAsync");
 const { student, user, message } = require("../../models");
 const AppError = require("../../utils/appError");
-const { resolve } = require("path");
-const { rejects } = require("assert");
 exports.sendMessage = catchAsync(async (req, res, next) => {
-  console.log("params:", req.params);
-  const userId1 = req.params.userId;
-  const userId2 = req.params.userIdReceiver;
+  const userId = req.params.userId;
+  const receiverId = req.params.receiverId;
   const senderId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: userId1 } }).then((record) => {
+    student.findOne({ where: { userId } }).then((record) => {
       if (record.id) resolve(record.id);
     });
   });
-  const receiverId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: userId2 } }).then((record) => {
-      if (record.id) resolve(record.id);
-    });
-  });
-  console.log("senderId:", senderId);
-  console.log("Here");
   const { text } = req.body;
   const data = {
     text,
@@ -41,19 +33,14 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
 exports.getMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");
   //const receiverId = req.params.receiverId;
-  const userId1 = req.params.userId;
-  const userId2 = req.params.userIdReceiver;
-  console.log(userId1, userId2);
+  const userId = req.params.userId;
+  const receiverId = req.params.receiverId;
   const senderId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: userId1 } }).then((record) => {
+    student.findOne({ where: { userId } }).then((record) => {
       if (record.id) resolve(record.id);
     });
   });
-  const receiverId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: userId2 } }).then((record) => {
-      if (record.id) resolve(record.id);
-    });
-  });
+
   console.log("senderId", senderId);
   const messages = await message
     .findAll({
@@ -84,7 +71,6 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");
-  //const receiverId = req.params.receiverId;
   const userId = req.params.userId;
   const senderId = await new Promise((resolve, reject) => {
     student.findOne({ where: { userId } }).then((record) => {
@@ -94,20 +80,34 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
   console.log("senderId", senderId);
   const messages = await message
     .findAll({
-      attributes: ["receiverId"],
+      attributes: [
+        "receiverId",
+        "senderId",
+        "text",
+        "createdAt",
+        //  [Sequelize.fn("MAX", Sequelize.col("createdAt")), "text"],
+      ],
       where: {
-        senderId,
+        [Op.or]: [{ senderId }, { receiverId: senderId }],
       },
-      group: ["receiverId"],
       order: [["createdAt", "DESC"]],
+      group: ["receiverId"],
     })
     .catch((err) => {
       console.log("my error", err);
       return next(new AppError("An error occurred, please try again", 500));
     });
+  console.log("messages", messages);
   let data = [];
   for (const message of messages) {
-    const id = message.receiverId;
+    /*   if (
+      data.length > 0 &&
+      message.receiverId === data[data.length - 1].receiverId
+    )
+      continue;*/
+    let id = message.receiverId;
+    if (id === senderId) id = message.senderId;
+
     const myStudent = await new Promise((resolve, reject) => {
       student
         .findOne({ attributes: ["userId", "image"], where: { id } })
@@ -119,9 +119,13 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
           else resolve(record);
         });
     });
-    const username = await new Promise((resolve, reject) => {
+    const image = myStudent.image;
+    username = await new Promise((resolve, reject) => {
       user
-        .findOne({ attributes: ["username"], where: { id: myStudent.userId } })
+        .findOne({
+          attributes: ["username"],
+          where: { id: myStudent.userId },
+        })
         .then((record) => {
           if (record.username) resolve(record.username);
           else
@@ -130,7 +134,13 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
             });
         });
     });
-    data.push({ username, image: myStudent.image, receiverId: id });
+
+    data.push({
+      username,
+      image: image,
+      receiverId: id,
+      lastMessage: message.text,
+    });
   }
   res.status(200).json({ data });
 });

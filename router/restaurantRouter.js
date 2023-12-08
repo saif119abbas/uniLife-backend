@@ -5,7 +5,7 @@ const {
   editFoodItem,
   deleteFoodItem,
   getOrders,
-  endOrder,
+  updateOrder,
   getMenu,
 } = require("../contoller/restaurant/restaurantController");
 const { addOffer } = require("../contoller/restaurant/offerController");
@@ -55,10 +55,10 @@ router.patch(
   addOffer
 );
 router.patch(
-  "/endorder/:userId/:orderId",
+  "/order/:userId/:orderId",
   protect,
   restaurantPermission,
   restaurantCheckOrder,
-  endOrder
+  updateOrder
 );
 module.exports = router;

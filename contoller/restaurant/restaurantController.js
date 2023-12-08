@@ -312,30 +312,48 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     return next(new AppError("An error occurred please try again", 500));
   }
 });
-exports.endOrder = catchAsync(async (req, res, next) => {
-  const orderId = req.params.orderId;
-  order
-    .update({ status: "ready" }, { where: { orderId } })
+exports.updateOrder = catchAsync(async (req, res, next) => {
+  const { orderId } = req.params;
+  const restaurantId = res.locals.restaurantId;
+  let status = res.locals.status;
+  status = status.trim().toLowerCase();
+  switch (status) {
+    case "pending":
+      status = "recieved";
+      break;
+    case "recieved":
+      status = "on process";
+      break;
+    case "on process":
+      status = "ready";
+      break;
+    case "ready":
+      status = "delivered";
+      break;
+    default:
+      status = "pending";
+      break;
+  }
+  await order
+    .update({ status }, { where: { orderId, restaurantId } })
     .then((count) => {
-      if (count[0] > 1)
-        return res.status(403).json({
-          status: "failed",
-          message: "not allowed",
-        });
-      else if (count[0] === 0)
-        return res.status(404).json({
-          status: "failed",
-          message: "not found",
-        });
       if (count[0] === 1)
         return res.status(200).json({
-          status: "failed",
-          message: "updated successfully",
+          status: "success",
+          message: "status updated",
         });
-    })
-    .catch((err) => {
-      console.log(err);
-      if (err)
-        return next(new AppError("An error occurred please try again", 500));
+      else if (count[0] === 0)
+        return res
+          .status(404)
+          .json({
+            status: "failed",
+            message: "not found",
+          })
+          .catch((err) => {
+            console.log(err);
+            return next(
+              new AppError("An error occurred please try again", 500)
+            );
+          });
     });
 });

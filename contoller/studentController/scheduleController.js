@@ -28,7 +28,7 @@ exports.createSchedule = catchAsync(async (req, res, next) => {
     });
 });
 exports.addLecture = catchAsync(async (req, res, next) => {
-  //const studentId = req.params.studentId;
+  const userId = req.params.userId;
   const myStudent = await student.findOne({
     attributes: ["id"],
     where: { userId },
@@ -100,7 +100,7 @@ exports.editLecture = catchAsync(async (req, res, next) => {
   });
 });
 exports.deleteLecture = catchAsync(async (req, res, next) => {
-  let id = req.params.lectureId;
+  let id = req.params.id;
   console.log("Lecture ID=", id);
   if (!id)
     return next(new AppError("You need to provide lecture to delete", 400));

@@ -11,6 +11,8 @@ const {
   post,
   postMajor,
 } = require("../../models");
+const { resolve } = require("path");
+const { rejects } = require("assert");
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
   for (const name of majors) {
@@ -218,6 +220,45 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
         });
     });
 });
+exports.unReservesdPost = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const myStudent = await student.findOne({
+    attributes: ["blocked", "id"],
+    where: { userId },
+  });
+  if (!myStudent)
+    return res.status(403).json({
+      status: "failed",
+      message: "you are not student",
+    });
+  if (myStudent.blocked)
+    return res.status(403).json({
+      status: "failed",
+      message: "you are blocked, you can't reserved post",
+    });
+  const studentId = myStudent.id;
+  const id = req.params.postId;
+  await post
+    .update(
+      { reservedBy: null },
+      { where: { [Op.or]: [{ reservedBy: studentId }, { studentId }], id } }
+    )
+    .then((count) => {
+      if (count[0] === 1)
+        return res
+          .status(200)
+          .json({ status: "success", message: "reserved canceled" });
+      else if (count[0] === 0)
+        return res.status(404).json({
+          status: "failed",
+          message: "not found post or you this item not reserved",
+        });
+    })
+    .catch((err) => {
+      console.log("my error: ", err);
+      return next(new AppError("An error occurred please try again", 500));
+    });
+});
 exports.searchPost = catchAsync(async (req, res, next) => {
   const desc = req.body.description;
   const userId = req.params.userId;
@@ -259,4 +300,73 @@ exports.searchPost = catchAsync(async (req, res, next) => {
     data.push({ id, username, description, image, reserved });
   }
   res.status(200).json({ data });
+});
+
+exports.getMyPost = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const studentId = await new Promise((resolve, reject) => {
+    student
+      .findOne({
+        attributes: ["id"],
+        where: {
+          userId,
+        },
+      })
+      .then((record) => {
+        if (record) resolve(record.id);
+      });
+  });
+  console.log("studentId", studentId);
+  const posts = await new Promise((resolve, reject) => {
+    post
+      .findAll({
+        attributes: ["id", "reservedBy", "image", "description"],
+        where: { studentId },
+      })
+      .then((record) => {
+        if (record) resolve(record);
+        else
+          return res.status(404).json({
+            status: "failed",
+            message: "no post found",
+          });
+      });
+  });
+  let data = [];
+  for (const post of posts) {
+    const reservedBy = post.reservedBy;
+    let id = "",
+      username = "";
+    if (reservedBy) {
+      id = await Promise((resolve, reject) => {
+        student
+          .findOne({ attributes: ["userId"], where: { userId } })
+          .then((record) => {
+            if (record) resolve(record.userId);
+          });
+      });
+      username = await Promise((resolve, reject) => {
+        user
+          .findOne({ attributes: ["username"], where: { id } })
+          .then((record) => {
+            if (record) resolve(record.username);
+          });
+      });
+    }
+    data.push({
+      id: post.id,
+      username,
+      image: post.image,
+      description: post.description,
+    });
+  }
+  if (data.length > 0)
+    return res.status(200).json({
+      data,
+    });
+  else
+    return res.status(404).json({
+      status: "failed",
+      message: "no post found",
+    });
 });
