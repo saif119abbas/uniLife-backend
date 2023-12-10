@@ -23,6 +23,8 @@ const {
 const {
   getResturants,
   getResturant,
+  getCatigory,
+  getMajor,
 } = require("../contoller/userController/generalController");
 const {
   adminOrStuPermission,
@@ -55,6 +57,8 @@ router.get(
   RestauarntOrStuPermission,
   getMenu
 );
+router.get("/catigory/:userId", protect, adminOrStuPermission, getCatigory);
+router.get("/major/:userId", protect, adminOrStuPermission, getMajor);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);

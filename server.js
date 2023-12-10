@@ -1,3 +1,4 @@
+const QRCode = require("qrcode");
 const app = require("./app");
 const dotenv = require("dotenv");
 dotenv.config({ path: ".env" });
@@ -22,6 +23,22 @@ io.on("connection", (socket) => {
   socket.on("login", (userId) => {
     userSocketMap[userId] = socket.id;
     console.log(`User ${userId} logged in.`);
+  });
+
+  socket.on("imageMessage", ({ senderId, receiverId, image }) => {
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) {
+      // Save the image to a file (you might want to use a database instead)
+      const receiverSocketId = userSocketMap[receiverId];
+
+      // Send the image path to the receiver
+      io.to(receiverSocketId).emit("imageMessage", {
+        senderId,
+        image,
+      });
+    } else {
+      console.log(`User ${receiverId} is not connected.`);
+    }
   });
 
   // Handle private messages

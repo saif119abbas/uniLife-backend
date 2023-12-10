@@ -11,6 +11,7 @@ const {
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile } = require("../../firebaseConfig");
+const { resolve } = require("path");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const myRestaurant = await restaurant
@@ -28,7 +29,6 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
   req.session.menuId = menuId;
   let myFoodItem = JSON.parse(req.body.data);
   const myImage = req.file;
-  UploadFile(myImage);
   console.log("The image: ", myImage);
   console.log("The food", req.body);
   /*myFoodItem.menuMenuId = menuId;
@@ -36,27 +36,35 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
   myFoodItem = {
     ...myFoodItem,
     menuMenuId: menuId,
-    image: myImage,
     isOffer: false,
     offerPrice: 0,
     offerDesc: "",
   };
-  await foodItem
-    .create(myFoodItem)
-    .then((data) => {
+  const id = await new Promise((resolve, reject) => {
+    foodItem
+      .create(myFoodItem)
+      .then((data) => {
+        if (data) resolve(data.id);
+      })
+      .catch((err) => {
+        console.log("The err", err);
+        if (err.name === "SequelizeUniqueConstraintError")
+          return res.status(409).json({
+            status: "failed",
+            message: "this food is already exists",
+          });
+        return next(new AppError("An error occured please try again", 500));
+      });
+  });
+  const nameImage = `/images/foodItem/${id}_${myImage.originalname}`;
+  UploadFile(myImage, nameImage);
+  const image = await getURL(nameImage);
+  foodItem.update({ image }, { where: id }).then((count) => {
+    if (count[0] === 1)
       return res
         .status(201)
         .json({ status: "success", message: "created successfully" });
-    })
-    .catch((err) => {
-      console.log("The err", err);
-      if (err.name === "SequelizeUniqueConstraintError")
-        return res.status(409).json({
-          status: "failed",
-          message: "this food is already exists",
-        });
-      return next(new AppError("An error occured please try again", 500));
-    });
+  });
 });
 exports.getMenu = catchAsync(async (req, res, next) => {
   let restaurantId = req.params.restaurantId;

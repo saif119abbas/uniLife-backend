@@ -22,6 +22,7 @@ const {
 const {
   addFloor,
   addFaculty,
+  addClassRoom,
 } = require("../contoller/adminController/facultyAction");
 const {
   validtaeAddRestaurant,
@@ -31,6 +32,7 @@ const {
   validtaeSignup,
   validtaeAddFaculty,
   validtaeAddFloor,
+  validtaeAddClassroom,
 } = require("../validation/validator");
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
@@ -101,5 +103,12 @@ router.post(
   adminPermission,
   validtaeAddFloor,
   addFloor
+);
+router.post(
+  "/class/:userId/:floorId",
+  protect,
+  adminPermission,
+  validtaeAddClassroom,
+  addClassRoom
 );
 module.exports = router;

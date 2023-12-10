@@ -4,6 +4,7 @@ const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
 const { pushNotification } = require("../../notification");
+const { createImage, getQRcode } = require("../../utils/qrcode");
 const {
   uploadProcessData,
   getData,
@@ -11,12 +12,16 @@ const {
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
-const { resolve } = require("path");
+const { UploadFile } = require("../../firebaseConfig");
 let verifyMessage = "";
 let expiresIn = "24h";
 
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
+  const URL = createImage(JSON.stringify(data));
+  /*const file = Buffer.from(URL, "base64");
+  UploadFile(file, "/qrcode/image.png");*/
+
   await user
     .findOne({
       attributes: ["role", "id", "password", "email"],
@@ -287,6 +292,58 @@ exports.protect = catchAsync(async (req, res, next) => {
   // GRANT ACCESS TO PROTECTED ROUTE
   /*req.session.user = data;
       })*/
+});
+exports.editProfile = catchAsync(async (req, res, next) => {
+  try {
+    let data = req.body;
+    const id = req.params.userId;
+    if (data.password) {
+      if (data.password !== data.confirmPassword)
+        return res.status(400).json({
+          status: "failed",
+          messag: "password and confirm password do not match",
+        });
+      const hash = await new Promise((resolve, reject) => {
+        bcrypt.hash(data.password, 12, (err, hash) => {
+          if (err) reject(err);
+          else resolve(hash);
+        });
+      });
+      data.password = hash;
+      user.update(data, { where: { id } }).then((count) => {
+        if (count[0] === 1)
+          return res.status(200).json({
+            status: "failed",
+            message: "updated successfully",
+          });
+        else if (count[0] === 0)
+          return res.status(404).json({
+            status: "failed",
+            message: "not found",
+          });
+      });
+    }
+  } catch (err) {
+    return next(new AppError("An error occurred please try again", 500));
+  }
+});
+exports.getPofile = catchAsync(async (req, res, next) => {
+  const id = req.params.userId;
+  const data = await new Promise((resolve, reject) => {
+    user
+      .findOne({
+        attributes: ["username", "phoneNum", "email"],
+        where: { id },
+      })
+      .then((record) => {
+        if (record) resolve(record);
+        else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "not found" });
+      });
+  });
+  return res.status(200).json(data);
 });
 exports.storeData = catchAsync(async (req, res) => {
   const image = req.file.buffer || req.files.image[0];

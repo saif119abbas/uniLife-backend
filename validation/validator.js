@@ -31,7 +31,10 @@ const { addOfferValidation } = require("./offerValidation");
 const {
   addFacultyValidation,
   addFloorValidation,
+  addClassroomValidation,
 } = require("./facultyValidation");
+const { sendMessageValidation } = require("./messageValidation");
+
 exports.validtaeSignup = (req, res, next) => {
   const student = req.body;
   const { error, val } = signupValidation.validate(student);
@@ -260,7 +263,18 @@ exports.validtaeAddFloor = (req, res, next) => {
 };
 exports.validtaeAddClassroom = (req, res, next) => {
   const data = req.body;
-  const { error, _ } = addFloorValidation.validate(data);
+  const { error, _ } = addClassroomValidation.validate(data);
+  if (error) {
+    return res.status(400).json({
+      status: "failed",
+      message: error.message,
+    });
+  }
+  next();
+};
+exports.validtaeSendMessage = (req, res, next) => {
+  const data = req.body;
+  const { error, _ } = sendMessageValidation.validate(data);
   if (error) {
     return res.status(400).json({
       status: "failed",

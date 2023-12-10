@@ -1,9 +1,5 @@
 const { initializeApp } = require("firebase/app");
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-const { Buffer } = require("buffer");
-const fs = require("fs");
 const keyFile = require("./keyFile.json");
-const { Storage } = require("@google-cloud/storage");
 const {
   getFirestore,
   doc,
@@ -18,10 +14,14 @@ const {
   ref,
   uploadBytes,
   getDownloadURL,
+  deleteObject,
+  listAll,
+  list,
 } = require("firebase/storage");
 //const serviceAccount = require("./serviceAccountKey.json");
 
 const admin = require("firebase-admin");
+const { resolve } = require("path");
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_APIKEY,
   authDomain: process.env.FIREBASE_AUTHDOMAIN,
@@ -40,6 +40,7 @@ const initializeFirebaseApp = () => {
     App = initializeApp(firebaseConfig);
     firestoreDB = getFirestore();
     storage = getStorage();
+    bucket = storage.bucket();
     return App;
   } catch (err) {
     return err;
@@ -79,13 +80,13 @@ const getData = async (to, from) => {
 const UploadFile = async (file, nameImage) => {
   console.log("from upload file myfile", file);
   console.log("my storage", storage);
-  const fileBuffer = fs.readFileSync(file.path);
+  //const fileBuffer = file.buffer;
   const storageRef = ref(storage, nameImage);
   const metadata = {
-    contentType: "image/jpeg",
+    contentType: "image/png",
   };
 
-  await uploadBytes(storageRef, fileBuffer, metadata);
+  await uploadBytes(storageRef, file, metadata);
 };
 const getURL = async (nameImage) => {
   const pathReference = ref(storage, nameImage);
@@ -95,43 +96,30 @@ const getURL = async (nameImage) => {
   console.log("URL: ", URL);
   return URL;
 };
-const uploadFileFormAdmin = (bucket, nameImage) => {};
-const getFiles = async (URL) => {
-  const xmlhttp = new XMLHttpRequest();
-  xmlhttp.responseType = "blob";
-  xmlhttp.onload = (event) => {
-    const blob = xmlhttp.response;
-    console.log(blob);
-  };
-  xmlhttp.onreadystatechange = myfunction();
-  xmlhttp.open("GET", URL, true);
-  xmlhttp.send();
+const deleteFile = async (nameImage) => {
+  const storageRef = ref(storage, nameImage);
+  //const fileRef = storage.refFromURL(URL);
 
-  function myfunction() {
-    let y = "";
-    if (xmlhttp.readyState == 0) {
-      //window.alert("Uninitialized");
-      y = "Uninitialized";
-    }
-    if (xmlhttp.readyState == 1) {
-      //window.alert("loading");
-      y = "loading";
-    }
-    if (xmlhttp.readyState == 2) {
-      //window.alert("loaded");
-      y = "loaded";
-    }
-    if (xmlhttp.readyState == 3) {
-      // window.alert("waiting");
-      y = "waiting";
-    }
-    if (xmlhttp.readyState == 4) {
-      // window.alert("completed");
-      y = JSON.parse(xmlhttp.responseText);
-    }
-    console.log(y);
-  }
+  await deleteObject(storageRef);
 };
+/*const listFiles = async (Folder, id) => {
+  const listRef = ref(storage, Folder);
+  const filName = await new Promise((resolve, reject) => {
+    listAll(listRef)
+      .then((res) => {
+        res.items.forEach((itemRef) => {
+          console.log("location:", itemRef._location.path_);
+          const filName = itemRef._location.path_.split("/")[1];
+          if (filName.startWith(`${id}_`)) resolve(filName);
+        });
+      })
+      .catch((error) => {
+        // Uh-oh, an error occurred!
+      });
+  });
+  console.log("fileName", filName);
+  return filName;
+};*/
 const getFirebaseApp = () => App;
 const getMyStoarge = () => storage;
 module.exports = {
@@ -142,5 +130,5 @@ module.exports = {
   getMyStoarge,
   UploadFile,
   getURL,
-  getFiles,
+  deleteFile,
 };

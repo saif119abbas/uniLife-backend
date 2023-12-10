@@ -1,7 +1,7 @@
 const { Op, where } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
-const { UploadFile, getURL } = require("../../firebaseConfig");
+const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const { intersection } = require("../../utils/arrayActions");
 const {
   student,
@@ -11,8 +11,6 @@ const {
   post,
   postMajor,
 } = require("../../models");
-const { resolve } = require("path");
-const { rejects } = require("assert");
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
   for (const name of majors) {
@@ -37,10 +35,32 @@ const addMajors = async (data, res, next) => {
       return next(new AppError("An error occurred please try again", 500));
     }
   }
-  /*return res.status(201).json({
-    status: "success",
-    message: "created successfully",
-  });*/
+};
+const editMajors = async (data, res, next) => {
+  const { majors, postId } = data;
+  try {
+    await postMajor.destroy({
+      where: { postId },
+    });
+    for (const name of majors) {
+      const majorId = await new Promise((resolve, reject) => {
+        major
+          .findOne({ attributes: ["id"], where: { name } })
+          .then((record) => {
+            console.log("The major id", record.id);
+            if (record.id) {
+              console.log("Found");
+              resolve(record.id);
+            } else
+              reject(new AppError("An error occurred please try again", 500));
+          });
+      });
+      await postMajor.create({ postId, majorId }).then();
+    }
+  } catch (err) {
+    console.log("The err", err);
+    return next(new AppError("An error occurred please try again", 500));
+  }
 };
 exports.createPost = catchAsync(async (req, res, next) => {
   console.log("The body:", req.body.data);
@@ -85,14 +105,8 @@ exports.createPost = catchAsync(async (req, res, next) => {
         resolve(record.id);
       });
     });
-    const nameImage = `/images/${data.catigory}/${id}_${file.originalname}`;
-    console.log("catigory", catigoryId);
+    const nameImage = `/student post/${id}`;
     await UploadFile(file, nameImage);
-    /* res.status(201).json({
-      status: "success",
-      message: "Post created successfully",
-    });*/
-    // Include any additional data you want to send back
     const image = await getURL(nameImage);
     await post.update({ image }, { where: { id } });
     res.status(201).json({
@@ -100,6 +114,119 @@ exports.createPost = catchAsync(async (req, res, next) => {
       message: "Post created successfully",
       // Include any additional data you want to send back
     });
+  } catch (error) {
+    console.error("Error creating post:", error);
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        status: "failed",
+        message: "Already created",
+      });
+    }
+
+    return next(new AppError("An error occurred, please try again", 500));
+  }
+});
+exports.editPost = catchAsync(async (req, res, next) => {
+  console.log("The body:", req.body.data);
+
+  try {
+    const data = JSON.parse(req.body.data);
+    const userId = req.params.userId;
+    const id = req.params.postId;
+    const myStudent = await student.findOne({
+      attributes: ["id"],
+      where: { userId },
+    });
+
+    const studentId = myStudent.id;
+    let postData = {};
+    console.log("req.file:", req.file); // Correctly log the uploaded file
+    let catigoryId = "";
+    if (data.catigory) {
+      catigoryId = await new Promise((resolve, reject) => {
+        catigory
+          .findOne({ attributes: ["id"], where: { name: data.catigory } })
+          .then((record) => {
+            if (!record || record.length === 0)
+              return res.status(404).json({
+                status: "failed",
+                message: "this catigory is not found",
+              });
+            resolve(record.id);
+          });
+      });
+      postData.catigory = catigoryId;
+    }
+    let image = "";
+    const file = req.file;
+    if (file) {
+      const nameImage = `/student post/${id}`;
+      await UploadFile(file, nameImage);
+      image = await getURL(nameImage);
+      postData.image = image;
+    }
+    if (data.description) postData.description = data.description;
+    await post.update(postData, { where: { id, studentId } }).then((count) => {
+      if (count[0] === 1) {
+        if (data.majors)
+          editMajors({ majors: data.majors, postId: id }, res, next);
+        res.status(200).json({
+          status: "success",
+          message: "Post updated successfully",
+          // Include any additional data you want to send back
+        });
+      } else if (count[0] === 0)
+        res.status(404).json({
+          status: "failed",
+          message: "not found1111",
+          // Include any additional data you want to send back
+        });
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+
+    if (error.name === "SequelizeUniqueConstraintError") {
+      return res.status(409).json({
+        status: "failed",
+        message: "Already created",
+      });
+    }
+
+    return next(new AppError("An error occurred, please try again", 500));
+  }
+});
+exports.deletePost = catchAsync(async (req, res, next) => {
+  try {
+    const { userId, postId } = req.params;
+
+    const myStudent = await student.findOne({
+      attributes: ["id"],
+      where: { userId },
+    });
+
+    const studentId = myStudent.id;
+    const image = await new Promise((resolve, reject) => {
+      post.findOne({ where: { id: postId, studentId } }).then((res) => {
+        if (res) resolve(res.image);
+      });
+    });
+    const baseUrl = image.split("?")[0].split("/");
+    const path = baseUrl[baseUrl.length - 1].split("%2F");
+    const nameImage = `student post/${path[path.length - 1]}`;
+    const deleteCount = await new Promise((resolve, _) => {
+      post.destroy({ where: { id: postId, studentId } }).then((deleteCount) => {
+        resolve(deleteCount);
+      });
+    });
+    if (deleteCount === 1) {
+      await deleteFile(nameImage);
+      return res.status(204).json({});
+    } else
+      return res.status(404).json({
+        status: "failed",
+        message: "not found",
+      });
   } catch (error) {
     console.error("Error creating post:", error);
 
@@ -175,7 +302,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
 
   for (let item of posts) {
     const reserved = item.reservedBy ? true : false;
-    const { description, id, image } = item;
+    const { description, id, image, studentId } = item;
     const myStudent = await student.findOne({
       attributes: ["userId"],
       where: { id: item.studentId },
@@ -190,7 +317,8 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       where: { id: myStudent.userId },
     });
     const { username } = myUser;
-    data.push({ id, username, description, image, reserved });
+    //const URL = await getURL(image);
+    data.push({ id, username, description, image, reserved, studentId });
   }
   res.status(200).json({ data });
 });

@@ -51,7 +51,7 @@ const addFacultyFLoors = async (facultyFacultyNumber, floorId, res) => {
     });
 };
 const addFloorClassRooms = async (classroomId, floorId, res) => {
-  await facultyFloor
+  await floorClass
     .create({ classroomId, floorId })
     .then(() => {
       return res.status(201).json({

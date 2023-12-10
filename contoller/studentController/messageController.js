@@ -5,7 +5,9 @@ const Sequelize = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const { student, user, message } = require("../../models");
+const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
+const { resolve } = require("path");
 exports.sendMessage = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const receiverId = req.params.receiverId;
@@ -14,23 +16,30 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
       if (record.id) resolve(record.id);
     });
   });
-  const { text } = req.body;
+  const { text } = req.body.data;
+  const file = req.file;
+  const image = file.buffer;
   const data = {
-    text,
     receiverId,
     senderId,
+    text,
+    image,
   };
-  await message
-    .create(data)
-    .then(() => {
-      return res.status(201).json({
-        message: "sent successfully",
+  await new Promise((resolve, reject) => {
+    message
+      .create(data)
+      .then((record) => {
+        if (!file)
+          return res.status(201).json({
+            message: "sent successfully",
+          });
+        else resolve(record.id);
+      })
+      .catch((err) => {
+        console.log("my error", err);
+        return next(new AppError("An error occurred please try again", 500));
       });
-    })
-    .catch((err) => {
-      console.log("my error", err);
-      return next(new AppError("An error occurred please try again", 500));
-    });
+  });
 });
 exports.getMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");

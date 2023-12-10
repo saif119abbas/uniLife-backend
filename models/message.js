@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const message = sequelize.define("message", {
     text: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     // Add studentId and receiver as foreign keys
     senderId: {
@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
         model: "students", // Assuming your Student model is named "Student"
         key: "id",
       },
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
   });
 

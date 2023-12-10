@@ -4,6 +4,8 @@ const {
   signup,
   verify,
   protect,
+  editProfile,
+  getPofile,
 } = require("../contoller/userController/authController");
 
 const {
@@ -25,12 +27,15 @@ const {
   unReservesdPost,
   searchPost,
   getMyPost,
+  deletePost,
+  editPost,
 } = require("../contoller/studentController/postController");
 const {
   validtaeAddLecture,
   validtaeEditLecture,
   validtaeCreateOrder,
   validtaeSignup,
+  validtaeSendMessage,
 } = require("../validation/validator");
 const { getMenu } = require("../contoller/restaurant/restaurantController");
 const {
@@ -49,6 +54,8 @@ const router = express.Router();
 //router.use(protect);
 router.post("/signup", validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
+router.patch("/profile/:userId", protect, editProfile);
+router.get("/profile/:userId", protect, getPofile);
 router.post(
   "/addLecture/:userId",
   protect,
@@ -103,9 +110,9 @@ router.get(
 );
 router.post(
   "/post/:userId",
-  upload.single("image"),
   protect,
   studentPermission,
+  upload.single("image"),
   createPost
 );
 router.get(
@@ -125,13 +132,23 @@ router.patch(
   "/post/unreserve/:userId/:postId",
   protect,
   studentPermission,
+  upload.single("image"),
   unReservesdPost
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
+router.delete("/post/:userId/:postId", protect, studentPermission, deletePost);
+router.patch(
+  "/post/:userId/:postId",
+  protect,
+  studentPermission,
+  upload.single("image"),
+  editPost
+);
 router.post(
   "/message/:userId/:receiverId",
   protect,
   studentPermission,
+  validtaeSendMessage,
   sendMessage
 );
 router.get(
