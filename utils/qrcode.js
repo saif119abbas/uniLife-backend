@@ -12,20 +12,15 @@ exports.createQRcode = (value) => {
     }
   );
 };
-exports.getQRcode = (value) => {
-  let URL = "";
-  QRCode.toDataURL(
-    value,
-    {
-      errorCorrectionLevel: "H",
-      type: "terminal",
-    },
-    function (err, data) {
-      if (err) throw err;
-      console.log(data);
-      URL = data;
-    }
-  );
+exports.getQRcode = async (value) => {
+  let URL = await new Promise((resolve, reject) => {
+    QRCode.toDataURL(value, (err, url) => {
+      if (err) reject(err);
+      else resolve(url);
+    });
+  });
+  URL = URL.split(";base64,").pop();
+  console.log("URL: ", URL);
   return URL;
 };
 exports.createImage = (value) => {
@@ -34,4 +29,4 @@ exports.createImage = (value) => {
     return data;
   });
   console.log("qr.png created", image);
-};  
+};

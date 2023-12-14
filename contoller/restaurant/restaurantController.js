@@ -11,7 +11,6 @@ const {
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile } = require("../../firebaseConfig");
-const { resolve } = require("path");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const myRestaurant = await restaurant
@@ -77,33 +76,32 @@ exports.getMenu = catchAsync(async (req, res, next) => {
     restaurantId = myUser.id;
   }
 
-  const myMenu = await menu.findOne({
+  const data = await menu.findOne({
     where: { restaurantId },
-  });
-  if (!myMenu)
-    return res.status(404).json({
-      status: "failed",
-      message: "not found",
-    });
-  const data = await foodItem.findAll({
-    attributes: [
-      "foodId",
-      "description",
-      "price",
-      "nameOfFood",
-      "image",
-      "category",
+    attributes: [],
+    include: [
+      {
+        model: foodItem,
+        attributes: [
+          "foodId",
+          "description",
+          "price",
+          "nameOfFood",
+          "image",
+          "category",
+        ],
+      },
     ],
-    where: { menuMenuId: myMenu.menuId },
   });
   if (!data)
     return res.status(404).json({
       status: "failed",
-      message: "there no menu",
+      message: "not found",
     });
+  const { foodItems } = data;
   res.status(200).json({
     status: "success",
-    data,
+    data: foodItems,
   });
 });
 exports.editFoodItem = catchAsync(async (req, res, next) => {
@@ -204,113 +202,79 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const myRestaurant = await restaurant.findOne({
-      attributes: ["id"],
+    const ordersRestaurant = await restaurant.findOne({
+      attributes: [],
       where: { userId },
+      include: [
+        {
+          model: order,
+          attributes: ["orderId", "status", "totalPrice", "createdAt"],
+          // order: [["createdAt", "ASC"]],
+          include: [
+            {
+              model: orderItem,
+              attributes: ["orderItemId", "Qauntity", "unitPrice"],
+              include: [
+                { model: foodItem, attributes: ["price", "nameOfFood"] },
+              ],
+            },
+            {
+              model: student,
+              include: [
+                {
+                  model: user,
+                  attributes: ["username"],
+                },
+              ],
+            },
+          ],
+        },
+      ],
     });
-    if (!myRestaurant) {
-      return res.status(403).json({
-        status: "failed",
-        message: "not allowed",
-      });
-    }
-    //console.log("the student", myRestaurant);
-    const restaurantId = myRestaurant.id;
-    let retrieveData = [];
-    const myOrders = await order.findAll({
-      attributes: ["orderId", "status", "studentId", "totalPrice"],
-      where: { restaurantId },
-      order: [["createdAt", "DESC"]],
-    });
-    if (!myOrders || myOrders.length === 0) {
-      return res.status(404).json({
-        status: "failed",
-        message: "You do not have any orders",
-      });
-    }
-    console.log("MyOrders", myOrders);
-    for (const myOrder of myOrders) {
-      const data = {
-        orderId: "",
-        status: "",
-        studentName: "",
-        items: [],
-        totalPrice: 0,
-      };
-      data.status = myOrder.status;
-      data.totalPrice = myOrder.totalPrice;
-      data.orderId = myOrder.orderId;
-      const students = await student.findOne({
-        attributes: ["userId"],
-        where: { id: myOrder.studentId },
-      });
-      if (!students)
-        return res.status(404).json({
-          status: "failed",
-          message: "You do not have any orders",
-        });
-      const studentUser = await user.findOne({
-        attributes: ["username"],
-        where: { id: students.userId },
-      });
-      if (!studentUser)
-        return res.status(404).json({
-          status: "failed",
-          message: "You do not have any orders",
-        });
-      data.studentName = studentUser.username;
-      /* console.log(
-        "data with restaurant name: ",
-        data.studentName,
-        studentUser.username
-      );*/
-
-      const items = [];
-      const orderItems = await orderItem.findAll({
-        attributes: ["orderItemId", "Qauntity", "unitPrice"],
-        where: { orderOrderId: myOrder.orderId },
-      });
-      if (!orderItems || orderItems.length === 0)
-        return res.status(404).json({
-          status: "failed",
-          message: "You do not have any orders",
-        });
-      //console.log("oreders Item with quntity and unit price :", orderItems);
-      for (let i = 0; i < orderItems.length; i++) {
-        const itemData = {
-          Qauntity: "",
-          unitPrice: "",
-          price: "",
-          nameOfFood: "",
+    const { orders } = ordersRestaurant;
+    let data = [];
+    for (const order of orders) {
+      const {
+        orderItems,
+        orderId,
+        status,
+        totalPrice,
+        createdAt,
+        student: {
+          user: { username },
+        },
+      } = order;
+      let items = [];
+      for (const orderItem of orderItems) {
+        const {
+          foodItems: { price, nameOfFood },
+          orderItemId,
+          Qauntity,
+          unitPrice,
+        } = orderItem;
+        const i = {
+          orderItemId,
+          Qauntity,
+          unitPrice,
+          price,
+          nameOfFood,
         };
-        const itemId = orderItems[i];
-        itemData.Qauntity = itemId.Qauntity;
-        itemData.unitPrice = itemId.unitPrice;
-        console.log("ordere item id:", itemId.orderItemId);
-        const records = await OrderItem_FoodItem.findOne({
-          attributes: ["foodItemFoodId"],
-          where: { orderItemOrderItemId: itemId.orderItemId },
-        });
-        console.log("11records Item with foodItemFoodId:", records);
-        if (!records) continue;
-
-        const foodItems = await foodItem.findOne({
-          attributes: ["price", "nameOfFood"],
-          where: { foodId: records.foodItemFoodId },
-        });
-        // console.log("food Items Item with price and name of food:", foodItems);
-        itemData.price = foodItems.price;
-        itemData.nameOfFood = foodItems.nameOfFood;
-        items.push(itemData);
+        items.push(i);
       }
-      console.log(items);
-      data.items = items;
-      console.log("my data:", data);
-      retrieveData = [...retrieveData, data];
-      // retrieveData.push(data);
-      console.log("retrieveData:", retrieveData);
+      data.push({
+        orderId,
+        status,
+        totalPrice,
+        studentName: username,
+        createdAt,
+        items,
+      });
     }
-    if (retrieveData) return res.status(200).json({ retrieveData });
+
+    if (data) {
+      data = data.reverse();
+      return res.status(200).json({ data });
+    }
     return res.status(404).json({
       status: "failed",
       message: "not found",

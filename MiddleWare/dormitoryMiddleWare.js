@@ -5,7 +5,7 @@ exports.dormitoryPostCheck = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const id = req.params.dorimtoryPostid;
   const myDorimtoryOwner = await dormitoryOwner.findOne({
-    attributes: ["SSN"],
+    attributes: ["id"],
     where: { userId },
   });
   if (!myDorimtoryOwner) {
@@ -14,9 +14,9 @@ exports.dormitoryPostCheck = catchAsync(async (req, res, next) => {
       message: "not allowed",
     });
   }
-  const SSN = myDorimtoryOwner.SSN;
+  const dormitoryOwnerId = myDorimtoryOwner.id;
   const myPost = await dormitoryPost.findOne({
-    attributes: ["dormitoryOwnerSSN"],
+    attributes: ["dormitoryOwnerId"],
     where: { id },
   });
   if (!myPost) {
@@ -25,7 +25,7 @@ exports.dormitoryPostCheck = catchAsync(async (req, res, next) => {
       message: "not found",
     });
   }
-  if (myPost.dormitoryOwnerSSN !== SSN)
+  if (myPost.dormitoryOwnerId !== dormitoryOwnerId)
     return res.status(403).json({
       status: "failed",
       message: "not allowed",

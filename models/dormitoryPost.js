@@ -15,16 +15,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     { alter: true }
   );
-  /*dormitoryPost
-    .sync({ alter: true })
-    .then(() => {
-      console.log("Table synced successfully.");
-    })
-    .catch((error) => {
-      console.error("Error syncing table: ", error);
-    });*/
+
   dormitoryPost.associate = (models) => {
     dormitoryPost.hasMany(models.room);
+    dormitoryPost.hasMany(models.images);
     dormitoryPost.belongsTo(models.dormitoryOwner);
   };
   return dormitoryPost;

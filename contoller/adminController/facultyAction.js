@@ -1,5 +1,7 @@
 const bcrypt = require("bcrypt");
 const AppError = require("../../utils/appError");
+const { getQRcode } = require("../../utils/qrcode");
+const { UploadFile, getURL } = require("../../firebaseConfig");
 const {
   faculty,
   facultyFloor,
@@ -75,11 +77,12 @@ exports.addFloor = catchAsync(async (req, res, next) => {
   let status = false;
   const facultyFacultyNumber = req.params.facultyId;
   try {
-    const id = await new Promise((resolve, reject) => {
+    const id = await new Promise(async (resolve, reject) => {
       floor
         .create(data)
         .then((record) => {
           status = true;
+
           resolve(record.id);
         })
         .catch((err) => {
@@ -92,7 +95,19 @@ exports.addFloor = catchAsync(async (req, res, next) => {
           } else reject(err);
         });
     });
-    if (status) await addFacultyFLoors(facultyFacultyNumber, id, res);
+    if (status) {
+      const fromattedData = { ...data, id };
+      const URL = await getQRcode(JSON.stringify(fromattedData));
+      const file = Buffer.from(URL, "base64");
+      const nameImage = `/qrcode/${id}`;
+      const metadata = {
+        contentType: "image/png",
+      };
+      await UploadFile(file, nameImage, metadata);
+      const image = await getURL(nameImage);
+      await floor.update({ image }, { where: { id } });
+      await addFacultyFLoors(facultyFacultyNumber, id, res);
+    }
   } catch (err) {
     console.log("My error occurred", err);
     return next(new AppError("An error occured please try again ", 500));

@@ -182,11 +182,10 @@ exports.validtaeEditFoodItem = (req, res, next) => {
   next();
 };
 exports.validtaeAddDormitoryPost = (req, res, next) => {
-  const data = {
-    description: req.body.description,
-    location: req.body.location,
-  };
-  const { error, _ } = addPostValidtaion.validate(data);
+  console.log(req.body.data);
+  const data = JSON.parse(req.body.data);
+  const { description, location } = data;
+  const { error, _ } = addPostValidtaion.validate({ description, location });
   if (error) {
     return res.status(400).json({
       status: "failed",
@@ -196,8 +195,9 @@ exports.validtaeAddDormitoryPost = (req, res, next) => {
   next();
 };
 exports.validtaeAddRooms = (req, res, next) => {
-  const data = req.body.rooms;
-  const { error, _ } = createRoomValidation.validate(data);
+  const data = JSON.parse(req.body.data);
+  const { rooms } = data;
+  const { error, _ } = createRoomValidation.validate(rooms);
   if (error) {
     return res.status(400).json({
       status: "failed",
@@ -273,7 +273,7 @@ exports.validtaeAddClassroom = (req, res, next) => {
   next();
 };
 exports.validtaeSendMessage = (req, res, next) => {
-  const data = req.body;
+  const data = req.body.data;
   const { error, _ } = sendMessageValidation.validate(data);
   if (error) {
     return res.status(400).json({

@@ -4,10 +4,9 @@ const sql = require("@sequelize/core");
 const Sequelize = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
-const { student, user, message } = require("../../models");
+const { student, user, message, sequelize } = require("../../models");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
-const { resolve } = require("path");
 exports.sendMessage = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const receiverId = req.params.receiverId;
@@ -16,24 +15,23 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
       if (record.id) resolve(record.id);
     });
   });
-  const { text } = req.body.data;
-  const file = req.file;
-  const image = file.buffer;
+  const { text } = JSON.parse(req.body.data);
+  console.log(req.body.text);
+  /*const file = req.file;
+  const image = file.buffer;*/
   const data = {
     receiverId,
     senderId,
     text,
-    image,
+    // image,
   };
   await new Promise((resolve, reject) => {
     message
       .create(data)
       .then((record) => {
-        if (!file)
-          return res.status(201).json({
-            message: "sent successfully",
-          });
-        else resolve(record.id);
+        return res.status(201).json({
+          message: "sent successfully",
+        });
       })
       .catch((err) => {
         console.log("my error", err);
@@ -53,9 +51,15 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   });
 
   console.log("senderId", senderId);
+  console.log("sequelize", sequelize);
   const messages = await message
     .findAll({
-      attributes: ["id", "text", "senderId", "receiverId", "createdAt"],
+      attributes: [
+        "id",
+        "text",
+        "createdAt",
+        // [sequelize.col("s.id", "senderId")],
+      ],
       where: {
         [Op.or]: [
           { senderId, receiverId },
@@ -63,6 +67,24 @@ exports.getMessage = catchAsync(async (req, res, next) => {
         ],
       },
       order: [["createdAt", "DESC"]],
+      /*include: [
+        {
+          model: student,
+          attributes: ["id"],
+          // as: "s",
+          /*where: {
+            [Op.literal]: `('s'.'id' = 'message'.'senderId' and 'message'.'receiverId' =${receiverId} )or('message'.'senderId' = ${receiverId}  and 'message'.'receiverId' ='s'.'id')`,
+          },
+          include: [
+            {
+              model: user,
+              attributes: ["username"],
+              //as: "u",
+              where: { userId },
+            },
+          ],
+        },
+      ],*/
     })
     .catch((err) => {
       console.log("my error", err);
@@ -73,87 +95,50 @@ exports.getMessage = catchAsync(async (req, res, next) => {
     data.push({
       id: messages.id,
       text: message.text,
-      senderId: message.senderId,
-      receiverId: message.receiverId,
+      senderId,
+      receiverId,
       createdAt: message.createdAt,
     });
   }
-  res.status(200).json({ data });
+  console.log("message: ", messages);
+  return res.status(200).json({ data });
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
-  const Sequelize = require("sequelize");
-  const sequelize = new Sequelize("uniLife2", "root", "", {
-    host: "localhost",
-    dialect: "mysql",
-  });
-  const userId = req.params.userId;
-  const senderId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId } }).then((record) => {
-      if (record.id) resolve(record.id);
+  try {
+    const Sequelize = require("sequelize");
+    const sequelize = new Sequelize("uniLife2", "root", "", {
+      host: "localhost",
+      dialect: "mysql",
     });
-  });
-  console.log("senderId", senderId);
-  const messages = await sequelize.query(
-    `SELECT m.*
-  FROM messages m
-  JOIN (
+    const userId = req.params.userId;
+    const messages = await sequelize.query(
+      `SELECT m.id,m.text,m.createdAt,lastMessages.otherPersonId as recieverId, r.image AS image, u.username AS username
+    FROM messages m
+    JOIN (
       SELECT 
-          MAX(createdAt) AS lastMessageTime,
-          CASE
-              WHEN senderId = ${senderId} THEN receiverId
-              ELSE senderId
-          END AS otherPersonId
-      FROM messages
-      WHERE senderId =  ${senderId} OR receiverId =  ${senderId}
+      MAX(m2.createdAt) AS lastMessageTime,
+      CASE
+      WHEN senderId = s.id THEN m2.receiverId
+      WHEN receiverId = s.id THEN m2.senderId
+      END AS otherPersonId
+      FROM messages m2
+      JOIN students s ON (m2.senderId = s.id OR m2.receiverId = s.id) AND s.userId = ${userId}
+      WHERE m2.senderId = s.id OR m2.receiverId = s.id
       GROUP BY otherPersonId
-  ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
-  WHERE (m.senderId = ${senderId} OR m.receiverId =  ${senderId})
-  ORDER BY m.createdAt DESC;
-  `,
-    {
-      type: QueryTypes.SELECT,
-    }
-  );
-  console.log("messages", messages);
-  let data = [];
-  for (const message of messages) {
-    let id = message.receiverId;
-    if (id === senderId) id = message.senderId;
-
-    const myStudent = await new Promise((resolve, reject) => {
-      student
-        .findOne({ attributes: ["userId", "image"], where: { id } })
-        .then((record) => {
-          if (!record)
-            return res.status(404).json({
-              message: "not found messages",
-            });
-          else resolve(record);
-        });
-    });
-    const image = myStudent.image;
-    username = await new Promise((resolve, reject) => {
-      user
-        .findOne({
-          attributes: ["username"],
-          where: { id: myStudent.userId },
-        })
-        .then((record) => {
-          if (record.username) resolve(record.username);
-          else
-            return res.status(404).json({
-              message: "not found messages",
-            });
-        });
-    });
-
-    data.push({
-      username,
-      image: image,
-      receiverId: id,
-      lastMessage: message.text,
-      createdAt: message.createdAt,
-    });
+      ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
+      LEFT JOIN users u2 ON u2.id=${userId}
+      LEFT JOIN students s ON s.userId= u2.id
+      LEFT JOIN students r ON lastMessages.otherPersonId  = r.id
+      LEFT JOIN users u ON r.userId= u.id
+      WHERE (m.senderId = s.id OR m.receiverId =  s.id)
+      ORDER BY m.createdAt DESC;
+      `,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+    res.status(200).json({ messages });
+  } catch (err) {
+    console.log("The err", err);
   }
-  res.status(200).json({ data });
 });

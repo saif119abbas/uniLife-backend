@@ -88,7 +88,6 @@ router.post(
   createOrder
 );
 router.get("/orders/:userId", protect, studentPermission, getOrders);
-router.get("/orders/:userId", protect, studentPermission, getOrders);
 router.get("/poularmeal/:userId", protect, studentPermission, getPoular);
 router.get(
   "/offer/:userId/:restaurantId",
@@ -149,6 +148,7 @@ router.post(
   protect,
   studentPermission,
   validtaeSendMessage,
+  upload.single("image"),
   sendMessage
 );
 router.get(

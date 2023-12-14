@@ -4,6 +4,7 @@ const {
   addDormitoryPost,
   deleteDormitoryPost,
 } = require("../contoller/dormitory/dormitoryController");
+const { upload } = require("../images/handleImag");
 const { getMyPosts } = require("../contoller/dormitory/externalController");
 const { protect } = require("../contoller/userController/authController");
 const {
@@ -15,24 +16,20 @@ const { dormitoryPermission } = require("../permission");
 
 const { dormitoryPostCheck } = require("../MiddleWare/dormitoryMiddleWare");
 router.post(
-  "/adddormitorypost/:userId",
+  "/dormitory/:userId",
   protect,
   dormitoryPermission,
+  upload.array("image"),
   validtaeAddDormitoryPost,
   validtaeAddRooms,
   addDormitoryPost
 );
 router.delete(
-  "/deletedormitroypost/:userId/:dorimtoryPostid",
+  "/dormitory/:userId/:dorimtoryPostid",
   protect,
   dormitoryPermission,
   dormitoryPostCheck,
   deleteDormitoryPost
 );
-router.get(
-  "/mydormitorypost/:userId",
-  protect,
-  dormitoryPermission,
-  getMyPosts
-);
+router.get("/mydormitory/:userId", protect, dormitoryPermission, getMyPosts);
 module.exports = router;

@@ -18,8 +18,8 @@ let expiresIn = "24h";
 
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
-  const URL = createImage(JSON.stringify(data));
-  /*const file = Buffer.from(URL, "base64");
+  /*const URL = await getQRcode(JSON.stringify(data));
+  const file = Buffer.from(URL, "base64");
   UploadFile(file, "/qrcode/image.png");*/
 
   await user

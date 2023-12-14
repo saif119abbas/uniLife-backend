@@ -77,15 +77,10 @@ const getData = async (to, from) => {
     return err;
   }
 };
-const UploadFile = async (file, nameImage) => {
+const UploadFile = async (file, nameImage, metadata) => {
   console.log("from upload file myfile", file);
   console.log("my storage", storage);
-  //const fileBuffer = file.buffer;
   const storageRef = ref(storage, nameImage);
-  const metadata = {
-    contentType: "image/png",
-  };
-
   await uploadBytes(storageRef, file, metadata);
 };
 const getURL = async (nameImage) => {

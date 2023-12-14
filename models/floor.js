@@ -7,6 +7,13 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
+    image: {
+      type: DataTypes.STRING,
+      unique: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
   });
   floor.associate = (models) => {
     floor.belongsToMany(models.faculty, {
