@@ -471,27 +471,34 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
   let data = [];
   for (const post of posts) {
     const reservedBy = post.reservedBy;
-    let id = "",
-      username = "";
+    let username = "";
     if (reservedBy) {
-      id = await Promise((resolve, reject) => {
+      console.log(reservedBy);
+      console.log(post.id);
+      username = await new Promise((resolve, reject) => {
         student
-          .findOne({ attributes: ["userId"], where: { userId } })
+          .findOne({
+            attributes: ["userId"],
+            where: { id: reservedBy },
+            include: { model: user, attributes: ["username"] },
+          })
           .then((record) => {
-            if (record) resolve(record.userId);
+            if (record) resolve(record.user.username);
           });
       });
-      username = await Promise((resolve, reject) => {
+      console.log(username);
+      /* username = await new Promise((resolve, reject) => {
         user
           .findOne({ attributes: ["username"], where: { id } })
           .then((record) => {
             if (record) resolve(record.username);
           });
-      });
+      });*/
     }
     data.push({
       id: post.id,
       username,
+      reservedBy,
       image: post.image,
       description: post.description,
     });

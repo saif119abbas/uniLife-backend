@@ -10,7 +10,7 @@ const {
   OrderItem_FoodItem,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-const { UploadFile } = require("../../firebaseConfig");
+const { UploadFile, getURL } = require("../../firebaseConfig");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const myRestaurant = await restaurant
@@ -39,11 +39,11 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
     offerPrice: 0,
     offerDesc: "",
   };
-  const id = await new Promise((resolve, reject) => {
+  const foodId = await new Promise((resolve, reject) => {
     foodItem
       .create(myFoodItem)
       .then((data) => {
-        if (data) resolve(data.id);
+        if (data) resolve(data.foodId);
       })
       .catch((err) => {
         console.log("The err", err);
@@ -55,10 +55,14 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occured please try again", 500));
       });
   });
-  const nameImage = `/images/foodItem/${id}_${myImage.originalname}`;
-  UploadFile(myImage, nameImage);
+  const nameImage = `/foodItem/${foodId}`;
+  const metadata = {
+    contentType: "image/jpeg",
+  };
+  await UploadFile(myImage.buffer, nameImage, metadata);
   const image = await getURL(nameImage);
-  foodItem.update({ image }, { where: id }).then((count) => {
+  console.log(image);
+  foodItem.update({ image }, { where: { foodId } }).then((count) => {
     if (count[0] === 1)
       return res
         .status(201)
