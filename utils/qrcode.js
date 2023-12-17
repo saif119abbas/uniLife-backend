@@ -1,4 +1,6 @@
 const QRCode = require("qrcode");
+const Jimp = require("jimp");
+const qrCodeReader = require("qrcode-reader");
 exports.createQRcode = (value) => {
   QRCode.toString(
     value,
@@ -30,3 +32,4 @@ exports.createImage = (value) => {
   });
   console.log("qr.png created", image);
 };
+exports.compareQRcide = (buffer, value) => {};

@@ -77,7 +77,13 @@ const getData = async (to, from) => {
     return err;
   }
 };
-const UploadFile = async (file, nameImage, metadata) => {
+const UploadFile = async (
+  file,
+  nameImage,
+  metadata = {
+    contentType: "image/jpeg",
+  }
+) => {
   console.log("from upload file myfile", file);
   console.log("my storage", storage);
   const storageRef = ref(storage, nameImage);

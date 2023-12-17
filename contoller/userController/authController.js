@@ -13,7 +13,7 @@ const {
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
 const { UploadFile } = require("../../firebaseConfig");
-let verifyMessage = "";
+//let verifyMessage = "";
 let expiresIn = "24h";
 
 exports.login = catchAsync(async (req, res, next) => {
@@ -154,8 +154,9 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.username = createdUser.username;
     req.session.major = createdUser.major;
 
-    verifyMessage = createMessage();
-    transportMessage(verifyMessage, createdUser.email);
+    req.session.verifyMessage = createMessage();
+    console.log("verify", req.session.verifyMessage);
+    transportMessage(req.session.verifyMessage, createdUser.email);
     stratTime = Date.now();
     expiresIn = "60s";
     res.status(200).json({
@@ -165,7 +166,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 });
 
 exports.verify = catchAsync(async (req, res, next) => {
-  console.log("verify");
+  console.log("verify", req.session.verifyMessage);
   if (!req.body)
     res.status(400).json({
       status: "failed",
@@ -173,8 +174,8 @@ exports.verify = catchAsync(async (req, res, next) => {
         "You need to provide the verfication code to verify your account",
     });
 
-  if (req.body.verifyCode === verifyMessage) {
-    verifyMessage = "";
+  if (req.body.verifyCode === req.session.verifyMessage) {
+    req.session.verifyMessage = "";
     //expiresIn = "24h";
     console.log(
       req.session.email,

@@ -106,10 +106,8 @@ exports.createPost = catchAsync(async (req, res, next) => {
       });
     });
     const nameImage = `/student post/${id}`;
-    const metadata = {
-      contentType: "image/jpeg",
-    };
-    await UploadFile(file.buffer, nameImage, metadata);
+
+    await UploadFile(file.buffer, nameImage);
     const image = await getURL(nameImage);
     await post.update({ image }, { where: { id } });
     res.status(201).json({

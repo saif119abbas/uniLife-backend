@@ -49,6 +49,9 @@ const {
   getMessage,
   getMyMessage,
 } = require("../contoller/studentController/messageController");
+const {
+  getLocation,
+} = require("../contoller/studentController/majorController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
@@ -158,5 +161,6 @@ router.get(
   getMessage
 );
 router.get("/message/:userId", protect, studentPermission, getMyMessage);
+router.get("/location/:userId", protect, studentPermission, getLocation);
 
 module.exports = router;

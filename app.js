@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const session = require("express-session");
@@ -11,9 +12,10 @@ const userRouter = require("./router/userRouter");
 const { initializeFirebaseApp } = require("./firebaseConfig");
 const app = express();
 app.use(express.json());
+
 app.use(
   session({
-    secret: "test-secret",
+    secret: process.env.SECRET_SESSION,
     resave: false,
     saveUninitialized: true,
   })
