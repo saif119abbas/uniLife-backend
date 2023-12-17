@@ -24,7 +24,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
   await user
     .findOne({
-      attributes: ["role", "id", "password", "email"],
+      attributes: ["role", "id", "password", "email", "username"],
       where: { email: data.email },
     })
     .then((result) => {
@@ -64,6 +64,7 @@ exports.login = catchAsync(async (req, res, next) => {
             expiresIn = `24h`;
             data.id = result.id;
             data.role = result.role;
+            data.username = result.username;
             //  pushNotification();
             //console.log("success", success);
             createSendToken(data, 200, expiresIn, res);

@@ -8,36 +8,55 @@ const { student, user, message, sequelize } = require("../../models");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 exports.sendMessage = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const receiverId = req.params.receiverId;
-  const senderId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId } }).then((record) => {
-      if (record.id) resolve(record.id);
-    });
-  });
-  const { text } = JSON.parse(req.body.data);
-  console.log(req.body.text);
-  /*const file = req.file;
-  const image = file.buffer;*/
-  const data = {
-    receiverId,
-    senderId,
-    text,
-    // image,
-  };
-  await new Promise((resolve, reject) => {
-    message
-      .create(data)
-      .then((record) => {
-        return res.status(201).json({
-          message: "sent successfully",
-        });
-      })
-      .catch((err) => {
-        console.log("my error", err);
-        return next(new AppError("An error occurred please try again", 500));
+  try {
+    const userId = req.params.userId;
+    const receiverId = req.params.receiverId;
+    const senderId = await new Promise((resolve, reject) => {
+      student.findOne({ where: { userId } }).then((record) => {
+        if (record.id) resolve(record.id);
       });
-  });
+    });
+    let text = "";
+    if (req.body.data) {
+      const data = JSON.parse(req.body.data);
+      text = data.text;
+    }
+    console.log(req.body.text);
+    const file = req.file;
+    const data = {
+      receiverId,
+      senderId,
+      text,
+      // image,
+    };
+    let status = false;
+    const id = await new Promise((resolve, reject) => {
+      message.create(data).then((record) => {
+        resolve(record.id);
+        status = true;
+      });
+    });
+    const nameImage = `/messages/${id}`;
+    const metadata = {
+      contentType: "image/jpeg",
+    };
+
+    if (file) {
+      await UploadFile(file.buffer, nameImage, metadata);
+      const image = await getURL(nameImage);
+      await message.update({ image }, { where: { id } }).then((count) => {
+        if (count[0] === 1) status = true;
+      });
+    }
+    if (status)
+      return res.status(201).json({
+        status: "success",
+        message: "sent successfully",
+      });
+  } catch (err) {
+    console.log("my error", err);
+    return next(new AppError("An error occurred please try again", 500));
+  }
 });
 exports.getMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");
@@ -49,15 +68,15 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       if (record.id) resolve(record.id);
     });
   });
-
-  console.log("senderId", senderId);
-  console.log("sequelize", sequelize);
   const messages = await message
     .findAll({
       attributes: [
         "id",
         "text",
         "createdAt",
+        "image",
+        "senderId",
+        "receiverId",
         // [sequelize.col("s.id", "senderId")],
       ],
       where: {
@@ -90,18 +109,12 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       console.log("my error", err);
       return next(new AppError("An error occurred, please try again", 500));
     });
-  let data = [];
-  for (const message of messages) {
-    data.push({
-      id: messages.id,
-      text: message.text,
-      senderId,
-      receiverId,
-      createdAt: message.createdAt,
-    });
+  for (const msg of messages) {
+    await msg.update({ seen: true });
+    await msg.save();
   }
-  console.log("message: ", messages);
-  return res.status(200).json({ data });
+
+  return res.status(200).json({ data: messages });
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
   try {
@@ -112,7 +125,8 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
     });
     const userId = req.params.userId;
     const messages = await sequelize.query(
-      `SELECT m.id,m.text,m.createdAt,lastMessages.otherPersonId as recieverId, r.image AS image, u.username AS username
+      `SELECT m.id,m.text,m.createdAt,lastMessages.otherPersonId as recieverId, r.image AS image, u.username AS username,
+      COUNT(CASE WHEN m.seen = false THEN 1 END) AS unseenCount
     FROM messages m
     JOIN (
       SELECT 
