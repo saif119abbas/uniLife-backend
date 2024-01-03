@@ -48,6 +48,7 @@ exports.validtaeSignup = (req, res, next) => {
 };
 exports.validtaeLogin = (req, res, next) => {
   const student = req.body;
+  console.log("student", student);
   const { error, val } = loginValidation.validate(student);
   if (error) {
     return res.status(400).json({

@@ -29,14 +29,14 @@ module.exports = (sequelize, DataTypes) => {
         },
       },
       startTime: {
-        type: DataTypes.STRING,
+        type: DataTypes.TIME,
         allowNull: false,
         validator: {
           notEmpty: false,
         },
       },
       endTime: {
-        type: DataTypes.STRING,
+        type: DataTypes.TIME,
         allowNull: false,
         validator: {
           notEmpty: false,

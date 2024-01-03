@@ -46,7 +46,11 @@ router.post(
   addRestaurant,
   createMenu
 );
-router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
+router.post(
+  "/addAdmin",
+  /*protect, adminPermission, validtaeSignup,*/
+  addAdmin
+);
 router.patch(
   "/restaurants/:userId/:restaurantId",
   protect,

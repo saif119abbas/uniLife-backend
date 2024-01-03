@@ -7,6 +7,8 @@ const {
   getOrders,
   updateOrder,
   getMenu,
+  dashboard,
+  getRating,
 } = require("../contoller/restaurant/restaurantController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
@@ -20,7 +22,7 @@ const { upload } = require("../images/handleImag");
 const router = express.Router();
 router.get("/menu/:userId", protect, restaurantPermission, getMenu);
 router.post(
-  "/addFoodItem/:userId",
+  "/menu/:userId",
   protect,
   restaurantPermission,
   validtaeAddFoodItem,
@@ -28,7 +30,7 @@ router.post(
   addFoodItem
 );
 router.patch(
-  "/editFoodItem/:foodId/:userId",
+  "/menu/:foodId/:userId",
   protect,
   restaurantPermission,
   validtaeEditFoodItem,
@@ -36,7 +38,7 @@ router.patch(
   editFoodItem
 );
 router.delete(
-  "/deleteFoodItem/:foodId/:userId",
+  "/menu/:foodId/:userId",
   protect,
   restaurantPermission,
   deleteFoodItem
@@ -58,7 +60,8 @@ router.patch(
   "/order/:userId/:orderId",
   protect,
   restaurantPermission,
-  restaurantCheckOrder,
   updateOrder
 );
+router.get("/dashboard/:userId", protect, dashboard);
+router.get("/rating/:userId", protect, getRating);
 module.exports = router;

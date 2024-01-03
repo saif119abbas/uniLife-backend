@@ -58,14 +58,11 @@ exports.addDormitoryPost = catchAsync(async (req, res, next) => {
     await room.bulkCreate(rooms).then((record) => {
       console.log(record);
     });
-    const metadata = {
-      contentType: "image/jpeg",
-    };
     const URLS = await Promise.all(
       files.map(async (file) => {
         count++;
-        const nameImage = `/dormitoryposts/${dormitoryPostId}_${count}`;
-        await UploadFile(file.buffer, nameImage, metadata);
+        const nameImage = `/dormitoryposts/${dormitoryPostId}_${count}.jpg`;
+        await UploadFile(file.buffer, nameImage);
         const image = await getURL(nameImage);
         console.log(image);
         // const item={image,dormitoryPostId}
@@ -90,10 +87,17 @@ exports.addDormitoryPost = catchAsync(async (req, res, next) => {
 exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
   try {
     const id = req.params.dorimtoryPostid;
-    let numberOfRoom = 0;
+    const userId = req.params.userId;
+    const dormitoryOwnerId = await new Promise((resolve) => {
+      dormitoryOwner.findOne({ where: { userId }, attributes: ["id"] }).then(record => {
+        if (record)
+          resolve(record.id)
+      });
+    });
+    /* let numberOfRoom = 0;
     await room.findAll({ where: { dormitoryPostId: id } }).then((record) => {
       numberOfRoom = record.length;
-    });
+    });*/
     const numberOfImages = new Promise((resolve, reject) => {
       images.destroy({ where: { dormitoryPostId: id } }).then((deleteCount) => {
         resolve(deleteCount);
@@ -110,7 +114,7 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
     }
     await room.destroy({ where: { dormitoryPostId: id } }).then((count) => {
       console.log(count);
-      if (count === numberOfRoom) {
+      if (count >= 1) {
         dormitoryPost.destroy({ where: { id } }).then((count) => {
           if (count === 1) return res.status(204).json({});
           else if (count === 0)

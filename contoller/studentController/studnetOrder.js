@@ -12,6 +12,7 @@ const {
   student,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
+const { resolve } = require("path");
 exports.createOrder = catchAsync(async (req, res, next) => {
   const data = req.body;
   const userId = req.params.userId;
@@ -263,4 +264,23 @@ exports.getPoular = catchAsync(async (req, res, next) => {
     data.push(myData);
   }
   return res.status(200).json({ data });
+});
+exports.rate = catchAsync(async (req, res, next) => {
+  const orderId = req.params.orderId;
+  const userId = req.params.userId;
+  const rating = req.body;
+  const studentId = await new Promise((resolve) => {
+    student
+      .findOne({ where: { userId }, attributes: ["id"] })
+      .then((record) => {
+        resolve(record.id);
+      });
+  });
+  order.update(rating, { where: { studentId, orderId } }).then((count) => {
+    if (count[0] === 1)
+      return res
+        .status(200)
+        .json({ status: "success", message: "rating successfully" });
+    return res.status(404).json({ status: "failed", message: "not found" });
+  });
 });

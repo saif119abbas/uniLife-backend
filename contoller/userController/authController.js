@@ -4,7 +4,7 @@ const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
 const { pushNotification } = require("../../notification");
-const { createImage, getQRcode } = require("../../utils/qrcode");
+const { addToken } = require("../../utils/blackList");
 const {
   uploadProcessData,
   getData,
@@ -13,73 +13,16 @@ const {
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
 const { UploadFile } = require("../../firebaseConfig");
-//let verifyMessage = "";
 let expiresIn = "24h";
-
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
-  /*const URL = await getQRcode(JSON.stringify(data));
-  const file = Buffer.from(URL, "base64");
-  UploadFile(file, "/qrcode/image.png");*/
+  const myUser = await user.findOne({
+    attributes: ["role", "id", "password", "email", "username"],
+    where: { email: data.email },
+  });
 
-  await user
-    .findOne({
-      attributes: ["role", "id", "password", "email", "username"],
-      where: { email: data.email },
-    })
-    .then((result) => {
-      if (result.length > 1)
-        return res.status(403).json({
-          status: "failed",
-          message: "not allowed",
-        });
-      console.log(result);
-      bcrypt.compare(
-        data.password,
-        result.password,
-        (err, passwordIsCorrect) => {
-          if (err) {
-            console.log("the er", err);
-            return next(
-              new AppError("An error occurred, please try again", 500)
-            );
-          }
-
-          if (
-            !passwordIsCorrect ||
-            result?.email !== data.email ||
-            result.length === 0
-          ) {
-            return res.status(401).json({
-              status: "failed",
-              message: "Incorrect email or password",
-            });
-          }
-
-          // Authentication is successful, set session data and send the token
-          else {
-            req.session.email = data.email;
-            req.session.userId = result.id;
-            req.session.role = result.role;
-            expiresIn = `24h`;
-            data.id = result.id;
-            data.role = result.role;
-            data.username = result.username;
-            //  pushNotification();
-            //console.log("success", success);
-            createSendToken(data, 200, expiresIn, res);
-          }
-        }
-      );
-    })
-    .catch((err) => {
-      console.log("error:", err.message);
-      return res.status(401).json({
-        status: "failed",
-        message: "Incorrect email or password",
-      });
-    });
-  /*if (!myUser)
+  console.log(myUser);
+  if (!myUser)
     return res.status(400).json({
       status: "failed",
       message: "Incorrect email or password",
@@ -96,25 +39,11 @@ exports.login = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "Incorrect email or password",
     });
-  const id = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: myUser.id } }).then((record) => {
-      if (record.id) resolve(record.id);
-      else
-        return res
-          .status(400)
-          .json({
-            status: "failed",
-            message: "Incorrect email or password",
-          })
-          .catch((err) => {
-            reject(err);
-          });
-    });
-  });
+
   expiresIn = `24h`;
-  data.id = id;
+  data.id = myUser.id;
   data.role = myUser.role;
-  createSendToken(data, 200, expiresIn, res);*/
+  return createSendToken(data, 200, expiresIn, res);
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -156,7 +85,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     req.session.verifyMessage = createMessage();
     console.log("verify", req.session.verifyMessage);
-    transportMessage(req.session.verifyMessage, createdUser.email);
+    //transportMessage(req.session.verifyMessage, createdUser.email);
     stratTime = Date.now();
     expiresIn = "60s";
     res.status(200).json({
@@ -225,6 +154,10 @@ exports.verify = catchAsync(async (req, res, next) => {
       });
   }
 });
+exports.logout = catchAsync(async (req, res, next) => {
+  addToken((token = req.headers.authorization.split(" ")[1]));
+});
+
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
@@ -246,6 +179,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     return next(new AppError("someerror happen please try again", 401));*/
 
   // 2) Verification token
+  console.log("token:", token);
   const id = await new Promise((resolve, reject) => {
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {

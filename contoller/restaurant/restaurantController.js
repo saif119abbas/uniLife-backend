@@ -11,27 +11,35 @@ const {
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
+const { Op } = require("sequelize");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
-  const myRestaurant = await restaurant
-    .findOne({ attributes: ["id"], where: { userId } })
-    .then()
-    .catch((err) => console.log("the err", err));
-  if (!myRestaurant)
-    return res.status(404).json({ status: "1failed", message: "not found" });
-  const restaurantId = myRestaurant.id;
-  const myMenu = await menu.findOne({ where: { restaurantId } });
-  if (!myMenu)
-    return res.status(404).json({ status: "2failed", message: "not found" });
-  const menuId = myMenu.menuId;
-  console.log("menuId: ", restaurantId);
-  req.session.menuId = menuId;
+  console.log("addFoodItem");
+  const menuId = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        attributes: [],
+        where: { userId },
+        include: [
+          {
+            model: menu,
+            attributes: ["menuId"],
+          },
+        ],
+      })
+      .then((record) => {
+        console.log(record);
+        if (record) resolve(record.menu.menuId);
+      });
+  });
+
+  if (!menuId)
+    return res.status(404).json({ status: "failed", message: "not found" });
   let myFoodItem = JSON.parse(req.body.data);
   const myImage = req.file;
   console.log("The image: ", myImage);
   console.log("The food", req.body);
-  /*myFoodItem.menuMenuId = menuId;
-  myFoodItem.image = myImage;*/
+  myFoodItem.image = myImage;
   myFoodItem = {
     ...myFoodItem,
     menuMenuId: menuId,
@@ -43,7 +51,10 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
     foodItem
       .create(myFoodItem)
       .then((data) => {
-        if (data) resolve(data.foodId);
+        //if (data) resolve(data.foodId);
+        return res
+          .status(201)
+          .json({ status: "success", message: "created successfully" });
       })
       .catch((err) => {
         console.log("The err", err);
@@ -55,7 +66,7 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occured please try again", 500));
       });
   });
-  const nameImage = `/foodItem/${foodId}`;
+  /*const nameImage = `/foodItem/${foodId}`;
   const metadata = {
     contentType: "image/jpeg",
   };
@@ -67,7 +78,7 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
       return res
         .status(201)
         .json({ status: "success", message: "created successfully" });
-  });
+  });*/
 });
 exports.getMenu = catchAsync(async (req, res, next) => {
   let restaurantId = req.params.restaurantId;
@@ -192,7 +203,7 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
           message: "not found",
         });
       if (deleteCount === 1)
-        return res.status(200).json({
+        return res.status(204).json({
           status: "failed",
           message: "deleted successfully",
         });
@@ -212,7 +223,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       include: [
         {
           model: order,
-          attributes: ["orderId", "status", "totalPrice", "createdAt"],
+          attributes: ["orderId", "status", "totalPrice", "createdAt", "notes"],
           // order: [["createdAt", "ASC"]],
           include: [
             {
@@ -227,7 +238,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
               include: [
                 {
                   model: user,
-                  attributes: ["username"],
+                  attributes: ["username", "phoneNum"],
                 },
               ],
             },
@@ -236,6 +247,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       ],
     });
     const { orders } = ordersRestaurant;
+    console.log(orders.orderItems);
     let data = [];
     for (const order of orders) {
       const {
@@ -244,18 +256,15 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         status,
         totalPrice,
         createdAt,
+        notes,
         student: {
-          user: { username },
+          user: { username, phoneNum },
         },
       } = order;
       let items = [];
       for (const orderItem of orderItems) {
-        const {
-          foodItems: { price, nameOfFood },
-          orderItemId,
-          Qauntity,
-          unitPrice,
-        } = orderItem;
+        const { foodItems, orderItemId, Qauntity, unitPrice } = orderItem;
+        const { price, nameOfFood } = foodItems[0];
         const i = {
           orderItemId,
           Qauntity,
@@ -266,11 +275,13 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         items.push(i);
       }
       data.push({
-        orderId,
+        id: orderId,
+        phoneNum,
         status,
         totalPrice,
         studentName: username,
         createdAt,
+        notes,
         items,
       });
     }
@@ -289,9 +300,19 @@ exports.getOrders = catchAsync(async (req, res, next) => {
   }
 });
 exports.updateOrder = catchAsync(async (req, res, next) => {
-  const { orderId } = req.params;
-  const restaurantId = res.locals.restaurantId;
-  let status = res.locals.status;
+  const { orderId, userId } = req.params;
+  let status = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        where: { userId },
+        attributes: [],
+        include: [{ model: order, attributes: ["status"], where: { orderId } }],
+      })
+      .then((record) => {
+        resolve(record.orders[0].status);
+      });
+  });
+
   status = status.trim().toLowerCase();
   switch (status) {
     case "pending":
@@ -333,3 +354,76 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
           });
     });
 });
+exports.dashboard = catchAsync(async (req, res, next) => {
+  const userId = req.params.userId;
+  const upper = new Date();
+  const lower = new Date(upper.getDate() - 7);
+  //lower.setDate(upper.getDate() - 7);
+  const data = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        where: { userId },
+        attributes: [],
+        include: [
+          {
+            model: order,
+            attributes: ["totalPrice"],
+            where: {
+              createdAt: {
+                [Op.gte]: lower,
+                [Op.lte]: upper,
+              },
+            },
+          },
+        ],
+      })
+      .then((record) => {
+        resolve(record.orders);
+      });
+  });
+
+  res.status(200).json(data);
+});
+exports.getRating = async (req, res) => {
+  console.log(req.params);
+  const userId = req.params.userId;
+  let data = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        where: { userId },
+        attributes: [],
+        include: [
+          {
+            model: order,
+            attributes: ["rating"],
+            include: [
+              {
+                model: student,
+                attributes: ["id"],
+                include: [
+                  {
+                    model: user,
+                    attributes: ["username", "phoneNum"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+      .then((record) => {
+        resolve(record);
+      });
+  });
+  const { orders } = data;
+  data = orders.map((item) => {
+    const {
+      rating,
+      student: {
+        user: { username, phoneNum },
+      },
+    } = item;
+    return { rating, username, phoneNum };
+  });
+  res.status(200).json(data);
+};

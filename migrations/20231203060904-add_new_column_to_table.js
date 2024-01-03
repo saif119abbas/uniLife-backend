@@ -16,11 +16,11 @@ module.exports = {
       validator: {
         notEmptyString: false,
       }
-    });*/
+    });
     await queryInterface.addColumn("orders", "notes", {
       type: Sequelize.STRING,
       allowNull: true,
-    });
+    });*/
   },
 
   down: async (queryInterface, _) => {

@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const AppError = require("../../utils/appError");
-const { getQRcode } = require("../../utils/qrcode");
+const { getQRcode, compareQRcode } = require("../../utils/qrcode");
 const { UploadFile, getURL } = require("../../firebaseConfig");
 const {
   faculty,
@@ -32,27 +32,44 @@ exports.addFaculty = catchAsync(async (req, res, next) => {
       });
   });
 });
-const addFacultyFLoors = async (facultyFacultyNumber, floorId, res) => {
-  await facultyFloor
-    .create({ facultyFacultyNumber, floorId })
-    .then(() => {
-      return res.status(201).json({
-        status: "success",
-        message: "added successfully",
-      });
-    })
-    .catch((err) => {
-      console.log(err);
-      if (err.name === "SequelizeUniqueConstraintError")
-        res.status(409).json({
-          status: "failed",
-          message: "This floor is already added",
-        });
+const addFacultyFLoors = async (facultyFacultyNumber, floorId, res, next) => {
+  console.log("addFaculty");
+  try {
+    await facultyFloor.create({ facultyFacultyNumber, floorId });
 
-      return next(new AppError("An error occured please try again ", 500));
-    });
+    const fromattedData = { facultyFacultyNumber, floorId };
+    const URL = await getQRcode(JSON.stringify(fromattedData));
+    const file = Buffer.from(URL, "base64");
+
+    const nameImage = `/qrcode/${floorId}_${facultyFacultyNumber}.png`;
+    const metadata = {
+      contentType: "image/png",
+    };
+    await UploadFile(file, nameImage, metadata);
+    const image = await getURL(nameImage);
+    await facultyFloor
+      .update({ image }, { where: { floorId, facultyFacultyNumber } })
+      .then((count) => {
+        if (count[0] === 1)
+          return res.status(201).json({
+            status: "success",
+            message: "added successfully",
+          });
+        else
+          return next(new AppError("An error occured please try again ", 500));
+      });
+  } catch (err) {
+    console.log(err);
+    if (err.name === "SequelizeUniqueConstraintError")
+      res.status(409).json({
+        status: "failed",
+        message: "This floor is already added",
+      });
+
+    return next(new AppError("An error occured please try again ", 500));
+  }
 };
-const addFloorClassRooms = async (classroomId, floorId, res) => {
+const addFloorClassRooms = async (classroomId, floorId, res, next) => {
   await floorClass
     .create({ classroomId, floorId })
     .then(() => {
@@ -82,7 +99,6 @@ exports.addFloor = catchAsync(async (req, res, next) => {
         .create(data)
         .then((record) => {
           status = true;
-
           resolve(record.id);
         })
         .catch((err) => {
@@ -95,19 +111,8 @@ exports.addFloor = catchAsync(async (req, res, next) => {
           } else reject(err);
         });
     });
-    if (status) {
-      const fromattedData = { ...data, id };
-      const URL = await getQRcode(JSON.stringify(fromattedData));
-      const file = Buffer.from(URL, "base64");
-      const nameImage = `/qrcode/${id}`;
-      const metadata = {
-        contentType: "image/png",
-      };
-      await UploadFile(file, nameImage, metadata);
-      const image = await getURL(nameImage);
-      await floor.update({ image }, { where: { id } });
-      await addFacultyFLoors(facultyFacultyNumber, id, res);
-    }
+    if (status) await addFacultyFLoors(facultyFacultyNumber, id, res, next);
+    else return next(new AppError("An error occured please try again ", 500));
   } catch (err) {
     console.log("My error occurred", err);
     return next(new AppError("An error occured please try again ", 500));
@@ -137,7 +142,9 @@ exports.addClassRoom = catchAsync(async (req, res, next) => {
           } else reject(err);
         });
     });
-    if (status) await addFloorClassRooms(id, floorId, res);
+    console.log(id);
+    if (status) await addFloorClassRooms(id, floorId, res, next);
+    else return next(new AppError("An error occured please try again ", 500));
   } catch (err) {
     console.log("My error occurred", err);
     return next(new AppError("An error occured please try again ", 500));
