@@ -31,7 +31,10 @@ const {
   deleteFloor,
   deleteClasses,
 } = require("../contoller/adminController/facultyAction");
-const { getStudents } = require("../contoller/adminController/studentAction");
+const {
+  getStudents,
+  blockedStudent,
+} = require("../contoller/adminController/studentAction");
 const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
@@ -158,5 +161,11 @@ router.get(
   getClasses
 );
 router.get("/student/:userId", protect, adminPermission, getStudents);
+router.patch(
+  "/student/block/:userId/:studentId",
+  protect,
+  adminPermission,
+  blockedStudent
+);
 
 module.exports = router;
