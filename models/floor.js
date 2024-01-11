@@ -1,20 +1,37 @@
 module.exports = (sequelize, DataTypes) => {
   const floor = sequelize.define("floor", {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+      autoIncrement: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
     name: {
       type: DataTypes.STRING,
-      unique: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    reference: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
       validator: {
         notEmpty: false,
       },
     },
   });
   floor.associate = (models) => {
-    floor.belongsToMany(models.faculty, {
-      through: models.facultyFloor,
-    });
-    floor.belongsToMany(models.classroom, {
-      through: models.floorClass,
-    });
+    floor.belongsTo(models.faculty);
+    floor.hasMany(models.classroom);
   };
+
   return floor;
 };

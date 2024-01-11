@@ -268,7 +268,7 @@ exports.getPoular = catchAsync(async (req, res, next) => {
 exports.rate = catchAsync(async (req, res, next) => {
   const orderId = req.params.orderId;
   const userId = req.params.userId;
-  const rating = req.body;
+  const data = req.body;
   const studentId = await new Promise((resolve) => {
     student
       .findOne({ where: { userId }, attributes: ["id"] })
@@ -276,7 +276,7 @@ exports.rate = catchAsync(async (req, res, next) => {
         resolve(record.id);
       });
   });
-  order.update(rating, { where: { studentId, orderId } }).then((count) => {
+  order.update(data, { where: { studentId, orderId } }).then((count) => {
     if (count[0] === 1)
       return res
         .status(200)

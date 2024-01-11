@@ -29,6 +29,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: 0,
     },
+    rateDesc: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   });
   order.associate = (models) => {
     order.hasMany(models.orderItem);

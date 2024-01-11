@@ -4,6 +4,8 @@ const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
 const { pushNotification } = require("../../notification");
+const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
+
 const { addToken } = require("../../utils/blackList");
 const {
   uploadProcessData,
@@ -12,7 +14,7 @@ const {
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
-const { UploadFile } = require("../../firebaseConfig");
+const { file } = require("googleapis/build/src/apis/file");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
@@ -47,7 +49,9 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const createdUser = req.body;
+  const createdUser = JSON.parse(req.body.data);
+  const image = req.file;
+  console.log(createdUser);
   if (
     !createdUser.email ||
     !createdUser.password ||
@@ -82,6 +86,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
     req.session.major = createdUser.major;
+    req.session.image = image;
 
     req.session.verifyMessage = createMessage();
     console.log("verify", req.session.verifyMessage);
@@ -117,19 +122,18 @@ exports.verify = catchAsync(async (req, res, next) => {
       password: req.session.password,
       phoneNum: req.session.phoneNum,
       username: req.session.username,
-
       role: process.env.student,
     };
+    let status = false;
     await user
       .create(myData)
-      .then((data) => {
-        student
+      .then(async (data) => {
+        await student
           .create({ userId: data.id, major: req.session.major })
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;
-            console.log("student id:", req.session.studentId);
-            return next();
+            status = true;
           })
           .catch((err) => {
             console.log("My error:", err);
@@ -152,6 +156,14 @@ exports.verify = catchAsync(async (req, res, next) => {
           });
         return next(new AppError("An error occured please try again ", 500));
       });
+    if (status) {
+      const nameImage = `/student profile/${req.session.studentId}`;
+      console.log("before uploading:", req.session.image);
+      await UploadFile(req.session.image.buffer, nameImage);
+      const image = await getURL(nameImage);
+      await student.update({ image }, { where: { id: req.session.studentId } });
+      return next();
+    }
   }
 });
 exports.logout = catchAsync(async (req, res, next) => {

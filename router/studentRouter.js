@@ -56,7 +56,7 @@ const {
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
-router.post("/signup", validtaeSignup, signup);
+router.post("/signup", upload.single("image"), validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
 router.patch("/profile/:userId", protect, editProfile);
 router.get("/profile/:userId", protect, getPofile);

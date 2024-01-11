@@ -2,14 +2,16 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    /* await queryInterface.addColumn("orders", "rating", {
+    /*await queryInterface.addColumn("floors", "reference", {
       type: Sequelize.INTEGER,
       allowNull: true,
-      defaultValue: 0,
+      validator: {
+        notEmpty: false,
+      },
     });*/
   },
 
   down: async (queryInterface, _) => {
-    //  await queryInterface.removeColumn("orders", "rating");
+    // await queryInterface.removeColumn("floors", "reference");
   },
 };

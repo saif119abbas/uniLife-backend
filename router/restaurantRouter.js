@@ -4,12 +4,20 @@ const {
   addFoodItem,
   editFoodItem,
   deleteFoodItem,
-  getOrders,
-  updateOrder,
   getMenu,
-  dashboard,
   getRating,
 } = require("../contoller/restaurant/restaurantController");
+const {
+  getOrders,
+  updateOrder,
+  weeklyDashboard,
+  dailyDashboard,
+  totalPeople,
+  newCustomer,
+  foodLastWeek,
+  lastReviewer,
+  totalOrder,
+} = require("../contoller/restaurant/orderController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
   validtaeAddFoodItem,
@@ -62,6 +70,12 @@ router.patch(
   restaurantPermission,
   updateOrder
 );
-router.get("/dashboard/:userId", protect, dashboard);
+router.get("/weeklydashboard/:userId", protect, weeklyDashboard);
+router.get("/dailyrevenue/:userId", protect, dailyDashboard);
+router.get("/totalpeople/:userId", protect, totalPeople);
+router.get("/newcustomer/:userId", protect, newCustomer);
+router.get("/totalorder/:userId", protect, totalOrder);
+router.get("/dashboard/food/:userId", protect, foodLastWeek);
+router.get("/lastreviwer/:userId", protect, lastReviewer);
 router.get("/rating/:userId", protect, getRating);
 module.exports = router;

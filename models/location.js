@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const faculty = sequelize.define("faculty", {
+  const location = sequelize.define("location", {
     id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -10,24 +10,21 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    facultyName: {
-      type: DataTypes.STRING,
-      unique: true,
+    lon: {
+      type: DataTypes.FLOAT,
       validator: {
         notEmpty: false,
       },
     },
-    facultyNumber: {
-      type: DataTypes.INTEGER,
-      unique: true,
+    lat: {
+      type: DataTypes.FLOAT,
       validator: {
         notEmpty: false,
       },
     },
   });
-  faculty.associate = (models) => {
-    faculty.hasMany(models.floor);
-    faculty.hasMany(models.location);
+  location.associate = (models) => {
+    location.belongsTo(models.faculty);
   };
-  return faculty;
+  return location;
 };

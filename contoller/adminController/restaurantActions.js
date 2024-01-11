@@ -23,18 +23,25 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
     });
     restaurantData.password = hash;
     restaurantData.role = process.env.RESTAURANT;
-    const userId = await new Promise((resolve) => {
+    const userId = await new Promise((resolve, reject) => {
       user.create(restaurantData).then((record) => {
         if (record) resolve(record.id);
       });
+    }).catch((err) => {
+      reject(err);
     });
     const restaurantId = await new Promise((resolve) => {
-      restaurant.create({ userId }).then((record) => {
-        if (record) {
-          res.locals.restaurantId = record.id;
-          resolve(record.id);
-        }
-      });
+      restaurant
+        .create({ userId })
+        .then((record) => {
+          if (record) {
+            res.locals.restaurantId = record.id;
+            resolve(record.id);
+          }
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
     const nameImage = `/restaurant/${restaurantId}`;
     console.log(file);
@@ -45,6 +52,9 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
       .update({ image }, { where: { id: restaurantId } })
       .then((count) => {
         if (count[0] === 1) next();
+      })
+      .catch((err) => {
+        reject(err);
       });
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
