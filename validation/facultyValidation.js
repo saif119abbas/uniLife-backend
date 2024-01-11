@@ -1,6 +1,6 @@
 const Joi = require("@hapi/joi");
 exports.addFacultyValidation = Joi.object({
-  name: Joi.string()
+  facultyName: Joi.string()
     .required()
     .min(3)
     .message("❌ Too Short!")
@@ -12,6 +12,13 @@ exports.addFacultyValidation = Joi.object({
     .message("❌ Too Short!")
     .max(3)
     .message("❌ Too Long!"),
+  coordinates: Joi.array().items(
+    Joi.object({
+      latitude: Joi.number().required(),
+      longitude: Joi.number().required(),
+      // Add more validation rules as needed for other properties in the 'locations' objects
+    })
+  ),
 });
 exports.addFloorValidation = Joi.object({
   name: Joi.string()
@@ -20,6 +27,7 @@ exports.addFloorValidation = Joi.object({
     .message("❌ Too Short!")
     .max(4)
     .message("❌ Too Long!"),
+  reference: Joi.string().required(),
 });
 exports.addClassroomValidation = Joi.object({
   number: Joi.string()

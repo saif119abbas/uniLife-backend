@@ -4,7 +4,9 @@ const catchAsync = require("../../utils/catchAsync");
 const { createMessage, transportMessage } = require("../../utils/email");
 const { createSendToken } = require("../../utils/createToken");
 const { pushNotification } = require("../../notification");
-const { createImage, getQRcode } = require("../../utils/qrcode");
+const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
+
+const { addToken } = require("../../utils/blackList");
 const {
   uploadProcessData,
   getData,
@@ -12,74 +14,17 @@ const {
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
-const { UploadFile } = require("../../firebaseConfig");
-//let verifyMessage = "";
+const { file } = require("googleapis/build/src/apis/file");
 let expiresIn = "24h";
-
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
-  /*const URL = await getQRcode(JSON.stringify(data));
-  const file = Buffer.from(URL, "base64");
-  UploadFile(file, "/qrcode/image.png");*/
+  const myUser = await user.findOne({
+    attributes: ["role", "id", "password", "email", "username"],
+    where: { email: data.email },
+  });
 
-  await user
-    .findOne({
-      attributes: ["role", "id", "password", "email", "username"],
-      where: { email: data.email },
-    })
-    .then((result) => {
-      if (result.length > 1)
-        return res.status(403).json({
-          status: "failed",
-          message: "not allowed",
-        });
-      console.log(result);
-      bcrypt.compare(
-        data.password,
-        result.password,
-        (err, passwordIsCorrect) => {
-          if (err) {
-            console.log("the er", err);
-            return next(
-              new AppError("An error occurred, please try again", 500)
-            );
-          }
-
-          if (
-            !passwordIsCorrect ||
-            result?.email !== data.email ||
-            result.length === 0
-          ) {
-            return res.status(401).json({
-              status: "failed",
-              message: "Incorrect email or password",
-            });
-          }
-
-          // Authentication is successful, set session data and send the token
-          else {
-            req.session.email = data.email;
-            req.session.userId = result.id;
-            req.session.role = result.role;
-            expiresIn = `24h`;
-            data.id = result.id;
-            data.role = result.role;
-            data.username = result.username;
-            //  pushNotification();
-            //console.log("success", success);
-            createSendToken(data, 200, expiresIn, res);
-          }
-        }
-      );
-    })
-    .catch((err) => {
-      console.log("error:", err.message);
-      return res.status(401).json({
-        status: "failed",
-        message: "Incorrect email or password",
-      });
-    });
-  /*if (!myUser)
+  console.log(myUser);
+  if (!myUser)
     return res.status(400).json({
       status: "failed",
       message: "Incorrect email or password",
@@ -96,29 +41,17 @@ exports.login = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "Incorrect email or password",
     });
-  const id = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId: myUser.id } }).then((record) => {
-      if (record.id) resolve(record.id);
-      else
-        return res
-          .status(400)
-          .json({
-            status: "failed",
-            message: "Incorrect email or password",
-          })
-          .catch((err) => {
-            reject(err);
-          });
-    });
-  });
+
   expiresIn = `24h`;
-  data.id = id;
+  data.id = myUser.id;
   data.role = myUser.role;
-  createSendToken(data, 200, expiresIn, res);*/
+  return createSendToken(data, 200, expiresIn, res);
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const createdUser = req.body;
+  const createdUser = JSON.parse(req.body.data);
+  const image = req.file;
+  console.log(createdUser);
   if (
     !createdUser.email ||
     !createdUser.password ||
@@ -153,10 +86,11 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
     req.session.major = createdUser.major;
+    req.session.image = image;
 
     req.session.verifyMessage = createMessage();
     console.log("verify", req.session.verifyMessage);
-    transportMessage(req.session.verifyMessage, createdUser.email);
+    //transportMessage(req.session.verifyMessage, createdUser.email);
     stratTime = Date.now();
     expiresIn = "60s";
     res.status(200).json({
@@ -188,19 +122,18 @@ exports.verify = catchAsync(async (req, res, next) => {
       password: req.session.password,
       phoneNum: req.session.phoneNum,
       username: req.session.username,
-
       role: process.env.student,
     };
+    let status = false;
     await user
       .create(myData)
-      .then((data) => {
-        student
+      .then(async (data) => {
+        await student
           .create({ userId: data.id, major: req.session.major })
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;
-            console.log("student id:", req.session.studentId);
-            return next();
+            status = true;
           })
           .catch((err) => {
             console.log("My error:", err);
@@ -223,8 +156,20 @@ exports.verify = catchAsync(async (req, res, next) => {
           });
         return next(new AppError("An error occured please try again ", 500));
       });
+    if (status) {
+      const nameImage = `/student profile/${req.session.studentId}`;
+      console.log("before uploading:", req.session.image);
+      await UploadFile(req.session.image.buffer, nameImage);
+      const image = await getURL(nameImage);
+      await student.update({ image }, { where: { id: req.session.studentId } });
+      return next();
+    }
   }
 });
+exports.logout = catchAsync(async (req, res, next) => {
+  addToken((token = req.headers.authorization.split(" ")[1]));
+});
+
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
@@ -246,6 +191,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     return next(new AppError("someerror happen please try again", 401));*/
 
   // 2) Verification token
+  console.log("token:", token);
   const id = await new Promise((resolve, reject) => {
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {

@@ -1,8 +1,17 @@
 module.exports = (sequelize, DataTypes) => {
   const classroom = sequelize.define("classroom", {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+      autoIncrement: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
     number: {
       type: DataTypes.INTEGER,
-      unique: true,
       validator: {
         notEmpty: false,
       },
@@ -10,9 +19,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   classroom.associate = (models) => {
-    classroom.belongsToMany(models.floor, {
-      through: models.floorClass,
-    });
+    classroom.belongsTo(models.floor);
   };
   return classroom;
 };

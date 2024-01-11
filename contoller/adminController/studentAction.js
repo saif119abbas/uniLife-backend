@@ -1,0 +1,26 @@
+const catchAsync = require("../../utils/catchAsync");
+const AppError = require("../../utils/appError");
+const { student, user } = require("../../models");
+exports.getStudents = catchAsync(async (req, res, next) => {
+  try {
+    let data = await user.findAll({
+      where: { role: process.env.STUDENT },
+      attributes: ["id", "username", "phoneNum", "email", "createdAt"],
+      include: [{ model: student, attributes: ["blocked", "image", "id"] }],
+    });
+    const formattedData = data.map((user) => ({
+      ...user.get(),
+      blocked: user.student.blocked,
+      image: user.student.image,
+      id: user.student.id,
+      student: undefined,
+    }));
+
+    res.status(200).json(formattedData);
+  } catch (err) {
+    console.log(err);
+    res
+      .status(500)
+      .json({ status: "fail", message: "An error occurred, please try again" });
+  }
+});

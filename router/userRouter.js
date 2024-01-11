@@ -38,7 +38,6 @@ router.post(
   verifyUpdatePassword
 );
 router.post("/restPassword", protect, validtaeResetPassword, restPassword);
-router.post("/restPassword", protect, validtaeResetPassword, restPassword);
 router.get(
   "/restaurants/:userId",
   protect,

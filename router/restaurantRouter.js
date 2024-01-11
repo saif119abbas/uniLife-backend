@@ -4,10 +4,20 @@ const {
   addFoodItem,
   editFoodItem,
   deleteFoodItem,
+  getMenu,
+  getRating,
+} = require("../contoller/restaurant/restaurantController");
+const {
   getOrders,
   updateOrder,
-  getMenu,
-} = require("../contoller/restaurant/restaurantController");
+  weeklyDashboard,
+  dailyDashboard,
+  totalPeople,
+  newCustomer,
+  foodLastWeek,
+  lastReviewer,
+  totalOrder,
+} = require("../contoller/restaurant/orderController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
   validtaeAddFoodItem,
@@ -20,7 +30,7 @@ const { upload } = require("../images/handleImag");
 const router = express.Router();
 router.get("/menu/:userId", protect, restaurantPermission, getMenu);
 router.post(
-  "/addFoodItem/:userId",
+  "/menu/:userId",
   protect,
   restaurantPermission,
   validtaeAddFoodItem,
@@ -28,7 +38,7 @@ router.post(
   addFoodItem
 );
 router.patch(
-  "/editFoodItem/:foodId/:userId",
+  "/menu/:foodId/:userId",
   protect,
   restaurantPermission,
   validtaeEditFoodItem,
@@ -36,7 +46,7 @@ router.patch(
   editFoodItem
 );
 router.delete(
-  "/deleteFoodItem/:foodId/:userId",
+  "/menu/:foodId/:userId",
   protect,
   restaurantPermission,
   deleteFoodItem
@@ -58,7 +68,14 @@ router.patch(
   "/order/:userId/:orderId",
   protect,
   restaurantPermission,
-  restaurantCheckOrder,
   updateOrder
 );
+router.get("/weeklydashboard/:userId", protect, weeklyDashboard);
+router.get("/dailyrevenue/:userId", protect, dailyDashboard);
+router.get("/totalpeople/:userId", protect, totalPeople);
+router.get("/newcustomer/:userId", protect, newCustomer);
+router.get("/totalorder/:userId", protect, totalOrder);
+router.get("/dashboard/food/:userId", protect, foodLastWeek);
+router.get("/lastreviwer/:userId", protect, lastReviewer);
+router.get("/rating/:userId", protect, getRating);
 module.exports = router;

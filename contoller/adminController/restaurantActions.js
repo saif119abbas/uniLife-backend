@@ -1,62 +1,74 @@
 const bcrypt = require("bcrypt");
+const { UploadFile, getURL } = require("../../firebaseConfig");
+
 const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-exports.addRestaurant = (req, res, next) => {
+exports.addRestaurant = catchAsync(async (req, res, next) => {
   const restaurantData = JSON.parse(req.body.data);
   console.log("The restaurant:", restaurantData);
   const file = req.file;
   if (restaurantData.password !== restaurantData.confirmPassword)
-    res.status(400).json({
+    return res.status(400).json({
       status: "falied",
       message: "password and confirm password not matched",
     });
-  else {
-    restaurantData.confirmPassword = undefined;
-    bcrypt.hash(restaurantData.password, 12, (err, hash) => {
-      if (err)
-        return next(new AppError("an error occurred please try again", 500));
-      restaurantData.password = hash;
-      restaurantData.role = process.env.RESTAURANT;
-      user
-        .create(restaurantData)
-        .then((data) => {
-          const myData = { userId: data.id };
-          restaurant
-            .create(myData)
-            .then((resData) => {
-              req.session.restaurantId = resData.id;
-              next();
-            })
-            .catch((err) => {
-              console.log("the error occurred", err);
-              if (err.name === "SequelizeUniqueConstraintError")
-                res.status(409).json({
-                  status: "failed",
-                  message: "This account is already created",
-                });
-
-              return next(
-                new AppError("An error occured please try again ", 500)
-              );
-            });
+  restaurantData.confirmPassword = undefined;
+  try {
+    const hash = await new Promise((resolve, reject) => {
+      bcrypt.hash(restaurantData.password, 12, (err, hash) => {
+        if (err) reject(err);
+        else resolve(hash);
+      });
+    });
+    restaurantData.password = hash;
+    restaurantData.role = process.env.RESTAURANT;
+    const userId = await new Promise((resolve, reject) => {
+      user.create(restaurantData).then((record) => {
+        if (record) resolve(record.id);
+      });
+    }).catch((err) => {
+      reject(err);
+    });
+    const restaurantId = await new Promise((resolve) => {
+      restaurant
+        .create({ userId })
+        .then((record) => {
+          if (record) {
+            res.locals.restaurantId = record.id;
+            resolve(record.id);
+          }
         })
         .catch((err) => {
-          console.log("An error", err);
-          if (err.name === "SequelizeUniqueConstraintError")
-            res.status(409).json({
-              status: "failed",
-              message: "This account is already created",
-            });
-
-          return next(new AppError("An error occured please try again ", 500));
+          reject(err);
         });
     });
+    const nameImage = `/restaurant/${restaurantId}`;
+    console.log(file);
+    await UploadFile(file.buffer, nameImage);
+    const image = await getURL(nameImage);
+    console.log(image);
+    restaurant
+      .update({ image }, { where: { id: restaurantId } })
+      .then((count) => {
+        if (count[0] === 1) next();
+      })
+      .catch((err) => {
+        reject(err);
+      });
+  } catch (err) {
+    if (err.name === "SequelizeUniqueConstraintError")
+      return res.status(409).json({
+        status: "failed",
+        message: "This account is already created",
+      });
+    console.log(err);
+    return next(new AppError("an error occurred please try again", 500));
   }
-};
+});
 exports.createMenu = catchAsync(async (req, res, next) => {
   const menuData = {
-    restaurantId: req.session.restaurantId,
+    restaurantId: res.locals.restaurantId,
   };
   menu
     .create(menuData)

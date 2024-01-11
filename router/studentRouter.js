@@ -43,6 +43,7 @@ const {
   getOrders,
   getOffers,
   getPoular,
+  rate,
 } = require("../contoller/studentController/studnetOrder");
 const {
   sendMessage,
@@ -51,11 +52,11 @@ const {
 } = require("../contoller/studentController/messageController");
 const {
   getLocation,
-} = require("../contoller/studentController/majorController");
+} = require("../contoller/studentController/locationController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
-router.post("/signup", validtaeSignup, signup);
+router.post("/signup", upload.single("image"), validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
 router.patch("/profile/:userId", protect, editProfile);
 router.get("/profile/:userId", protect, getPofile);
@@ -91,6 +92,7 @@ router.post(
   createOrder
 );
 router.get("/orders/:userId", protect, studentPermission, getOrders);
+router.patch("/orders/:userId/:orderId", protect, studentPermission, rate);
 router.get("/poularmeal/:userId", protect, studentPermission, getPoular);
 router.get(
   "/offer/:userId/:restaurantId",

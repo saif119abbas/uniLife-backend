@@ -1,6 +1,16 @@
 module.exports = (sequelize, DataTypes) => {
   const faculty = sequelize.define("faculty", {
-    name: {
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      primaryKey: true,
+      unique: true,
+      autoIncrement: true,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    facultyName: {
       type: DataTypes.STRING,
       unique: true,
       validator: {
@@ -9,7 +19,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     facultyNumber: {
       type: DataTypes.INTEGER,
-      primaryKey: true,
       unique: true,
       validator: {
         notEmpty: false,
@@ -17,9 +26,8 @@ module.exports = (sequelize, DataTypes) => {
     },
   });
   faculty.associate = (models) => {
-    faculty.belongsToMany(models.floor, {
-      through: models.facultyFloor,
-    });
+    faculty.hasMany(models.floor);
+    faculty.hasMany(models.location);
   };
   return faculty;
 };

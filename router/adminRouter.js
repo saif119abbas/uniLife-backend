@@ -23,7 +23,15 @@ const {
   addFloor,
   addFaculty,
   addClassRoom,
+  getFaculties,
+  getFloors,
+  getClasses,
+  editFaculty,
+  deleteFaculty,
+  deleteFloor,
+  deleteClasses,
 } = require("../contoller/adminController/facultyAction");
+const { getStudents } = require("../contoller/adminController/studentAction");
 const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
@@ -37,6 +45,7 @@ const {
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
+const { floorFacultyCheck } = require("../MiddleWare/checkFloorFaculty");
 router.post(
   "/restaurants/:userId",
   protect,
@@ -46,7 +55,11 @@ router.post(
   addRestaurant,
   createMenu
 );
-router.post("/addAdmin", protect, adminPermission, validtaeSignup, addAdmin);
+router.post(
+  "/addAdmin",
+  /*protect, adminPermission, validtaeSignup,*/
+  addAdmin
+);
 router.patch(
   "/restaurants/:userId/:restaurantId",
   protect,
@@ -97,6 +110,19 @@ router.post(
   validtaeAddFaculty,
   addFaculty
 );
+router.patch(
+  "/faculty/:userId/:facultyId",
+  protect,
+  adminPermission,
+  editFaculty
+);
+router.delete(
+  "/faculty/:userId/:facultyId",
+  protect,
+  adminPermission,
+  deleteFaculty
+);
+router.get("/faculty/:userId", protect, adminPermission, getFaculties);
 router.post(
   "/floor/:userId/:facultyId",
   protect,
@@ -104,11 +130,33 @@ router.post(
   validtaeAddFloor,
   addFloor
 );
+router.delete(
+  "/floor/:userId/:floorId/:facultyId",
+  protect,
+  adminPermission,
+  deleteFloor
+);
+router.get("/floor/:userId/:facultyId", protect, adminPermission, getFloors);
 router.post(
-  "/class/:userId/:floorId",
+  "/class/:userId/:facultyId/:floorId",
   protect,
   adminPermission,
   validtaeAddClassroom,
+  //floorFacultyCheck,
   addClassRoom
 );
+router.delete(
+  "/class/:userId/:classId",
+  protect,
+  adminPermission,
+  deleteClasses
+);
+router.get(
+  "/class/:userId/:facultyId/:floorId",
+  protect,
+  adminPermission,
+  getClasses
+);
+router.get("/student/:userId", protect, adminPermission, getStudents);
+
 module.exports = router;

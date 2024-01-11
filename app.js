@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-
+const cron = require("node-cron");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const session = require("express-session");
@@ -10,6 +10,7 @@ const restaurantRouter = require("./router/restaurantRouter");
 const dormitoryRouter = require("./router/dormitoryRouter");
 const userRouter = require("./router/userRouter");
 const { initializeFirebaseApp } = require("./firebaseConfig");
+const { clear } = require("./utils/blackList");
 const app = express();
 app.use(express.json());
 
@@ -28,4 +29,8 @@ app.use(process.env.BASE_URL, restaurantRouter);
 app.use(process.env.BASE_URL, dormitoryRouter);
 app.use(process.env.BASE_URL, userRouter);
 initializeFirebaseApp();
+/*cron.schedule("1,2,4,5 * * * *", () => {
+  console.log("Clearing token blacklist");
+  clear();
+});*/
 module.exports = app;

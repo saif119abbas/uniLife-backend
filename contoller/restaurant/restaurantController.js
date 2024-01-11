@@ -5,33 +5,37 @@ const {
   foodItem,
   user,
   student,
-  orderItem,
   order,
-  OrderItem_FoodItem,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-const { UploadFile, getURL } = require("../../firebaseConfig");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
-  const myRestaurant = await restaurant
-    .findOne({ attributes: ["id"], where: { userId } })
-    .then()
-    .catch((err) => console.log("the err", err));
-  if (!myRestaurant)
-    return res.status(404).json({ status: "1failed", message: "not found" });
-  const restaurantId = myRestaurant.id;
-  const myMenu = await menu.findOne({ where: { restaurantId } });
-  if (!myMenu)
-    return res.status(404).json({ status: "2failed", message: "not found" });
-  const menuId = myMenu.menuId;
-  console.log("menuId: ", restaurantId);
-  req.session.menuId = menuId;
+  console.log("addFoodItem");
+  const menuId = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        attributes: [],
+        where: { userId },
+        include: [
+          {
+            model: menu,
+            attributes: ["menuId"],
+          },
+        ],
+      })
+      .then((record) => {
+        console.log(record);
+        if (record) resolve(record.menu.menuId);
+      });
+  });
+
+  if (!menuId)
+    return res.status(404).json({ status: "failed", message: "not found" });
   let myFoodItem = JSON.parse(req.body.data);
   const myImage = req.file;
   console.log("The image: ", myImage);
   console.log("The food", req.body);
-  /*myFoodItem.menuMenuId = menuId;
-  myFoodItem.image = myImage;*/
+  myFoodItem.image = myImage;
   myFoodItem = {
     ...myFoodItem,
     menuMenuId: menuId,
@@ -43,7 +47,10 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
     foodItem
       .create(myFoodItem)
       .then((data) => {
-        if (data) resolve(data.foodId);
+        //if (data) resolve(data.foodId);
+        return res
+          .status(201)
+          .json({ status: "success", message: "created successfully" });
       })
       .catch((err) => {
         console.log("The err", err);
@@ -55,7 +62,7 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occured please try again", 500));
       });
   });
-  const nameImage = `/foodItem/${foodId}`;
+  /*const nameImage = `/foodItem/${foodId}`;
   const metadata = {
     contentType: "image/jpeg",
   };
@@ -67,7 +74,7 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
       return res
         .status(201)
         .json({ status: "success", message: "created successfully" });
-  });
+  });*/
 });
 exports.getMenu = catchAsync(async (req, res, next) => {
   let restaurantId = req.params.restaurantId;
@@ -192,7 +199,7 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
           message: "not found",
         });
       if (deleteCount === 1)
-        return res.status(200).json({
+        return res.status(204).json({
           status: "failed",
           message: "deleted successfully",
         });
@@ -203,133 +210,46 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
     });
 });
 
-exports.getOrders = catchAsync(async (req, res, next) => {
-  try {
-    const userId = req.params.userId;
-    const ordersRestaurant = await restaurant.findOne({
-      attributes: [],
-      where: { userId },
-      include: [
-        {
-          model: order,
-          attributes: ["orderId", "status", "totalPrice", "createdAt"],
-          // order: [["createdAt", "ASC"]],
-          include: [
-            {
-              model: orderItem,
-              attributes: ["orderItemId", "Qauntity", "unitPrice"],
-              include: [
-                { model: foodItem, attributes: ["price", "nameOfFood"] },
-              ],
-            },
-            {
-              model: student,
-              include: [
-                {
-                  model: user,
-                  attributes: ["username"],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
-    const { orders } = ordersRestaurant;
-    let data = [];
-    for (const order of orders) {
-      const {
-        orderItems,
-        orderId,
-        status,
-        totalPrice,
-        createdAt,
-        student: {
-          user: { username },
-        },
-      } = order;
-      let items = [];
-      for (const orderItem of orderItems) {
-        const {
-          foodItems: { price, nameOfFood },
-          orderItemId,
-          Qauntity,
-          unitPrice,
-        } = orderItem;
-        const i = {
-          orderItemId,
-          Qauntity,
-          unitPrice,
-          price,
-          nameOfFood,
-        };
-        items.push(i);
-      }
-      data.push({
-        orderId,
-        status,
-        totalPrice,
-        studentName: username,
-        createdAt,
-        items,
+exports.getRating = async (req, res) => {
+  console.log(req.params);
+  const userId = req.params.userId;
+  let data = await new Promise((resolve) => {
+    restaurant
+      .findOne({
+        where: { userId },
+        attributes: [],
+        include: [
+          {
+            model: order,
+            attributes: ["rating"],
+            include: [
+              {
+                model: student,
+                attributes: ["id"],
+                include: [
+                  {
+                    model: user,
+                    attributes: ["username", "phoneNum"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+      .then((record) => {
+        resolve(record);
       });
-    }
-
-    if (data) {
-      data = data.reverse();
-      return res.status(200).json({ data });
-    }
-    return res.status(404).json({
-      status: "failed",
-      message: "not found",
-    });
-  } catch (err) {
-    console.log("My err", err);
-    return next(new AppError("An error occurred please try again", 500));
-  }
-});
-exports.updateOrder = catchAsync(async (req, res, next) => {
-  const { orderId } = req.params;
-  const restaurantId = res.locals.restaurantId;
-  let status = res.locals.status;
-  status = status.trim().toLowerCase();
-  switch (status) {
-    case "pending":
-      status = "recieved";
-      break;
-    case "recieved":
-      status = "on process";
-      break;
-    case "on process":
-      status = "ready";
-      break;
-    case "ready":
-      status = "delivered";
-      break;
-    default:
-      status = "pending";
-      break;
-  }
-  await order
-    .update({ status }, { where: { orderId, restaurantId } })
-    .then((count) => {
-      if (count[0] === 1)
-        return res.status(200).json({
-          status: "success",
-          message: "status updated",
-        });
-      else if (count[0] === 0)
-        return res
-          .status(404)
-          .json({
-            status: "failed",
-            message: "not found",
-          })
-          .catch((err) => {
-            console.log(err);
-            return next(
-              new AppError("An error occurred please try again", 500)
-            );
-          });
-    });
-});
+  });
+  const { orders } = data;
+  data = orders.map((item) => {
+    const {
+      rating,
+      student: {
+        user: { username, phoneNum },
+      },
+    } = item;
+    return { rating, username, phoneNum };
+  });
+  res.status(200).json(data);
+};
