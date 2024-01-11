@@ -49,8 +49,8 @@ exports.login = catchAsync(async (req, res, next) => {
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
-  const createdUser = JSON.parse(req.body.data);
-  const image = req.file;
+  const createdUser = req.body;
+  //const image = req.file;
   console.log(createdUser);
   if (
     !createdUser.email ||
@@ -86,7 +86,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
     req.session.major = createdUser.major;
-    req.session.image = image;
+    // req.session.image = image;
 
     req.session.verifyMessage = createMessage();
     console.log("verify", req.session.verifyMessage);
@@ -133,7 +133,7 @@ exports.verify = catchAsync(async (req, res, next) => {
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;
-            status = true;
+            return next();
           })
           .catch((err) => {
             console.log("My error:", err);
@@ -156,14 +156,14 @@ exports.verify = catchAsync(async (req, res, next) => {
           });
         return next(new AppError("An error occured please try again ", 500));
       });
-    if (status) {
+    /* if (status) {
       const nameImage = `/student profile/${req.session.studentId}`;
       console.log("before uploading:", req.session.image);
       await UploadFile(req.session.image.buffer, nameImage);
       const image = await getURL(nameImage);
       await student.update({ image }, { where: { id: req.session.studentId } });
       return next();
-    }
+    }*/
   }
 });
 exports.logout = catchAsync(async (req, res, next) => {
