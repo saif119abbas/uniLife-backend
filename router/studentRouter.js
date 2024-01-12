@@ -152,7 +152,7 @@ router.post(
   "/message/:userId/:receiverId",
   protect,
   studentPermission,
-  validtaeSendMessage,
+  //validtaeSendMessage,
   upload.single("image"),
   sendMessage
 );

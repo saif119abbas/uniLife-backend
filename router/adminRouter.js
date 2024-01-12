@@ -45,6 +45,7 @@ const {
   validtaeAddFloor,
   validtaeAddClassroom,
 } = require("../validation/validator");
+const { searchPostByDate } = require("../contoller/adminController/postAction");
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
@@ -167,5 +168,10 @@ router.patch(
   adminPermission,
   blockedStudent
 );
-
+router.get(
+  "/post/search/admin/:userId",
+  protect,
+  adminPermission,
+  searchPostByDate
+);
 module.exports = router;

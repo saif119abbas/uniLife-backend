@@ -2,15 +2,15 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    /*await queryInterface.addColumn("facultyfloors", "reference", {
+    // await queryInterface.removeColumn("posts", "reservedBy");
+  },
+  down: async (queryInterface, Sequelize) => {
+    /* await queryInterface.addColumn("posts", "reservedBy", {
       type: Sequelize.INTEGER,
       allowNull: true,
       validator: {
         notEmpty: false,
       },
     });*/
-  },
-  down: async (queryInterface, _) => {
-    //await queryInterface.removeColumn("facultyfloors", "reference");
   },
 };

@@ -16,6 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     reservedBy: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: "students",
+        as: "reservedBy",
+        key: "id",
+      },
     },
     image: {
       type: DataTypes.STRING,

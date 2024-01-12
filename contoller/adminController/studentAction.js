@@ -29,48 +29,17 @@ exports.blockedStudent = async (req, res) => {
   console.log("blockedStudent");
   try {
     const userId = req.params.studentId;
-    const blocked = await new Promise((resolve) => {
-      student
-        .findOne({ where: { userId }, attributes: ["blocked"] })
-        .then((record) => {
-          console.log(record);
-          if (!record)
-            return res
-              .status(404)
-              .json({ status: "fail", message: "not found" });
-          resolve(record.blocked);
-        });
-    });
     student
-      .update({ blocked: !blocked }, { where: { userId } })
+      .update(
+        { blocked: Sequelize.literal("NOT blocked") },
+        { where: { userId } }
+      )
       .then(([count]) => {
-        console.log(count);
         if (count === 0)
           return res.status(404).json({ status: "fail", message: "not found" });
         return res
           .status(200)
           .json({ status: "success", message: "updated successfully" });
-      });
-  } catch (err) {
-    console.log("my error", err);
-    return res
-      .status(500)
-      .json({ status: "fail", message: "Internal server error" });
-  }
-};
-exports.unBlockedStudent = async (req, res) => {
-  console.log("blockedStudent");
-  try {
-    const userId = req.params.studentId;
-    student
-      .update({ blocked: false }, { where: { userId } })
-      .then(([count]) => {
-        console.log(count);
-        if (count === 0)
-          return res.status(404).json({ status: "fail", message: "not found" });
-        return res
-          .status(200)
-          .json({ status: "success", message: "student unblocked" });
       });
   } catch (err) {
     console.log("my error", err);

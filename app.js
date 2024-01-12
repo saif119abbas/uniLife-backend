@@ -10,8 +10,10 @@ const restaurantRouter = require("./router/restaurantRouter");
 const dormitoryRouter = require("./router/dormitoryRouter");
 const userRouter = require("./router/userRouter");
 const { initializeFirebaseApp } = require("./firebaseConfig");
+const bodyParser = require("body-parser");
 const { clear } = require("./utils/blackList");
 const app = express();
+
 app.use(express.json());
 
 app.use(
@@ -21,6 +23,7 @@ app.use(
     saveUninitialized: true,
   })
 );
+app.use(bodyParser.json());
 app.use(cors({ origin: "http://localhost:3001" }));
 app.use(cookieParser(process.env.SECRETKEY));
 app.use(process.env.BASE_URL, studentRouter);
