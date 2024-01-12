@@ -6,6 +6,7 @@ const db = require("./models");
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
+const { sendMessage, sendImage } = require("./SocketMethods/createMessage");
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:8081", "http://localhost:8082"],
@@ -25,8 +26,10 @@ io.on("connection", (socket) => {
     console.log(`User ${userId} logged in.`);
   });
 
-  socket.on("imageMessage", ({ senderId, receiverId, image }) => {
+  socket.on("imageMessage", async ({ senderId, receiverId, image }) => {
     const receiverSocketId = userSocketMap[receiverId];
+    await sendImage(senderId, receiverId, image);
+    console.log(image);
     if (receiverSocketId) {
       // Save the image to a file (you might want to use a database instead)
       const receiverSocketId = userSocketMap[receiverId];
@@ -42,10 +45,13 @@ io.on("connection", (socket) => {
   });
 
   // Handle private messages
-  socket.on("privateMessage", ({ senderId, receiverId, message }) => {
+  socket.on("privateMessage", async ({ senderId, receiverId, message }) => {
     const receiverSocketId = userSocketMap[receiverId];
+    console.log("Hello");
+    await sendMessage(senderId, receiverId, message);
     if (receiverSocketId) {
       console.log(message);
+
       io.to(receiverSocketId).emit("privateMessage", { senderId, message });
     } else {
       console.log(`User ${receiverId} is not connected.`);
@@ -70,7 +76,7 @@ io.on("connection", (socket) => {
   });
 });
 
-db.sequelize.sync().then(() => {
+db.sequelize.sync({}).then(() => {
   // Start the server
   server.listen(process.env.PORT || 3000, () => {
     console.log(`Server is running on port ${process.env.PORT}`);

@@ -15,8 +15,9 @@ exports.studentPermission = catchAsync(async (_, res, next) => {
   }
 });
 exports.adminPermission = catchAsync(async (_, res, next) => {
-  console.log("My role is ", res.locals.role);
+  // console.log("My role is ", res.locals.role);
   const role = res.locals.role;
+  console.log("My role is ", role);
   if (role !== process.env.ADMIN)
     return res.status(403).json({
       status: "failed",

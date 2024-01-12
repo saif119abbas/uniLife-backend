@@ -8,6 +8,7 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
   const restaurantData = JSON.parse(req.body.data);
   console.log("The restaurant:", restaurantData);
   const file = req.file;
+  console.log("file:", file);
   if (restaurantData.password !== restaurantData.confirmPassword)
     return res.status(400).json({
       status: "falied",

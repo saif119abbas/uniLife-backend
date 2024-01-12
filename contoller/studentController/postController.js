@@ -298,6 +298,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
         include: [
           {
             model: user,
+            attributes: ["userId"],
             attributes: ["username"],
           },
         ],
@@ -319,6 +320,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       image: post.image,
       studentId: post.id,
       username: post.student.user.username,
+      userId: post.student.userId,
     };
   });
   res.status(200).json({ data });
