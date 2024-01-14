@@ -9,13 +9,18 @@ const { Server } = require("socket.io");
 const { sendMessage, sendImage } = require("./SocketMethods/createMessage");
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:8081", "http://localhost:8082"],
+    origin: [
+      "http://localhost:8081",
+      "http://localhost:8082",
+      "http://localhost:3001",
+    ],
     methods: ["GET", "POST"],
   },
 });
 
 // Keep track of connected users and their rooms
 const userSocketMap = {};
+const restaurantSocketMap = {};
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -24,6 +29,10 @@ io.on("connection", (socket) => {
   socket.on("login", (userId) => {
     userSocketMap[userId] = socket.id;
     console.log(`User ${userId} logged in.`);
+  });
+  socket.on("restaurantLogin", (restaurantId) => {
+    restaurantSocketMap[restaurantId] = socket.id;
+    console.log(`Restaurant ${restaurantId} logged in.`);
   });
 
   socket.on("imageMessage", async ({ senderId, receiverId, image }) => {
@@ -55,6 +64,16 @@ io.on("connection", (socket) => {
       io.to(receiverSocketId).emit("privateMessage", { senderId, message });
     } else {
       console.log(`User ${receiverId} is not connected.`);
+    }
+  });
+  socket.on("newOrder", async ({ restaurantId }) => {
+    console.log("Order Place to:" + restaurantId);
+    const receiverSocketId = restaurantSocketMap[restaurantId];
+    if (receiverSocketId) {
+      console.log("INSIDE");
+      io.to(receiverSocketId).emit("newOrder");
+    } else {
+      console.log(`User ${restaurantId} is not connected.`);
     }
   });
 

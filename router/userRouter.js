@@ -13,7 +13,6 @@ const {
   verifyUpdatePassword,
   restPassword,
 } = require("../contoller/userController/forgetPassword");
-const { uploadProcessData } = require("../firebaseConfig");
 const {
   validtaeLogin,
   validtaeForgetPassword,
@@ -25,7 +24,9 @@ const {
   getResturant,
   getCatigory,
   getMajor,
+  deletePost,
 } = require("../contoller/userController/generalController");
+
 const {
   adminOrStuPermission,
   RestauarntOrStuPermission,
@@ -44,12 +45,12 @@ router.get(
   adminOrStuPermission,
   getResturants
 );
-router.get(
+/*router.get(
   "/restaurants/:userId/:resturantId",
   protect,
   adminOrStuPermission,
   getResturant
-); //may be not neccessary
+); //may be not neccessary*/
 router.get(
   "/menu/:restaurantId/:userId",
   protect,
@@ -58,6 +59,12 @@ router.get(
 );
 router.get("/catigory/:userId", protect, adminOrStuPermission, getCatigory);
 router.get("/major/:userId", protect, adminOrStuPermission, getMajor);
+router.delete(
+  "/post/:userId/:studentId/:postId",
+  protect,
+  adminOrStuPermission,
+  deletePost
+);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);

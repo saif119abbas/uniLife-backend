@@ -37,7 +37,7 @@ const { sendMessageValidation } = require("./messageValidation");
 
 exports.validtaeSignup = (req, res, next) => {
   console.log("from validator:", req.body.data);
-  const student = JSON.parse(req.body.data);
+  const student = req.body;
   const { error, _ } = signupValidation.validate(student);
   if (error) {
     console.log("error validator:", error);
@@ -121,7 +121,7 @@ exports.validtaeAddRestaurant = (req, res, next) => {
   const data = JSON.parse(req.body.data);
   const { error, _ } = addResturantValidation.validate(data);
   if (error) {
-    console.log("The err", err);
+    console.log("The err", error);
     return res.status(400).json({
       status: "failed",
       message: error.message,
@@ -130,8 +130,9 @@ exports.validtaeAddRestaurant = (req, res, next) => {
   next();
 };
 exports.validtaeEditRestaurant = (req, res, next) => {
-  const data = req.body;
-  const { error, val } = editRestaurantValidation.validate(data);
+  console.log("validtaeEditRestaurant:", req.body.data);
+  const data = JSON.parse(req.body.data);
+  const { error, _ } = editRestaurantValidation.validate(data);
   if (error) {
     return res.status(400).json({
       status: "failed",

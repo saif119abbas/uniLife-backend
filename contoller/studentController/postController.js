@@ -298,7 +298,6 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
         include: [
           {
             model: user,
-            attributes: ["userId"],
             attributes: ["username"],
           },
         ],
@@ -397,35 +396,30 @@ exports.unReservesdPost = catchAsync(async (req, res, next) => {
 exports.searchPost = catchAsync(async (req, res, next) => {
   const desc = req.body.description;
   const userId = req.params.userId;
-  const myStudent = await student.findOne({
+  /*const myStudent = await student.findOne({
     attributes: ["id", "blocked"],
     where: { userId },
-  });
-  const posts = await post.findAll({
+  });*/
+  const posts = await user.findOne({
     where: {
-      description: { [Op.like]: `%${desc}%` },
-      studentId: { [Op.not]: myStudent.id },
+      id: { [Op.not]: userId, role: process.env.STUDENT },
     },
+    attributes: ["username"],
     include: [
       {
         model: student,
+        where: { blocked: false },
+        attributes: ["userId"],
         include: [
           {
-            model: user,
-            attributes: ["username"],
+            model: post,
+            where: { description: { [Op.like]: `%${desc}%` } },
           },
         ],
-        attributes: ["userId"],
       },
     ],
   });
-  if (!posts || posts.length === 0)
-    return res.status(404).json({ message: "no post found" });
-  /*if (myStudent.blocked)
-    return res.status(403).json({
-      status: "failed",
-      message:"not allowed"
-    })*/
+  if (!posts || posts.length === 0) return res.status(200).json({ data: [] });
   const data = posts.map((post) => {
     return {
       id: post.id,

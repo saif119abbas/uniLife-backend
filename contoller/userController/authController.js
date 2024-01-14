@@ -13,14 +13,15 @@ const {
   getFiles,
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
-const { student, user } = require("../../models");
+const { student, user, FCM } = require("../../models");
 const { file } = require("googleapis/build/src/apis/file");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
+  const { email, password, token } = data;
   const myUser = await user.findOne({
     attributes: ["role", "id", "password", "email", "username"],
-    where: { email: data.email },
+    where: { email },
   });
 
   console.log(myUser);
@@ -29,9 +30,9 @@ exports.login = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "Incorrect email or password",
     });
-  const password = myUser.password;
+  // const password = myUser.password;
   const passwordIsCorrect = await new Promise((resolve, reject) => {
-    bcrypt.compare(data.password, password, (err, passwordIsCorrect) => {
+    bcrypt.compare(password, myUser.password, (err, passwordIsCorrect) => {
       if (err) reject(err);
       resolve(passwordIsCorrect);
     });
@@ -45,6 +46,16 @@ exports.login = catchAsync(async (req, res, next) => {
   expiresIn = `24h`;
   data.id = myUser.id;
   data.role = myUser.role;
+  if (myUser.role === process.env.STUDENT) {
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId: data.id }, attributes: ["id"] })
+        .then((record) => {
+          if (record) resolve(record.id);
+        });
+    });
+    await FCM.create({ token, studentId });
+  }
   return createSendToken(data, 200, expiresIn, res);
 });
 

@@ -4,7 +4,10 @@ const { UploadFile, getURL } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
+const { resolve } = require("path");
+const { rejects } = require("assert");
 exports.addRestaurant = catchAsync(async (req, res, next) => {
+  console.log("edited");
   const restaurantData = JSON.parse(req.body.data);
   console.log("The restaurant:", restaurantData);
   const file = req.file;
@@ -44,7 +47,7 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
           reject(err);
         });
     });
-    const nameImage = `/restaurant/${restaurantId}`;
+    const nameImage = `/restaurant/${userId}`;
     console.log(file);
     await UploadFile(file.buffer, nameImage);
     const image = await getURL(nameImage);
@@ -85,88 +88,98 @@ exports.createMenu = catchAsync(async (req, res, next) => {
     });
 });
 exports.editRestaurant = catchAsync(async (req, res, next) => {
-  const restaurantId = req.params.restaurantId;
-  const restaurantData = req.body;
-  console.log(restaurantData);
-  let hash = undefined;
-  if (restaurantData.password) {
-    if (restaurantData.password !== restaurantData.confirmPassword) {
-      console.log("password mismatch");
-      return res.status(400).json({
-        status: "falied",
-        message: "the password and confirm password do not match",
+  try {
+    const userId = req.params.restaurantId;
+    const restaurantData = JSON.parse(req.body.data);
+    const file = req.file;
+    console.log(restaurantData);
+    let hash = undefined;
+    if (restaurantData.password) {
+      if (restaurantData.password !== restaurantData.confirmPassword) {
+        console.log("password mismatch");
+        return res.status(400).json({
+          status: "falied",
+          message: "the password and confirm password do not match",
+        });
+      }
+      hash = await new Promise((resolve, reject) => {
+        bcrypt.hash(restaurantData.password, 12, (err, hash) => {
+          if (err) {
+            reject(new AppError("an error occurred please try again", 500));
+          } else {
+            resolve(hash);
+          }
+        });
       });
+      restaurantData.password = hash;
     }
-    hash = await new Promise((resolve, reject) => {
-      bcrypt.hash(restaurantData.password, 12, (err, hash) => {
-        if (err) {
-          reject(new AppError("an error occurred please try again", 500));
-        } else {
-          resolve(hash);
-        }
-      });
-    });
-  }
-  restaurantData.password = hash;
-  const id = await new Promise((resolve, reject) => {
+    const nameImage = `/restaurant/${userId}`;
+    console.log(file);
+    await UploadFile(file.buffer, nameImage);
+    const image = await getURL(nameImage);
+    console.log("the url", image);
+
+    console.log("the data", restaurantData);
+    /*const id = await new Promise((resolve, reject) => {
     restaurant
-      .findOne({ attributes: ["userId"], where: { id: restaurantId } })
-      .then((record) => {
-        if (record) resolve(record.userId);
-        else
-          return res
+    .findOne({ attributes: ["userId"], where: { id: restaurantId } })
+    .then((record) => {
+      if (record) resolve(record.userId);
+      else
+      return res
             .status(404)
             .json({ status: "failed", message: "not found restaurant" });
       });
-  });
-  // console.log("userId", userId);
-  await user
-    .update(restaurantData, {
-      where: { id, role: process.env.RESTAURANT },
-    })
-    .then((count) => {
-      console.log(count);
-      console.log("LLL");
-      if (count[0] === 1) {
-        return res.status(200).json({
-          status: "success",
-          message: "updated successfuly",
+  });*/
+    // console.log("userId", userId);
+    const count = await new Promise((resolve, reject) => {
+      user
+        .update(restaurantData, {
+          where: { id: userId, role: process.env.RESTAURANT },
+        })
+        .then((count) => {
+          resolve(count[0]);
+          console.log(count);
+        })
+        .catch((err) => {
+          reject(err);
         });
-      } else if (count[0] === 0) {
+    });
+
+    if (count === 1) {
+      restaurant.update({ image }, { where: { userId } }).then(([count]) => {
+        if (count === 1)
+          return res.status(200).json({
+            status: "success",
+            message: "updated successfuly",
+          });
+
         return res.status(404).json({
           status: "failed",
           message: "not found",
         });
-      }
-    })
-    .catch((err) => {
-      if (err.name === "SequelizeUniqueConstraintError")
-        res.status(409).json({
-          status: "failed",
-          message: "This account is already created",
-        });
-      console.log("my error", err);
-      if (err)
-        return next(new AppError("1an error occurred please try again", 500));
-    });
+      });
+    } else if (count === 0) {
+      return res.status(404).json({
+        status: "failed",
+        message: "not found",
+      });
+    }
+  } catch (err) {
+    if (err.name === "SequelizeUniqueConstraintError")
+      res.status(409).json({
+        status: "failed",
+        message: "This account is already created",
+      });
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
 });
 exports.deleteRestaurant = catchAsync(async (req, res, next) => {
-  const restaurantId = req.params.restaurantId;
-  const userId = await new Promise((resolve, reject) => {
-    restaurant
-      .findOne({ attributes: ["userId"], where: { id: restaurantId } })
-      .then((record) => {
-        if (record) resolve(record.userId);
-        else
-          return res.status(404).json({
-            status: "failed",
-            message: "not found1",
-          });
-      });
-  });
-  console.log("delete restaurant", userId);
+  const userId = req.params.restaurantId;
   await restaurant
-    .destroy({ where: { id: restaurantId } })
+    .destroy({ where: { userId } })
     .then((deleteCount) => {
       if (deleteCount > 1)
         return next(new AppError("Somethig went wrong please try again", 500));
@@ -206,8 +219,20 @@ exports.deleteRestaurant = catchAsync(async (req, res, next) => {
     });
 });
 exports.deleteMenu = catchAsync(async (req, res, next) => {
-  const restaurantId = req.params.restaurantId;
-
+  const userId = req.params.restaurantId;
+  const restaurantId = await new Promise((resolve, reject) => {
+    restaurant
+      .findOne({ attributes: ["id"], where: { userId } })
+      .then((record) => {
+        if (record) resolve(record.id);
+        else
+          return res.status(404).json({
+            status: "failed",
+            message: "not found1",
+          });
+      })
+      .catch((err) => reject(err));
+  });
   menu
     .destroy({ where: { restaurantId } })
     .then((deleteCount) => {
@@ -221,7 +246,10 @@ exports.deleteMenu = catchAsync(async (req, res, next) => {
         });
     })
     .catch(() => {
-      return next(new AppError("An error occured please try again"), 500);
+      return res.status(500).json({
+        status: "failed",
+        message: "Internal Server Error",
+      });
     });
 });
 /*exports.editCardID = catchAsync(async (req, res, next) => {

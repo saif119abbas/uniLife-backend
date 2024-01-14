@@ -12,84 +12,97 @@ const {
   student,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-const { resolve } = require("path");
 exports.createOrder = catchAsync(async (req, res, next) => {
-  const data = req.body;
-  const userId = req.params.userId;
-  const myStudent = await student.findOne({
-    attributes: ["id"],
-    where: { userId },
-  });
-  if (!myStudent) {
-    return res.status(403).json({
-      status: "failed",
-      message: "Not allowed action",
-    });
-  }
-  const studentId = myStudent.id;
-  console.log("myData", data);
-  console.log("studentId:", studentId);
-  let countOrder = 0;
-  let totalPrice = 0;
-  const myOrders = await order.create({
-    restaurantId: data.restaurantId,
-    studentId,
-    status: "pending",
-    totalPrice,
-    notes: data.notes,
-  });
+  try {
+    const data = req.body;
 
-  const orderItemData = data.orderItem;
-  for (let item of orderItemData) {
-    const fooditemPrice = await foodItem.findOne({
-      where: { foodId: item.foodId },
-      attributes: ["price", "offerPrice", "isOffer", "count"],
+    const userId = req.params.userId;
+    const myStudent = await student.findOne({
+      attributes: ["id"],
+      where: { userId },
     });
-    const count = fooditemPrice.count + 1;
-    const unitPrice =
-      item.Qauntity *
-      (fooditemPrice.isOffer ? fooditemPrice.offerPrice : fooditemPrice.price);
+    if (!myStudent) {
+      return res.status(403).json({
+        status: "failed",
+        message: "Not allowed action",
+      });
+    }
+    const studentId = myStudent.id;
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ where: { userId: data.restaurantId }, attributes: ["id"] })
+        .then((record) => resolve(record.id))
+        .catch((err) => reject(err));
+    });
+    console.log("myData", data);
+    console.log("studentId:", studentId);
+    let countOrder = 0;
+    let totalPrice = 0;
+    const myOrders = await order.create({
+      restaurantId,
+      studentId,
+      status: "PENDING",
+      totalPrice,
+      notes: data.notes,
+    });
 
-    totalPrice += unitPrice;
-    orderItem
-      .create({
-        Qauntity: item.Qauntity,
-        unitPrice,
-        orderOrderId: myOrders.orderId,
-      })
-      .then((myItems) => {
-        OrderItem_FoodItem.create({
-          foodItemFoodId: item.foodId,
-          orderItemOrderItemId: myItems.orderItemId,
+    const orderItemData = data.orderItem;
+    for (let item of orderItemData) {
+      const fooditemPrice = await foodItem.findOne({
+        where: { foodId: item.foodId },
+        attributes: ["price", "count"],
+      });
+      const count = fooditemPrice.count + 1;
+      const unitPrice = item.Qauntity * fooditemPrice.price;
+      totalPrice += unitPrice;
+      orderItem
+        .create({
+          Qauntity: item.Qauntity,
+          unitPrice,
+          orderOrderId: myOrders.orderId,
         })
-          .then(() => {
-            foodItem.update({ count }, { where: { foodId: item.foodId } });
+        .then((myItems) => {
+          OrderItem_FoodItem.create({
+            foodItemFoodId: item.foodId,
+            orderItemOrderItemId: myItems.orderItemId,
           })
-          .catch((err) => {
-            console.log(err);
-            return next(new AppError("An error ouccured please try agin", 500));
-          });
-      })
-      .catch((err) => {
-        console.log(err);
-        return next(new AppError("An error ouccured please try agin", 500));
-      });
-    countOrder++;
-  }
-
-  if (countOrder === data.orderItem.length) {
-    order
-      .update({ totalPrice }, { where: { orderId: myOrders.orderId } })
-      .then(() => {
-        return res.status(201).json({
-          status: "success",
-          message: "created successfully",
+            .then(() => {
+              foodItem.update({ count }, { where: { foodId: item.foodId } });
+            })
+            .catch((err) => {
+              console.log(err);
+              return next(
+                new AppError("An error ouccured please try agin", 500)
+              );
+            });
+        })
+        .catch((err) => {
+          console.log(err);
+          return next(new AppError("An error ouccured please try agin", 500));
         });
-      })
-      .catch((err) => {
-        console.log(err);
-        return next(new AppError("An error ouccured please try agin", 500));
-      });
+      countOrder++;
+    }
+
+    if (countOrder === data.orderItem.length) {
+      order
+        .update({ totalPrice }, { where: { orderId: myOrders.orderId } })
+        .then(() => {
+          return res.status(201).json({
+            status: "success",
+            message: "created successfully",
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          return next(new AppError("An error ouccured please try agin", 500));
+        });
+    }
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error",
+    });
   }
 });
 exports.getOrders = catchAsync(async (req, res, next) => {
@@ -108,13 +121,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
               include: [
                 {
                   model: foodItem,
-                  attributes: [
-                    "price",
-                    "nameOfFood",
-                    "offerPrice",
-                    "isOffer",
-                    "offerDesc",
-                  ],
+                  attributes: ["price", "nameOfFood"],
                 },
               ],
             },
@@ -147,19 +154,18 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       let items = [];
       for (const orderItem of orderItems) {
         const {
-          foodItems: { price, nameOfFood, offerPrice, isOffer, offerDesc },
+          foodItems: { price, nameOfFood },
           orderItemId,
           Qauntity,
           unitPrice,
         } = orderItem;
-        let actuaLprice = isOffer ? offerPrice : price;
+
         const i = {
           orderItemId,
           Qauntity,
           unitPrice,
-          price: actuaLprice,
+          price,
           nameOfFood,
-          offerDesc,
         };
         items.push(i);
       }
@@ -195,15 +201,8 @@ exports.getOffers = catchAsync(async (req, res, next) => {
     return res.status(404).json({ status: "failed", message: "not found" });
   const menuMenuId = myMenu.menuId;
   const myOffers = await foodItem.findAll({
-    attributes: [
-      "foodId",
-      "offerPrice",
-      "offerDesc",
-      "category",
-      "nameOfFood",
-      "price",
-    ],
-    where: { menuMenuId, isOffer: true },
+    attributes: ["foodId", "category", "nameOfFood", "price"],
+    where: { menuMenuId, category: "offer" },
   });
   if (!myOffers || myOffers.length === 0)
     return res.status(200).json({

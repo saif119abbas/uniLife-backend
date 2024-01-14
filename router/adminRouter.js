@@ -45,7 +45,10 @@ const {
   validtaeAddFloor,
   validtaeAddClassroom,
 } = require("../validation/validator");
-const { searchPostByDate } = require("../contoller/adminController/postAction");
+const {
+  searchPostByDate,
+  getLastPosts,
+} = require("../contoller/adminController/postAction");
 const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
@@ -68,6 +71,7 @@ router.patch(
   "/restaurants/:userId/:restaurantId",
   protect,
   adminPermission,
+  upload.single("image"),
   validtaeEditRestaurant,
   editRestaurant
 );
@@ -174,4 +178,5 @@ router.get(
   adminPermission,
   searchPostByDate
 );
+router.get("/lastposts/:userId", protect, adminPermission, getLastPosts);
 module.exports = router;
