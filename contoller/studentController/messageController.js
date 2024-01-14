@@ -7,12 +7,18 @@ const catchAsync = require("../../utils/catchAsync");
 const { student, user, message, sequelize } = require("../../models");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
+const databaseName = require("../../databaseName");
 exports.sendMessage = catchAsync(async (req, res, next) => {
   try {
-    const userId = req.params.userId;
-    const receiverId = req.params.receiverId;
+    const { userId } = req.params;
+    let { receiverId } = req.params;
     const senderId = await new Promise((resolve, reject) => {
       student.findOne({ where: { userId } }).then((record) => {
+        if (record.id) resolve(record.id);
+      });
+    });
+    receiverId = await new Promise((resolve, reject) => {
+      student.findOne({ where: { userId: receiverId } }).then((record) => {
         if (record.id) resolve(record.id);
       });
     });
@@ -61,12 +67,19 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
 exports.getMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");
   //const receiverId = req.params.receiverId;
-  const userId = req.params.userId;
-  const receiverId = req.params.receiverId;
+  const { userId } = req.params;
+  let { receiverId } = req.params;
   const senderId = await new Promise((resolve, reject) => {
     student.findOne({ where: { userId } }).then((record) => {
       if (record.id) resolve(record.id);
     });
+  });
+  receiverId = await new Promise((resolve, reject) => {
+    student
+      .findOne({ where: { userId: receiverId }, attributes: ["id"] })
+      .then((record) => {
+        if (record.id) resolve(record.id);
+      });
   });
   const messages = await message
     .findAll({
@@ -119,7 +132,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 exports.getMyMessage = catchAsync(async (req, res, next) => {
   try {
     const Sequelize = require("sequelize");
-    const sequelize = new Sequelize("uniLife2", "root", "", {
+    const sequelize = new Sequelize(databaseName, "root", "", {
       host: "localhost",
       dialect: "mysql",
     });

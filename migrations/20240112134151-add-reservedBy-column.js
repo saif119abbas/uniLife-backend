@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn("posts", "reservedBy", {
+    /*await queryInterface.addColumn("posts", "reservedBy", {
       type: Sequelize.INTEGER,
       allowNull: true,
       references: {
@@ -10,9 +10,9 @@ module.exports = {
         as: "reservedBy",
         key: "id",
       },
-    });
+    });*/
   },
   down: async (queryInterface, _) => {
-    await queryInterface.removeColumn("posts", "reservedBy");
+    //await queryInterface.removeColumn("posts", "reservedBy");
   },
 };

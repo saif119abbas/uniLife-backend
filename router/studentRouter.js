@@ -83,7 +83,7 @@ router.patch(
   editLecture
 );
 router.get("/lecture/:userId", protect, studentPermission, getLectures);
-router.get("/menu/:restaurantId/:userId", protect, studentPermission, getMenu);
+//router.get("/menu/:restaurantId/:userId", protect, studentPermission, getMenu);
 router.post(
   "/order/:userId",
   protect,
@@ -140,7 +140,7 @@ router.patch(
   unReservesdPost
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
-router.delete("/post/:userId/:postId", protect, studentPermission, deletePost);
+//router.delete("/post/:userId/:postId", protect, studentPermission, deletePost);
 router.patch(
   "/post/:userId/:postId",
   protect,

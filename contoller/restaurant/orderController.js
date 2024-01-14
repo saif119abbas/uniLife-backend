@@ -1,4 +1,6 @@
 const AppError = require("../../utils/appError");
+const { pushNotification } = require("../../notification");
+
 const {
   restaurant,
   foodItem,
@@ -6,6 +8,7 @@ const {
   student,
   orderItem,
   order,
+  FCM,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
@@ -98,48 +101,75 @@ exports.getOrders = catchAsync(async (req, res, next) => {
 });
 exports.updateOrder = catchAsync(async (req, res, next) => {
   const { orderId, userId } = req.params;
-  let { status, restaurantId } = await new Promise((resolve) => {
+  let { status, restaurantId, studentId } = await new Promise((resolve) => {
     restaurant
       .findOne({
         where: { userId },
         attributes: ["id"],
-        include: [{ model: order, attributes: ["status"], where: { orderId } }],
+        include: [
+          {
+            model: order,
+            attributes: ["status", "studentId"],
+            where: { orderId },
+          },
+        ],
       })
       .then((record) => {
         const data = {
           restaurantId: record.id,
           status: record.orders[0].status,
+          studentId: record.orders[0].studentId,
         };
         resolve(data);
       });
   });
-  status = status.trim().toLowerCase();
+  //res.status(200).json(data);
+
+  status = status.trim().toUpperCase();
   switch (status) {
-    case "pending":
-      status = "received";
+    case "PENDING":
+      status = "RECEIVED";
       break;
-    case "recieved":
-      status = "on process";
+    case "RECEIVED":
+      status = "IN PROGRESS";
       break;
-    case "on process":
-      status = "ready";
+    case "IN PROGRESS":
+      status = "READY";
       break;
-    case "ready":
-      status = "delivered";
+    case "READY":
+      status = "DELIVERED";
       break;
     default:
-      status = "pending";
+      status = "PENDING";
       break;
   }
   await order
     .update({ status }, { where: { orderId, restaurantId } })
-    .then((count) => {
-      if (count[0] === 1)
+    .then(async (count) => {
+      if (count[0] === 1) {
+        const FCMS = await new Promise((resolve, reject) => {
+          FCM.findAll({
+            where: { studentId },
+            attributes: ["token"],
+          }).then((record) => {
+            resolve(record);
+          });
+        });
+        FCMS.map(async (item) => {
+          await pushNotification(
+            item.token,
+            "Order:" + orderId + " Status Update",
+
+            status === "DELIVERED"
+              ? "Thanks for ordering, Rate your order please"
+              : "Your Order is " + status
+          );
+        });
         return res.status(200).json({
           status: "success",
           message: "status updated",
         });
-      else if (count[0] === 0)
+      } else if (count[0] === 0)
         return res
           .status(404)
           .json({

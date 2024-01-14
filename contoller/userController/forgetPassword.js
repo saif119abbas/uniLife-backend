@@ -22,11 +22,11 @@ exports.forrgetPassword = catchAsync(async (req, res) => {
     });
   const email = myUser.email;
   verifyMessage = createMessage();
-  transportMessage(verifyMessage, email);
+ /* transportMessage(verifyMessage, email);
   const myToken = {
     status: "success",
     message: "check your email",
-  };
+  };*/
   createSendToken(myToken, 200, "30s", res);
 });
 exports.verifyUpdatePassword = catchAsync(async (req, res) => {

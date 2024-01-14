@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    isOffer: {
+    /* isOffer: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       validator: {
@@ -55,14 +55,14 @@ module.exports = (sequelize, DataTypes) => {
       validator: {
         notEmpty: false,
       },
-    },
+    },*/
     count: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
     },
     image: {
-      type: DataTypes.BLOB,
+      type: DataTypes.STRING,
     },
   });
   foodItem.associate = (models) => {
