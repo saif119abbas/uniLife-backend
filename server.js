@@ -37,8 +37,8 @@ io.on("connection", (socket) => {
 
   socket.on("imageMessage", async ({ senderId, receiverId, image }) => {
     const receiverSocketId = userSocketMap[receiverId];
-    await sendImage(senderId, receiverId, image);
-    console.log(image);
+    const imageLink = await sendImage(senderId, receiverId, image);
+    console.log(imageLink);
     if (receiverSocketId) {
       // Save the image to a file (you might want to use a database instead)
       const receiverSocketId = userSocketMap[receiverId];
@@ -46,7 +46,7 @@ io.on("connection", (socket) => {
       // Send the image path to the receiver
       io.to(receiverSocketId).emit("imageMessage", {
         senderId,
-        image,
+        image: imageLink,
       });
     } else {
       console.log(`User ${receiverId} is not connected.`);

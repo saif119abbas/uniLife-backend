@@ -17,46 +17,50 @@ const { student, user, FCM } = require("../../models");
 const { file } = require("googleapis/build/src/apis/file");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
-  const data = req.body;
-  const { email, password, token } = data;
-  const myUser = await user.findOne({
-    attributes: ["role", "id", "password", "email", "username"],
-    where: { email },
-  });
-
-  console.log(myUser);
-  if (!myUser)
-    return res.status(400).json({
-      status: "failed",
-      message: "Incorrect email or password",
-    });
-  // const password = myUser.password;
-  const passwordIsCorrect = await new Promise((resolve, reject) => {
-    bcrypt.compare(password, myUser.password, (err, passwordIsCorrect) => {
-      if (err) reject(err);
-      resolve(passwordIsCorrect);
-    });
-  });
-  if (!passwordIsCorrect)
-    return res.status(400).json({
-      status: "failed",
-      message: "Incorrect email or password",
+  try {
+    const data = req.body;
+    const { email, password, token } = data;
+    const myUser = await user.findOne({
+      attributes: ["role", "id", "password", "email", "username"],
+      where: { email },
     });
 
-  expiresIn = `24h`;
-  data.id = myUser.id;
-  data.role = myUser.role;
-  if (myUser.role === process.env.STUDENT) {
-    const studentId = await new Promise((resolve, reject) => {
-      student
-        .findOne({ where: { userId: data.id }, attributes: ["id"] })
-        .then((record) => {
-          if (record) resolve(record.id);
-        });
+    console.log(myUser);
+    if (!myUser)
+      return res.status(400).json({
+        status: "failed",
+        message: "Incorrect email or password",
+      });
+    // const password = myUser.password;
+    const passwordIsCorrect = await new Promise((resolve, reject) => {
+      bcrypt.compare(password, myUser.password, (err, passwordIsCorrect) => {
+        if (err) reject(err);
+        resolve(passwordIsCorrect);
+      });
     });
-    await FCM.create({ token, studentId });
+    if (!passwordIsCorrect)
+      return res.status(400).json({
+        status: "failed",
+        message: "Incorrect email or password",
+      });
+
+    expiresIn = `24h`;
+    data.id = myUser.id;
+    data.role = myUser.role;
+    if (myUser.role === process.env.STUDENT) {
+      const studentId = await new Promise((resolve, reject) => {
+        student
+          .findOne({ where: { userId: data.id }, attributes: ["id"] })
+          .then((record) => {
+            if (record) resolve(record.id);
+          });
+      });
+      await FCM.create({ token, studentId });
+    }
+    return createSendToken(data, 200, expiresIn, res);
+  } catch (error) {
+    console.log(error);
   }
-  return createSendToken(data, 200, expiresIn, res);
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -184,6 +188,7 @@ exports.logout = catchAsync(async (req, res, next) => {
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
+  console.log(req.headers.authorization);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -255,45 +260,81 @@ exports.protect = catchAsync(async (req, res, next) => {
 });
 exports.editProfile = catchAsync(async (req, res, next) => {
   try {
-    let data = req.body;
+    let data = JSON.parse(req.body.data);
+    const file = req.file;
     const id = req.params.userId;
-    if (data.password) {
-      if (data.password !== data.confirmPassword)
-        return res.status(400).json({
+    const count = await new Promise((resolve) => {
+      user
+        .update(data, { where: { id } })
+        .then(([count]) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+
+    if (count === 1) {
+      let studentData = { major: data.major };
+      if (file) {
+        const nameImage = `/student profile/${id}`;
+        await UploadFile(file.buffer, nameImage);
+        const image = await getURL(nameImage);
+        studentData = { ...studentData, image };
+      }
+      const count = await new Promise((resolve, reject) => {
+        student
+          .update(
+            { studentData },
+            {
+              where: { userId: id },
+            }
+          )
+          .then(([count]) => {
+            resolve(count);
+          })
+          .catch((err) => reject(err));
+      });
+
+      if (count === 1)
+        return res.status(200).json({
           status: "failed",
-          messag: "password and confirm password do not match",
+          message: "updated successfully",
         });
-      const hash = await new Promise((resolve, reject) => {
-        bcrypt.hash(data.password, 12, (err, hash) => {
-          if (err) reject(err);
-          else resolve(hash);
+      else
+        return res.status(404).json({
+          status: "failed",
+          message: "not found1",
         });
+    } else if (count === 0)
+      return res.status(404).json({
+        status: "failed",
+        message: "not found2",
       });
-      data.password = hash;
-      user.update(data, { where: { id } }).then((count) => {
-        if (count[0] === 1)
-          return res.status(200).json({
-            status: "failed",
-            message: "updated successfully",
-          });
-        else if (count[0] === 0)
-          return res.status(404).json({
-            status: "failed",
-            message: "not found",
-          });
-      });
-    }
   } catch (err) {
-    return next(new AppError("An error occurred please try again", 500));
+    console.log(err);
+    if (err.name === "SequelizeUniqueConstraintError")
+      return res.status(409).json({
+        status: "failed",
+        message: "alreay added",
+      });
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getPofile = catchAsync(async (req, res, next) => {
   const id = req.params.userId;
-  const data = await new Promise((resolve, reject) => {
+  let data = await new Promise((resolve, reject) => {
     user
       .findOne({
         attributes: ["username", "phoneNum", "email"],
         where: { id },
+        include: [
+          {
+            model: student,
+            attributes: ["major", "image"],
+          },
+        ],
       })
       .then((record) => {
         if (record) resolve(record);
@@ -303,6 +344,11 @@ exports.getPofile = catchAsync(async (req, res, next) => {
             .json({ status: "failed", message: "not found" });
       });
   });
+  data = {
+    ...data.get(),
+    image: data.student.image,
+    major: data.student.major,
+  };
   return res.status(200).json(data);
 });
 exports.storeData = catchAsync(async (req, res) => {

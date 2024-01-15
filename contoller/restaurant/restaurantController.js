@@ -82,13 +82,15 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
 exports.getMenu = catchAsync(async (req, res, next) => {
   try {
     console.log("get Menu");
-    let { restaurantId } = req.params;
+    const { restaurantId, userId } = req.params;
+    let id = restaurantId;
+    if (!restaurantId) id = userId;
 
     const menuMenuId = await new Promise((resolve, reject) => {
       restaurant
         .findOne({
           attributes: [],
-          where: { userId: restaurantId },
+          where: { userId: id },
           include: [
             {
               model: menu,

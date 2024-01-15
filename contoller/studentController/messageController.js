@@ -42,7 +42,7 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
         status = true;
       });
     });
-    const nameImage = `/messages/${id}`;
+    const nameImage = "/messages/${id}";
     const metadata = {
       contentType: "image/jpeg",
     };
@@ -68,64 +68,62 @@ exports.getMessage = catchAsync(async (req, res, next) => {
   console.log("getMessage");
   //const receiverId = req.params.receiverId;
   const { userId } = req.params;
-  let { receiverId } = req.params;
+  let userReceiverId = req.params.receiverId;
   const senderId = await new Promise((resolve, reject) => {
     student.findOne({ where: { userId } }).then((record) => {
       if (record.id) resolve(record.id);
     });
   });
-  receiverId = await new Promise((resolve, reject) => {
+  const receiverId = await new Promise((resolve, reject) => {
     student
-      .findOne({ where: { userId: receiverId }, attributes: ["id"] })
+      .findOne({ where: { userId: userReceiverId }, attributes: ["id"] })
       .then((record) => {
         if (record.id) resolve(record.id);
       });
   });
-  const messages = await message
-    .findAll({
-      attributes: [
-        "id",
-        "text",
-        "createdAt",
-        "image",
-        "senderId",
-        "receiverId",
-        // [sequelize.col("s.id", "senderId")],
-      ],
-      where: {
-        [Op.or]: [
-          { senderId, receiverId },
-          { senderId: receiverId, receiverId: senderId },
+  let messages = await new Promise((resolve) => {
+    message
+      .findAll({
+        attributes: [
+          "id",
+          "text",
+          "createdAt",
+          "image",
+          "senderId",
+          // [sequelize.col("s.id", "senderId")],
         ],
-      },
-      order: [["createdAt", "DESC"]],
-      /*include: [
-        {
-          model: student,
-          attributes: ["id"],
-          // as: "s",
-          /*where: {
-            [Op.literal]: `('s'.'id' = 'message'.'senderId' and 'message'.'receiverId' =${receiverId} )or('message'.'senderId' = ${receiverId}  and 'message'.'receiverId' ='s'.'id')`,
-          },
-          include: [
-            {
-              model: user,
-              attributes: ["username"],
-              //as: "u",
-              where: { userId },
-            },
+        where: {
+          [Op.or]: [
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId },
           ],
         },
-      ],*/
-    })
-    .catch((err) => {
-      console.log("my error", err);
-      return next(new AppError("An error occurred, please try again", 500));
-    });
-  for (const msg of messages) {
-    await msg.update({ seen: true });
-    await msg.save();
-  }
+
+        order: [["createdAt", "DESC"]],
+      })
+      .then((record) => {
+        // await message.update({ seen: true }, { where: { id: record.id } });
+        resolve(record);
+      })
+      .catch((err) => {
+        console.log("my error", err);
+        return next(new AppError("An error occurred, please try again", 500));
+      });
+  });
+  messages = messages.map((message) => {
+    console.log(message);
+
+    const sender =
+      message.dataValues.senderId === senderId ? userId : userReceiverId;
+    return {
+      ...message.dataValues,
+
+      senderId: sender,
+    };
+  });
+
+  console.log(userReceiverId, userId + "GG");
+  // messages.receiverId = userReceiverId;
 
   return res.status(200).json({ data: messages });
 });
@@ -138,27 +136,29 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
     });
     const userId = req.params.userId;
     const messages = await sequelize.query(
-      `SELECT m.id,m.text,m.createdAt,lastMessages.otherPersonId as recieverId, r.image AS image, u.username AS username,
-      COUNT(CASE WHEN m.seen = false THEN 1 END) AS unseenCount
+      `SELECT m.id, m.text, m.createdAt,
+      r.image AS image, u.username AS username,
+      COUNT(CASE WHEN m.seen = false THEN 1 END) AS unseenCount,
+      u.id AS otherPersonId  
     FROM messages m
     JOIN (
       SELECT 
-      MAX(m2.createdAt) AS lastMessageTime,
-      CASE
-      WHEN senderId = s.id THEN m2.receiverId
-      WHEN receiverId = s.id THEN m2.senderId
-      END AS otherPersonId
+        MAX(m2.createdAt) AS lastMessageTime,
+        CASE
+          WHEN senderId = s.id THEN m2.receiverId
+          WHEN receiverId = s.id THEN m2.senderId
+        END AS otherPersonId
       FROM messages m2
       JOIN students s ON (m2.senderId = s.id OR m2.receiverId = s.id) AND s.userId = ${userId}
       WHERE m2.senderId = s.id OR m2.receiverId = s.id
       GROUP BY otherPersonId
-      ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
-      LEFT JOIN users u2 ON u2.id=${userId}
-      LEFT JOIN students s ON s.userId= u2.id
-      LEFT JOIN students r ON lastMessages.otherPersonId  = r.id
-      LEFT JOIN users u ON r.userId= u.id
-      WHERE (m.senderId = s.id OR m.receiverId =  s.id)
-      ORDER BY m.createdAt DESC;
+    ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
+    LEFT JOIN users u2 ON u2.id = ${userId}
+    LEFT JOIN students s ON s.userId = u2.id
+    LEFT JOIN students r ON lastMessages.otherPersonId = r.id
+    LEFT JOIN users u ON r.userId = u.id
+    WHERE (m.senderId = s.id OR m.receiverId =  s.id)
+    ORDER BY m.createdAt DESC;
       `,
       {
         type: QueryTypes.SELECT,

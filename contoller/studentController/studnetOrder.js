@@ -113,7 +113,13 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       include: [
         {
           model: order,
-          attributes: ["orderId", "status", "totalPrice"],
+          attributes: [
+            "orderId",
+            "status",
+            "totalPrice",
+            "createdAt",
+            "rating",
+          ],
           include: [
             {
               model: orderItem,
@@ -135,9 +141,13 @@ exports.getOrders = catchAsync(async (req, res, next) => {
               ],
             },
           ],
+          limit: 5, // Limit the number of orders per student
+          separate: true, // Use separate to apply limit to orders, not the student record
+          order: [["createdAt", "DESC"]], // Keep descending order
         },
       ],
     });
+
     const { orders } = studentOrders;
     let data = [];
     for (const order of orders) {
@@ -147,19 +157,15 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         status,
         totalPrice,
         createdAt,
+        rating,
         restaurant: {
           user: { username },
         },
       } = order;
       let items = [];
       for (const orderItem of orderItems) {
-        const {
-          foodItems: { price, nameOfFood },
-          orderItemId,
-          Qauntity,
-          unitPrice,
-        } = orderItem;
-
+        const { foodItems, orderItemId, Qauntity, unitPrice } = orderItem;
+        const { price, nameOfFood } = foodItems[0];
         const i = {
           orderItemId,
           Qauntity,
@@ -176,11 +182,12 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         restaurantName: username,
         createdAt,
         items,
+        rating,
       });
     }
     if (data) {
-      data = data.reverse();
-      return res.status(200).json({ data });
+      console.log("GG", data);
+      return res.status(200).json(data);
     }
     return res.status(404).json({
       status: "failed",

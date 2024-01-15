@@ -20,6 +20,7 @@ exports.getResturants = catchAsync(async (_, res) => {
       },
     ],
   });
+  console.log(data);
   if (data.length === 0) return res.status(200).json([]);
   const retrievedData = data.map((item) => ({
     ...item.get(),
@@ -69,16 +70,14 @@ exports.getCatigory = catchAsync(async (_, res) => {
 });
 exports.getMajor = catchAsync(async (_, res) => {
   const data = await new Promise((resolve, _) => {
-    major
-      .findAll({ attributes: ["name", "id"], order: [["id", "ASC"]] })
-      .then((record) => {
-        if (record) resolve(record);
-        else
-          return res.status(404).json({
-            status: "failed",
-            message: "not found",
-          });
-      });
+    major.findAll({ attributes: ["name"] }).then((record) => {
+      if (record) resolve(record);
+      else
+        return res.status(404).json({
+          status: "failed",
+          message: "not found",
+        });
+    });
   });
   return res.status(200).json(data);
 });
