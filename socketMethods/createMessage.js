@@ -40,7 +40,11 @@ exports.sendMessage = async (userId, receiverId, text) => {
         if (record.id) resolve(record.id);
       });
     });
-
+    receiverId = await new Promise((resolve, reject) => {
+      student.findOne({ where: { userId: receiverId } }).then((record) => {
+        if (record.id) resolve(record.id);
+      });
+    });
     const data = {
       receiverId,
       senderId,
@@ -85,7 +89,11 @@ exports.sendImage = async (userId, receiverId, file) => {
         if (record.id) resolve(record.id);
       });
     });
-
+    receiverId = await new Promise((resolve, reject) => {
+      student.findOne({ where: { userId: receiverId } }).then((record) => {
+        if (record.id) resolve(record.id);
+      });
+    });
     const data = {
       receiverId,
       senderId,
@@ -113,7 +121,7 @@ exports.sendImage = async (userId, receiverId, file) => {
         message: "Post created successfully",
         // Include any additional data you want to send back
       });*/
-      return "done";
+      return image;
     }
   } catch (err) {
     console.log("my error", err);

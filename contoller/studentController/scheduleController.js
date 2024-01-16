@@ -239,3 +239,86 @@ cron.schedule("*/30 * * * * 0-3", async () => {
     console.error("Error scheduling notifications:", error);
   }
 });
+// cron.schedule("*/10 * * * * 0-3", async () => {
+//   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+//   try {
+//     const currentDateTime = new Date();
+
+//     const dayOfWeek = daysOfWeek[currentDateTime.getDay()];
+//     const lectures = await lecture.findAll({
+//       where: {
+//         day: {
+//           [Op.like]: `%${dayOfWeek}%`,
+//         },
+//       },
+//       attributes: ["classNumber", "Name", "startTime", "endTime", "id"],
+//       include: [
+//         {
+//           model: schedule,
+//           attributes: ["studentId"],
+//           include: [
+//             {
+//               model: student,
+//               attributes: ["id", "userId"],
+//               include: [
+//                 {
+//                   model: FCM,
+//                   attributes: ["id", "token"],
+//                 },
+//               ],
+//             },
+//           ],
+//         },
+//       ],
+//     });
+
+//     lectures.forEach(async (item) => {
+//       const lecture = item.dataValues;
+//       const {
+//         startTime,
+//         Name,
+//         schedule: {
+//           student: { id, FCMs },
+//         },
+//       } = lecture;
+//       console.log(FCMs);
+//       const notificationTime = new Date();
+//       const [Hours, Minutes] = startTime.split(":");
+//       const LecHours = parseInt(Hours);
+//       const LecMinutes = parseInt(Minutes);
+
+//       const currHour = notificationTime.getHours();
+//       const currMinute = notificationTime.getMinutes();
+//       const result = compareTimes(LecHours, LecMinutes, currHour, currMinute);
+//       console.log(LecHours, LecMinutes, currHour, currMinute);
+//       console.log(result);
+
+//       if (result <= 5 && result > 0) {
+//         const title = `${Name} Lecture`;
+//         const body = `${Name} lecture will start in ${result} minutes`;
+//         console.log("Sending notification");
+//         await pushNotification(FCMs[0].dataValues.token, title, body);
+//       }
+//       // if (notificationTime.getTime() <= currentDateTime.getTime()) {
+//       //   const title = `${Name} lecture`;
+//       //   const body = `${Name} lecture will start at ${startTime}`;
+//       //   console.log("Sending notification");
+//       //   await pushNotification(id, title, body);
+//       // }
+//     });
+//   } catch (error) {
+//     console.error("Error scheduling notifications:", error);
+//   }
+// });
+// function compareTimes(hours1, minutes1, hours2, minutes2) {
+//   const time1InMinutes = hours1 * 60 + minutes1;
+//   const time2InMinutes = hours2 * 60 + minutes2;
+
+//   if (time1InMinutes < time2InMinutes) {
+//     return -1;
+//   } else if (time1InMinutes > time2InMinutes) {
+//     return time1InMinutes - time2InMinutes;
+//   } else {
+//     return 0; // Both times are equal
+//   }
+// }

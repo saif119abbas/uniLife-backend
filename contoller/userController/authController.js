@@ -18,46 +18,53 @@ const { file } = require("googleapis/build/src/apis/file");
 const { resolve } = require("path");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
-  const data = req.body;
-  const { email, password, token } = data;
-  const myUser = await user.findOne({
-    attributes: ["role", "id", "password", "email", "username"],
-    where: { email },
-  });
-
-  console.log(myUser);
-  if (!myUser)
-    return res.status(400).json({
-      status: "failed",
-      message: "Incorrect email or password",
-    });
-  // const password = myUser.password;
-  const passwordIsCorrect = await new Promise((resolve, reject) => {
-    bcrypt.compare(password, myUser.password, (err, passwordIsCorrect) => {
-      if (err) reject(err);
-      resolve(passwordIsCorrect);
-    });
-  });
-  if (!passwordIsCorrect)
-    return res.status(400).json({
-      status: "failed",
-      message: "Incorrect email or password",
+  try {
+    const data = req.body;
+    const { email, password, token } = data;
+    const myUser = await user.findOne({
+      attributes: ["role", "id", "password", "email", "username"],
+      where: { email },
     });
 
-  expiresIn = `24h`;
-  data.id = myUser.id;
-  data.role = myUser.role;
-  if (myUser.role === process.env.STUDENT) {
-    const studentId = await new Promise((resolve, reject) => {
-      student
-        .findOne({ where: { userId: data.id }, attributes: ["id"] })
-        .then((record) => {
-          if (record) resolve(record.id);
-        });
+    console.log(myUser);
+    if (!myUser)
+      return res.status(400).json({
+        status: "failed",
+        message: "Incorrect email or password",
+      });
+    // const password = myUser.password;
+    const passwordIsCorrect = await new Promise((resolve, reject) => {
+      bcrypt.compare(password, myUser.password, (err, passwordIsCorrect) => {
+        if (err) reject(err);
+        resolve(passwordIsCorrect);
+      });
     });
+
     await FCM.create({ token, studentId }).then(() =>
       createSendToken(data, 200, expiresIn, res)
     );
+    if (!passwordIsCorrect)
+      return res.status(400).json({
+        status: "failed",
+        message: "Incorrect email or password",
+      });
+
+    expiresIn = `24h`;
+    data.id = myUser.id;
+    data.role = myUser.role;
+    if (myUser.role === process.env.STUDENT) {
+      const studentId = await new Promise((resolve, reject) => {
+        student
+          .findOne({ where: { userId: data.id }, attributes: ["id"] })
+          .then((record) => {
+            if (record) resolve(record.id);
+          });
+      });
+      await FCM.create({ token, studentId });
+    }
+    return createSendToken(data, 200, expiresIn, res);
+  } catch (error) {
+    console.log(error);
   }
 });
 
@@ -186,6 +193,7 @@ exports.logout = catchAsync(async (req, res, next) => {
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
   let token;
+  console.log(req.headers.authorization);
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -258,7 +266,10 @@ exports.protect = catchAsync(async (req, res, next) => {
 exports.editProfile = catchAsync(async (req, res, next) => {
   try {
     let data = JSON.parse(req.body.data);
+
     const { major } = data;
+
+
     const file = req.file;
     const id = req.params.userId;
     const count = await new Promise((resolve) => {
@@ -269,6 +280,7 @@ exports.editProfile = catchAsync(async (req, res, next) => {
         })
         .catch((err) => reject(err));
     });
+
     console.log("count1=", count);
     if (count === 1) {
       let studentData = {};
@@ -276,38 +288,65 @@ exports.editProfile = catchAsync(async (req, res, next) => {
         studentData = { ...studentData, major };
       }
 
+
+
+    if (count === 1) {
+      let studentData = { major: data.major };
+
       if (file) {
         const nameImage = `/student profile/${id}`;
         await UploadFile(file.buffer, nameImage);
         const image = await getURL(nameImage);
         studentData = { ...studentData, image };
       }
+
       console.log("student:", studentData);
       const count = await new Promise((resolve, reject) => {
         student
           .update(studentData, {
             where: { userId: id },
           })
+      const count = await new Promise((resolve, reject) => {
+        student
+          .update(
+            { studentData },
+            {
+              where: { userId: id },
+            }
+          )
+
           .then(([count]) => {
             resolve(count);
           })
           .catch((err) => reject(err));
       });
+
       console.log("count2=", count);
       if (count === 1)
         return res.status(200).json({
           status: "success",
+
+
+      if (count === 1)
+        return res.status(200).json({
+          status: "failed",
+
           message: "updated successfully",
         });
       else
         return res.status(404).json({
           status: "failed",
+
           message: "not found",
+          message: "not found1",
+
         });
     } else if (count === 0)
       return res.status(404).json({
         status: "failed",
         message: "not found",
+
+        message: "not found2",
       });
   } catch (err) {
     console.log(err);
@@ -348,7 +387,10 @@ exports.getPofile = catchAsync(async (req, res, next) => {
     ...data.get(),
     image: data.student.image,
     major: data.student.major,
+
     student: undefined,
+  };
+
   };
 
   return res.status(200).json(data);

@@ -115,6 +115,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           model: order,
           limit: 5,
           order: [["createdAt", "DESC"]],
+
           attributes: [
             "orderId",
             "status",
@@ -144,9 +145,13 @@ exports.getOrders = catchAsync(async (req, res, next) => {
               ],
             },
           ],
+          limit: 5, // Limit the number of orders per student
+          separate: true, // Use separate to apply limit to orders, not the student record
+          order: [["createdAt", "DESC"]], // Keep descending order
         },
       ],
     });
+
     const { orders } = studentOrders;
     let data = [];
     for (const order of orders) {
@@ -186,7 +191,8 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       });
     }
     if (data) {
-      data = data.reverse();
+      console.log("GG", data);
+
       return res.status(200).json(data);
     }
     return res.status(404).json({

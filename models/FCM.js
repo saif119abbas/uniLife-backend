@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const FCM = sequelize.define("FCM", {
     token: {
       type: DataTypes.STRING,
-      unique: true,
+
       validator: {
         notEmpty: false,
       },

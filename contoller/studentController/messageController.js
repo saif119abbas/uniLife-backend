@@ -42,7 +42,7 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
         status = true;
       });
     });
-    const nameImage = `/messages/${id}`;
+    const nameImage = "/messages/${id}";
     const metadata = {
       contentType: "image/jpeg",
     };
@@ -111,11 +111,26 @@ exports.getMessage = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occurred, please try again", 500));
       });
   });
+
   messages = messages.map(async (message) => {
     console.log(message);
     const receiverId = await new Promise((resolve) => {});
     return { ...message.dataValues, receiverId: userReceiverId };
   });
+
+  messages = messages.map((message) => {
+    console.log(message);
+
+    const sender =
+      message.dataValues.senderId === senderId ? userId : userReceiverId;
+    return {
+      ...message.dataValues,
+
+      senderId: sender,
+    };
+  });
+
+  console.log(userReceiverId, userId + "GG");
   // messages.receiverId = userReceiverId;
 
   return res.status(200).json({ data: messages });
