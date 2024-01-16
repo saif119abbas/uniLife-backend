@@ -113,7 +113,15 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       include: [
         {
           model: order,
-          attributes: ["orderId", "status", "totalPrice"],
+          limit: 5,
+          order: [["createdAt", "DESC"]],
+          attributes: [
+            "orderId",
+            "status",
+            "totalPrice",
+            "createdAt",
+            "rating",
+          ],
           include: [
             {
               model: orderItem,
@@ -127,6 +135,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
             },
             {
               model: restaurant,
+              // attributes: [],
               include: [
                 {
                   model: user,
@@ -147,19 +156,16 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         status,
         totalPrice,
         createdAt,
+        rating,
         restaurant: {
           user: { username },
         },
       } = order;
+      console.log(order);
       let items = [];
       for (const orderItem of orderItems) {
-        const {
-          foodItems: { price, nameOfFood },
-          orderItemId,
-          Qauntity,
-          unitPrice,
-        } = orderItem;
-
+        const { foodItems, orderItemId, Qauntity, unitPrice } = orderItem;
+        const { price, nameOfFood } = foodItems[0];
         const i = {
           orderItemId,
           Qauntity,
@@ -176,11 +182,12 @@ exports.getOrders = catchAsync(async (req, res, next) => {
         restaurantName: username,
         createdAt,
         items,
+        rating,
       });
     }
     if (data) {
       data = data.reverse();
-      return res.status(200).json({ data });
+      return res.status(200).json(data);
     }
     return res.status(404).json({
       status: "failed",
@@ -188,7 +195,10 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     });
   } catch (err) {
     console.log("My err", err);
-    return next(new AppError("An error occurred please try again", 500));
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getOffers = catchAsync(async (req, res, next) => {

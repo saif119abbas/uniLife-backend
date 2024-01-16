@@ -1,6 +1,6 @@
 const { student, user, message } = require("../models");
 const { UploadFile, getURL, deleteFile } = require("../firebaseConfig");
-
+const { Op } = require("sequelize");
 exports.sendMessage = async (userId, receiverId, text) => {
   try {
     const senderId = await new Promise((resolve, reject) => {
@@ -119,4 +119,33 @@ exports.sendImage = async (userId, receiverId, file) => {
     console.log("my error", err);
     return "not done";
   }
+};
+exports.seenMessage = async (senderId, receiverId) => {
+  senderId = await new Promise((resolve, reject) => {
+    student.findOne({ where: { userId: senderId } }).then((record) => {
+      if (record.id) resolve(record.id);
+    });
+  });
+  receiverId = await new Promise((resolve, reject) => {
+    student
+      .findOne({ where: { userId: receiverId }, attributes: ["id"] })
+      .then((record) => {
+        if (record.id) resolve(record.id);
+      });
+  });
+
+  await message
+    .update(
+      { seen: true },
+      {
+        where: {
+          [Op.or]: [
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId },
+          ],
+        },
+      }
+    )
+    .then(() => "done")
+    .catch((err) => err.name);
 };

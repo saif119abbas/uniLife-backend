@@ -28,6 +28,7 @@ const {
   searchPost,
   getMyPost,
   deletePost,
+  getMyReservePost,
   editPost,
 } = require("../contoller/studentController/postController");
 const {
@@ -58,7 +59,7 @@ const router = express.Router();
 //router.use(protect);
 router.post("/signup", upload.single("image"), validtaeSignup, signup);
 router.post("/verify", verify, createSchedule);
-router.patch("/profile/:userId", protect, editProfile);
+router.patch("/profile/:userId", protect, upload.single("image"), editProfile);
 router.get("/profile/:userId", protect, getPofile);
 router.post(
   "/addLecture/:userId",
@@ -140,7 +141,13 @@ router.patch(
   unReservesdPost
 );
 router.get("/post/search/:userId", protect, studentPermission, searchPost);
-//router.delete("/post/:userId/:postId", protect, studentPermission, deletePost);
+router.get(
+  "/reservedpost/:userId",
+  protect,
+  studentPermission,
+  getMyReservePost
+);
+router.delete("/post/:userId/:postId", protect, studentPermission, deletePost);
 router.patch(
   "/post/:userId/:postId",
   protect,

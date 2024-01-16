@@ -42,4 +42,5 @@ exports.loginValidation = Joi.object({
     .required()
     .min(8)
     .message("❌ Password should contain at least 8 characters"),
+  token: Joi.string(),
 });

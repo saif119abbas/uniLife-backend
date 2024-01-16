@@ -15,6 +15,7 @@ const {
 const AppError = require("../../utils/appError");
 const { student, user, FCM } = require("../../models");
 const { file } = require("googleapis/build/src/apis/file");
+const { resolve } = require("path");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   const data = req.body;
@@ -54,9 +55,10 @@ exports.login = catchAsync(async (req, res, next) => {
           if (record) resolve(record.id);
         });
     });
-    await FCM.create({ token, studentId });
+    await FCM.create({ token, studentId }).then(() =>
+      createSendToken(data, 200, expiresIn, res)
+    );
   }
-  return createSendToken(data, 200, expiresIn, res);
 });
 
 exports.signup = catchAsync(async (req, res, next) => {
@@ -255,45 +257,84 @@ exports.protect = catchAsync(async (req, res, next) => {
 });
 exports.editProfile = catchAsync(async (req, res, next) => {
   try {
-    let data = req.body;
+    let data = JSON.parse(req.body.data);
+    const { major } = data;
+    const file = req.file;
     const id = req.params.userId;
-    if (data.password) {
-      if (data.password !== data.confirmPassword)
-        return res.status(400).json({
+    const count = await new Promise((resolve) => {
+      user
+        .update(data, { where: { id } })
+        .then(([count]) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+    console.log("count1=", count);
+    if (count === 1) {
+      let studentData = {};
+      if (major) {
+        studentData = { ...studentData, major };
+      }
+
+      if (file) {
+        const nameImage = `/student profile/${id}`;
+        await UploadFile(file.buffer, nameImage);
+        const image = await getURL(nameImage);
+        studentData = { ...studentData, image };
+      }
+      console.log("student:", studentData);
+      const count = await new Promise((resolve, reject) => {
+        student
+          .update(studentData, {
+            where: { userId: id },
+          })
+          .then(([count]) => {
+            resolve(count);
+          })
+          .catch((err) => reject(err));
+      });
+      console.log("count2=", count);
+      if (count === 1)
+        return res.status(200).json({
+          status: "success",
+          message: "updated successfully",
+        });
+      else
+        return res.status(404).json({
           status: "failed",
-          messag: "password and confirm password do not match",
+          message: "not found",
         });
-      const hash = await new Promise((resolve, reject) => {
-        bcrypt.hash(data.password, 12, (err, hash) => {
-          if (err) reject(err);
-          else resolve(hash);
-        });
+    } else if (count === 0)
+      return res.status(404).json({
+        status: "failed",
+        message: "not found",
       });
-      data.password = hash;
-      user.update(data, { where: { id } }).then((count) => {
-        if (count[0] === 1)
-          return res.status(200).json({
-            status: "failed",
-            message: "updated successfully",
-          });
-        else if (count[0] === 0)
-          return res.status(404).json({
-            status: "failed",
-            message: "not found",
-          });
-      });
-    }
   } catch (err) {
-    return next(new AppError("An error occurred please try again", 500));
+    console.log(err);
+    if (err.name === "SequelizeUniqueConstraintError")
+      return res.status(409).json({
+        status: "failed",
+        message: "alreay added",
+      });
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getPofile = catchAsync(async (req, res, next) => {
   const id = req.params.userId;
-  const data = await new Promise((resolve, reject) => {
+  let data = await new Promise((resolve, reject) => {
     user
       .findOne({
         attributes: ["username", "phoneNum", "email"],
         where: { id },
+        include: [
+          {
+            model: student,
+            attributes: ["major", "image"],
+          },
+        ],
       })
       .then((record) => {
         if (record) resolve(record);
@@ -303,6 +344,13 @@ exports.getPofile = catchAsync(async (req, res, next) => {
             .json({ status: "failed", message: "not found" });
       });
   });
+  data = {
+    ...data.get(),
+    image: data.student.image,
+    major: data.student.major,
+    student: undefined,
+  };
+
   return res.status(200).json(data);
 });
 exports.storeData = catchAsync(async (req, res) => {
