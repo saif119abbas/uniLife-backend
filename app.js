@@ -32,8 +32,4 @@ app.use(process.env.BASE_URL, restaurantRouter);
 app.use(process.env.BASE_URL, dormitoryRouter);
 app.use(process.env.BASE_URL, userRouter);
 initializeFirebaseApp();
-/*cron.schedule("1,2,4,5 * * * *", () => {
-  console.log("Clearing token blacklist");
-  clear();
-});*/
 module.exports = app;

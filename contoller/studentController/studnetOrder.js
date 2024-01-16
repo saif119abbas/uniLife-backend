@@ -113,6 +113,9 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       include: [
         {
           model: order,
+          limit: 5,
+          order: [["createdAt", "DESC"]],
+
           attributes: [
             "orderId",
             "status",
@@ -133,6 +136,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
             },
             {
               model: restaurant,
+              // attributes: [],
               include: [
                 {
                   model: user,
@@ -162,6 +166,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
           user: { username },
         },
       } = order;
+      console.log(order);
       let items = [];
       for (const orderItem of orderItems) {
         const { foodItems, orderItemId, Qauntity, unitPrice } = orderItem;
@@ -187,6 +192,7 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     }
     if (data) {
       console.log("GG", data);
+
       return res.status(200).json(data);
     }
     return res.status(404).json({
@@ -195,7 +201,10 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     });
   } catch (err) {
     console.log("My err", err);
-    return next(new AppError("An error occurred please try again", 500));
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getOffers = catchAsync(async (req, res, next) => {

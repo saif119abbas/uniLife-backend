@@ -90,6 +90,7 @@ exports.getMessage = catchAsync(async (req, res, next) => {
           "createdAt",
           "image",
           "senderId",
+          "receiverId",
           // [sequelize.col("s.id", "senderId")],
         ],
         where: {
@@ -110,6 +111,13 @@ exports.getMessage = catchAsync(async (req, res, next) => {
         return next(new AppError("An error occurred, please try again", 500));
       });
   });
+
+  messages = messages.map(async (message) => {
+    console.log(message);
+    const receiverId = await new Promise((resolve) => {});
+    return { ...message.dataValues, receiverId: userReceiverId };
+  });
+
   messages = messages.map((message) => {
     console.log(message);
 

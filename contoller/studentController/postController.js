@@ -77,19 +77,22 @@ exports.createPost = catchAsync(async (req, res, next) => {
 
     const studentId = myStudent.id;
     console.log("req.file:", req.file); // Correctly log the uploaded file
+    let catigoryId = null;
 
-    const catigoryId = await new Promise((resolve, reject) => {
-      catigory
-        .findOne({ attributes: ["id"], where: { name: data.catigory } })
-        .then((record) => {
-          if (!record || record.length === 0)
-            return res.status(404).json({
-              status: "failed",
-              message: "this catigory is not found",
-            });
-          resolve(record.id);
-        });
-    });
+    if (data.catigory.toLowerCase() !== "all") {
+      catigoryId = await new Promise((resolve, reject) => {
+        catigory
+          .findOne({ attributes: ["id"], where: { name: data.catigory } })
+          .then((record) => {
+            if (!record || record.length === 0)
+              return res.status(404).json({
+                status: "failed",
+                message: "this catigory is not found",
+              });
+            resolve(record.id);
+          });
+      });
+    }
     const file = req.file;
 
     const postData = {
@@ -244,9 +247,11 @@ exports.deletePost = catchAsync(async (req, res, next) => {
 exports.getPostStudent = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const pageNumber = req.params.pageNumber;
+  const { myCatigory, myMajor, description } = req.body;
 
   const { myCatigory, myMajor, description } = req.query;
   console.log(myMajor, myCatigory);
+
   const studentId = await new Promise((resolve, reject) => {
     student
       .findOne({ attributes: ["id"], where: { userId } })
@@ -267,6 +272,37 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       ...condition,
       description: { [Op.like]: `%${description}%` },
     };
+  } else {
+    let ids = [];
+    if (myCatigory && myCatigory.toLowerCase() !== "all") {
+      const catigoryId = await new Promise((resolve, reject) => {
+        catigory
+          .findOne({
+            attributes: ["id"],
+            where: { name: myCatigory },
+          })
+          .then((record) => {
+            if (record.id) resolve(record.id);
+          });
+      });
+      if (catigoryId) condition = { ...condition, catigoryId };
+    }
+    if (myMajor) {
+      const majors = await major.findAll({
+        attributes: ["id"],
+        where: { name: myMajor },
+      });
+      const majorsId = majors.map((item) => item.id);
+      const Items = await postMajor.findAll({
+        attributes: ["postId"],
+        where: { majorId: { [Op.in]: majorsId } },
+      });
+      ids = Items.map((item) => item.postId);
+      condition = { ...condition, id: { [Op.in]: ids } };
+    }
+    console.log("ids", ids);
+  }
+  console.log("condition", condition);
   }
   let ids = [];
   if (myCatigory && myCatigory.toLowerCase() !== "all") {
@@ -296,7 +332,6 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     condition = { ...condition, id: { [Op.in]: ids } };
   }
   console.log("ids", ids);
-
   const posts = await post.findAll({
     where: condition,
     attributes: ["id", "studentId", "image", "description"],
@@ -327,7 +362,9 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       userId: post.student.userId,
     };
   });
+
   console.log(data);
+
   res.status(200).json(data);
 });
 exports.reservesdPost = catchAsync(async (req, res, next) => {
@@ -401,7 +438,8 @@ exports.unReservesdPost = catchAsync(async (req, res, next) => {
 });
 exports.searchPost = catchAsync(async (req, res, next) => {
   try {
-    const desc = req.query.description;
+
+    const desc = req.body.description;
     const userId = req.params.userId;
     const studentId = await new Promise((resolve, reject) => {
       student
@@ -510,13 +548,14 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
           });
       });
       console.log(username);
+
       /*  username = await new Promise((resolve, reject) => {
         user
           .findOne({ attributes: ["username"], where: { id } })
           .then((record) => {
             if (record) resolve(record.username);
-          });
-      });*/
+          });*/
+
     }
     data.push({
       id: post.id,
@@ -543,6 +582,30 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
         .then((record) => {
           if (record) resolve(record.id);
         });
+    });
+    console.log("studentId", studentId);
+    const posts = await new Promise((resolve, reject) => {
+      post
+        .findAll({
+          attributes: ["id", "image", "description"],
+          include: [
+            {
+              model: student,
+              attributes: ["id"],
+              include: [{ model: user, attributes: ["username"] }],
+            },
+          ],
+          where: { reservedBy: studentId },
+        })
+        .then((record) => {
+          if (record) resolve(record);
+          else
+            return res.status(404).json({
+              status: "failed",
+              message: "no post found",
+            });
+        });
+    });
     });
     console.log("studentId", studentId);
     const posts = await new Promise((resolve, reject) => {

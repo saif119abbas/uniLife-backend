@@ -9,7 +9,6 @@ const {
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
-const { resolve } = require("path");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   console.log("addFoodItem");

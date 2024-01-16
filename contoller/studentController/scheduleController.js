@@ -167,6 +167,78 @@ exports.getLectures = catchAsync(async (req, res, next) => {
       if (err) return next(new AppError("an ouccured please try again", 500));
     });
 });
+cron.schedule("*/30 * * * * 0-3", async () => {
+  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  try {
+    const currentDateTime = new Date();
+
+    const dayOfWeek = daysOfWeek[currentDateTime.getDay()];
+    const lectures = await new Promise((resolve) => {
+      lecture
+        .findAll({
+          where: {
+            day: {
+              [Op.like]: `%${dayOfWeek}%`,
+            },
+          },
+          attributes: ["classNumber", "Name", "startTime", "endTime", "id"],
+          include: [
+            {
+              model: schedule,
+              attributes: ["studentId"],
+              include: [
+                {
+                  model: student,
+                  attributes: ["id", "userId"],
+                  include: [
+                    {
+                      model: FCM,
+                      attributes: ["token"],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        })
+        .then((record) => resolve(record));
+    });
+    //console.log("userId=", lectures);
+    lectures.forEach((item) => {
+      const lecture = item.dataValues;
+      const {
+        startTime,
+        Name,
+        schedule: {
+          student: {
+            id,
+            FCMs: { token },
+          },
+        },
+      } = lecture;
+      console.log("userId=", lecture);
+      console.log("token=", token);
+      const notificationTime = new Date();
+      const [hours, minutes] = startTime.split(":");
+      notificationTime.setHours(hours, minutes - 10);
+      console.log(
+        "notificationTime:",
+        notificationTime.getHours(),
+        ":",
+        notificationTime.getMinutes()
+      );
+      console.log("notificationTime:", startTime);
+      if (notificationTime.getTime() < startTime) {
+        const title = `${Name} lecture`;
+        const body = `${Name} lecture will start at ${startTime}`;
+        console.log("yes");
+        pushNotification(token, title, body);
+      }
+    });
+  } catch (error) {
+    console.error("Error scheduling notifications:", error);
+  }
+});
 // cron.schedule("*/10 * * * * 0-3", async () => {
 //   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 //   try {
