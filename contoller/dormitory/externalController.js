@@ -30,6 +30,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         "distance",
         "gender",
         "image",
+        "name",
       ],
       include: [
         {
@@ -75,6 +76,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         image: post.image,
         gender: post.gender,
         distance: post.distance,
+        name: post.name,
       };
       data.push(item);
     }
@@ -146,6 +148,7 @@ exports.getMyPosts = catchAsync(async (req, res, next) => {
         "distance",
         "gender",
         "image",
+        "name",
       ],
       order: [["createdAt", "DESC"]],
       include: [
