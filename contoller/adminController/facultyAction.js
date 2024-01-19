@@ -61,10 +61,17 @@ exports.addFloor = catchAsync(async (req, res, next) => {
           } else reject(err);
         });
     });
-    const data = { facultyId, reference };
-    const fromattedData = { ...data, id };
+    const facultyNumber = await new Promise(async (resolve, reject) => {
+      faculty
+        .findOne({ where: { id: facultyId }, attributes: ["facultyNumber"] })
+        .then((record) => {
+          resolve(record.facultyNumber);
+        });
+    });
+    const data = { facultyNumber, reference, name };
+
     //if (status) await addFacultyFLoors(data, id, res, next);
-    const URL = await getQRcode(JSON.stringify(fromattedData));
+    const URL = await getQRcode(JSON.stringify(data));
     const file = Buffer.from(URL, "base64");
 
     const nameImage = `/qrcode/${id}_${facultyId}.png`;
@@ -83,11 +90,17 @@ exports.addFloor = catchAsync(async (req, res, next) => {
             id,
           });
         else
-          return next(new AppError("An error occured please try again ", 500));
+          return res.status(500).json({
+            status: "faliled",
+            message: "Internal Server Error",
+          });
       });
   } catch (err) {
     console.log("My error occurred", err);
-    return next(new AppError("An error occured please try again ", 500));
+    return res.status(500).json({
+      status: "faliled",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.addClassRoom = catchAsync(async (req, res, next) => {

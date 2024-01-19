@@ -4,8 +4,6 @@ const { UploadFile, getURL } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-const { resolve } = require("path");
-const { rejects } = require("assert");
 exports.addRestaurant = catchAsync(async (req, res, next) => {
   console.log("edited");
   const restaurantData = JSON.parse(req.body.data);
@@ -34,32 +32,26 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
     }).catch((err) => {
       reject(err);
     });
+    const nameImage = `/restaurant/${userId}`;
+    console.log(file);
+    await UploadFile(file.buffer, nameImage);
+    const image = await getURL(nameImage);
+    console.log(image);
     const restaurantId = await new Promise((resolve) => {
       restaurant
-        .create({ userId })
+        .create({ userId, image })
         .then((record) => {
           if (record) {
             res.locals.restaurantId = record.id;
             resolve(record.id);
+            next();
           }
         })
         .catch((err) => {
           reject(err);
         });
     });
-    const nameImage = `/restaurant/${userId}`;
-    console.log(file);
-    await UploadFile(file.buffer, nameImage);
-    const image = await getURL(nameImage);
-    console.log(image);
-    restaurant
-      .update({ image }, { where: { id: restaurantId } })
-      .then((count) => {
-        if (count[0] === 1) next();
-      })
-      .catch((err) => {
-        reject(err);
-      });
+    if (restaurantId) return next();
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
       return res.status(409).json({

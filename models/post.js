@@ -32,6 +32,7 @@ module.exports = (sequelize, DataTypes) => {
     });
     post.belongsTo(models.catigory);
     post.belongsTo(models.student, { foreignKey: "studentId" });
+    post.hasMany(models.report);
   };
 
   return post;

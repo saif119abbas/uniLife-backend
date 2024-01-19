@@ -40,9 +40,6 @@ exports.login = catchAsync(async (req, res, next) => {
       });
     });
 
-    await FCM.create({ token, studentId }).then(() =>
-      createSendToken(data, 200, expiresIn, res)
-    );
     if (!passwordIsCorrect)
       return res.status(400).json({
         status: "failed",
@@ -226,6 +223,8 @@ exports.protect = catchAsync(async (req, res, next) => {
         return next(new AppError("Timed out please try again", 401));*/
     });
   });
+  console.log(parseInt(req.params.userId));
+  console.log(id);
   if (parseInt(req.params.userId) !== id)
     return res.status(403).json({
       status: "failed",
@@ -269,10 +268,9 @@ exports.editProfile = catchAsync(async (req, res, next) => {
 
     const { major } = data;
 
-
     const file = req.file;
     const id = req.params.userId;
-    const count = await new Promise((resolve) => {
+    const count = await new Promise((resolve, reject) => {
       user
         .update(data, { where: { id } })
         .then(([count]) => {
@@ -284,83 +282,66 @@ exports.editProfile = catchAsync(async (req, res, next) => {
     console.log("count1=", count);
     if (count === 1) {
       let studentData = {};
+
       if (major) {
         studentData = { ...studentData, major };
       }
 
+      if (count === 1) {
+        let studentData = { major: data.major };
 
+        if (file) {
+          const nameImage = `/student profile/${id}`;
+          await UploadFile(file.buffer, nameImage);
+          const image = await getURL(nameImage);
+          studentData = { ...studentData, image };
+        }
 
-    if (count === 1) {
-      let studentData = { major: data.major };
-
-      if (file) {
-        const nameImage = `/student profile/${id}`;
-        await UploadFile(file.buffer, nameImage);
-        const image = await getURL(nameImage);
-        studentData = { ...studentData, image };
-      }
-
-      console.log("student:", studentData);
-      const count = await new Promise((resolve, reject) => {
-        student
-          .update(studentData, {
-            where: { userId: id },
-          })
-      const count = await new Promise((resolve, reject) => {
-        student
-          .update(
-            { studentData },
-            {
+        console.log("student:", studentData);
+        const studentCount = await new Promise((resolve, reject) => {
+          student
+            .update(studentData, {
               where: { userId: id },
-            }
-          )
-
-          .then(([count]) => {
-            resolve(count);
-          })
-          .catch((err) => reject(err));
-      });
-
-      console.log("count2=", count);
-      if (count === 1)
-        return res.status(200).json({
-          status: "success",
-
-
-      if (count === 1)
-        return res.status(200).json({
-          status: "failed",
-
-          message: "updated successfully",
+            })
+            .then(([studentCount]) => {
+              resolve(studentCount);
+            })
+            .catch((err) => reject(err));
         });
-      else
+
+        if (studentCount === 1) {
+          return res.status(200).json({
+            status: "success",
+            message: "Updated successfully",
+          });
+        } else {
+          return res.status(404).json({
+            status: "failed",
+            message: "Not found",
+          });
+        }
+      } else if (count === 0) {
         return res.status(404).json({
           status: "failed",
-
-          message: "not found",
-          message: "not found1",
-
+          message: "Not found",
         });
-    } else if (count === 0)
-      return res.status(404).json({
-        status: "failed",
-        message: "not found",
-
-        message: "not found2",
-      });
+      }
+    }
   } catch (err) {
     console.log(err);
-    if (err.name === "SequelizeUniqueConstraintError")
+    if (err.name === "SequelizeUniqueConstraintError") {
       return res.status(409).json({
         status: "failed",
-        message: "alreay added",
+        message: "Already added",
       });
+    }
     return res.status(500).json({
       status: "failed",
       message: "Internal Server Error",
     });
   }
 });
+
 exports.getPofile = catchAsync(async (req, res, next) => {
   const id = req.params.userId;
   let data = await new Promise((resolve, reject) => {
@@ -389,8 +370,6 @@ exports.getPofile = catchAsync(async (req, res, next) => {
     major: data.student.major,
 
     student: undefined,
-  };
-
   };
 
   return res.status(200).json(data);

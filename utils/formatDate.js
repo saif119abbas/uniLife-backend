@@ -38,3 +38,10 @@ exports.formatDate = (inputDay) => {
   }
   return date;
 };
+exports.localFormatter = (date) => {
+  console.log(date);
+  const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+  const myDate = date.toLocaleDateString(undefined, options);
+  console.log(myDate);
+  return myDate;
+};

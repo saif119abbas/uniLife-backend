@@ -1,8 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
   const dormitoryPost = sequelize.define("dormitoryPost", {
-    description: {
-      type: DataTypes.STRING,
-    },
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -12,11 +9,41 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    location: {
-      type: DataTypes.STRING,
+    numberOfRoom: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       validator: {
-        notEmpty: true,
+        notEmpty: false,
+      },
+    },
+    services: { type: DataTypes.STRING, allowNull: false },
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    lon: {
+      type: DataTypes.FLOAT,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    lat: {
+      type: DataTypes.FLOAT,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    distance: {
+      type: DataTypes.FLOAT,
+      validator: {
+        notEmpty: false,
+      },
+    },
+    gender: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        isIn: [["male", "female"]],
       },
     },
   });
@@ -24,7 +51,6 @@ module.exports = (sequelize, DataTypes) => {
   dormitoryPost.associate = (models) => {
     dormitoryPost.belongsTo(models.dormitoryOwner);
     dormitoryPost.hasMany(models.room);
-    dormitoryPost.hasMany(models.images);
   };
   return dormitoryPost;
 };

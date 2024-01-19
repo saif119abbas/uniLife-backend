@@ -23,6 +23,7 @@ const {
 const {
   createPost,
   getPostStudent,
+  getPostForStudent,
   reservesdPost,
   unReservesdPost,
   searchPost,
@@ -54,6 +55,13 @@ const {
 const {
   getLocation,
 } = require("../contoller/studentController/locationController");
+const {
+  createReport,
+} = require("../contoller/studentController/reportController");
+const {
+  createEmergency,
+  getMyRoom,
+} = require("../contoller/studentController/emergencyController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
@@ -126,6 +134,12 @@ router.get(
   studentPermission,
   getPostStudent
 );
+router.get(
+  "/post/student/:userId/:otherStudent",
+  protect,
+  studentPermission,
+  getPostForStudent
+);
 router.get("/post/:userId", protect, studentPermission, getMyPost);
 router.patch(
   "/post/reserve/:userId/:postId",
@@ -171,5 +185,17 @@ router.get(
 );
 router.get("/message/:userId", protect, studentPermission, getMyMessage);
 router.get("/location/:userId", protect, studentPermission, getLocation);
-
+router.post(
+  "/report/:userId/:reportedUser/:postId",
+  protect,
+  studentPermission,
+  createReport
+);
+router.post(
+  "/emergency/:userId/:roomId",
+  protect,
+  studentPermission,
+  createEmergency
+);
+router.get("/room/:userId", protect, studentPermission, getMyRoom);
 module.exports = router;
