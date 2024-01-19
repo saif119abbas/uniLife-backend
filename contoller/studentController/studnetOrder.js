@@ -34,10 +34,39 @@ exports.createOrder = catchAsync(async (req, res, next) => {
         .then((record) => resolve(record.id))
         .catch((err) => reject(err));
     });
+    const menuMenuId = await new Promise((resolve, reject) => {
+      menu
+        .findOne({ where: { restaurantId }, attributes: ["menuId"] })
+        .then((record) => resolve(record.menuId))
+        .catch((err) => reject(err));
+    });
+
+    const foodIds = data.orderItem.map((item) => parseInt(item.foodId));
+    const status = await new Promise((resolve, reject) => {
+      foodItem
+        .findAll({
+          where: { menuMenuId },
+        })
+        .then((result) => {
+          const availableFoodIds = result.map((food) => food.foodId);
+          console.log(availableFoodIds);
+          console.log(foodIds);
+          const allIncluded = foodIds.every((id) =>
+            availableFoodIds.includes(id)
+          );
+          resolve(allIncluded);
+        })
+        .catch((error) => reject(error));
+    });
+    if (!status)
+      return res
+        .status(400)
+        .json({ status: "failed", message: "not avalible food in this menu" });
     console.log("myData", data);
     console.log("studentId:", studentId);
     let countOrder = 0;
     let totalPrice = 0;
+
     const myOrders = await order.create({
       restaurantId,
       studentId,
@@ -49,7 +78,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
     const orderItemData = data.orderItem;
     for (let item of orderItemData) {
       const fooditemPrice = await foodItem.findOne({
-        where: { foodId: item.foodId },
+        where: { foodId: item.foodId, menuMenuId },
         attributes: ["price", "count"],
       });
       const count = fooditemPrice.count + 1;
@@ -242,7 +271,7 @@ exports.getPoular = catchAsync(async (req, res, next) => {
     group: ["menuMenuId"],
     where: {
       count: {
-        [Sequelize.Op.gt]: 0, // Exclude rows where count is 0
+        [Sequelize.Op.gt]: 0,
       },
     },
   });
@@ -281,21 +310,69 @@ exports.getPoular = catchAsync(async (req, res, next) => {
   return res.status(200).json({ data });
 });
 exports.rate = catchAsync(async (req, res, next) => {
-  const orderId = req.params.orderId;
-  const userId = req.params.userId;
-  const data = req.body;
-  const studentId = await new Promise((resolve) => {
-    student
-      .findOne({ where: { userId }, attributes: ["id"] })
-      .then((record) => {
-        resolve(record.id);
+  try {
+    const orderId = req.params.orderId;
+    const userId = req.params.userId;
+    const data = req.body;
+    const studentId = await new Promise((resolve) => {
+      student
+        .findOne({ where: { userId }, attributes: ["id"] })
+        .then((record) => {
+          resolve(record.id);
+        });
+    });
+    const count = await new Promise((resolve, reject) => {
+      order
+        .update(data, { where: { studentId, orderId } })
+        .then((count) => {
+          resolve(count[0]);
+        })
+        .catch((err) => reject(err));
+    });
+    if (count === 1) {
+      const { restaurantId, oldRate } = await new Promise((resolve, reject) => {
+        order
+          .findOne({
+            where: { orderId },
+            attributes: ["restaurantId"],
+            include: [
+              {
+                model: restaurant,
+                attributes: ["rating"],
+              },
+            ],
+          })
+          .then((record) => {
+            console.log(record);
+            const restaurantId = record.restaurantId;
+            const oldRate = record.restaurant.rating;
+
+            const data = { restaurantId, oldRate };
+            resolve(data);
+          })
+          .catch((err) => reject(err));
       });
-  });
-  order.update(data, { where: { studentId, orderId } }).then((count) => {
-    if (count[0] === 1)
-      return res
-        .status(200)
-        .json({ status: "success", message: "rating successfully" });
-    return res.status(404).json({ status: "failed", message: "not found" });
-  });
+      console.log(data.rating);
+      const newRate = (oldRate + data.rating) / 2;
+      const count = await new Promise((resolve, reject) => {
+        restaurant
+          .update({ rating: newRate }, { where: { id: restaurantId } })
+          .then((count) => {
+            resolve(count[0]);
+          })
+          .catch((err) => reject(err));
+      });
+      if (count === 1)
+        return res
+          .status(200)
+          .json({ status: "success", message: "rating successfully" });
+      return res.status(404).json({ status: "failed", message: "not found" });
+    } else
+      return res.status(404).json({ status: "failed", message: "not found" });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
 });

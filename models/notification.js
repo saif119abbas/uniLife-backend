@@ -1,18 +1,20 @@
 module.exports = (sequelize, DataTypes) => {
-  const dormitoryOwner = sequelize.define("dormitoryOwner", {
+  const notification = sequelize.define("notification", {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
       allowNull: false,
+      unique: true,
+    },
+    text: {
+      type: DataTypes.STRING,
       validator: {
         notEmpty: false,
       },
     },
-    SSN: {
-      type: DataTypes.INTEGER,
-      unique: true,
-      allowNull: false,
+    type: {
+      type: DataTypes.STRING,
       validator: {
         notEmpty: false,
       },
@@ -22,9 +24,9 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
   });
-  dormitoryOwner.associate = (models) => {
-    dormitoryOwner.belongsTo(models.user);
-    dormitoryOwner.hasMany(models.dormitoryPost);
+  notification.associate = (models) => {
+    notification.belongsTo(models.student);
   };
-  return dormitoryOwner;
+
+  return notification;
 };

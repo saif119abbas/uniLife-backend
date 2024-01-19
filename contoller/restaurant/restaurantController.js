@@ -7,6 +7,11 @@ const {
   student,
   order,
 } = require("../../models");
+const { Sequelize } = require("sequelize");
+const { QueryTypes } = require("sequelize");
+const databaseName = require("../../databaseName");
+
+const { localFormatter } = require("../../utils/formatDate");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
@@ -124,33 +129,6 @@ exports.getMenu = catchAsync(async (req, res, next) => {
         .catch((err) => reject(err));
     });
     return res.status(200).json(data);
-    /* const data = await menu.findOne({
-      where: { restaurantId },
-      attributes: [],
-      include: [
-        {
-          model: foodItem,
-          attributes: [
-            "foodId",
-            "description",
-            "price",
-            "nameOfFood",
-            "image",
-            "category",
-          ],
-        },
-      ],
-    });*/
-    /* if (!data)
-    return res.status(200).json({
-      status: "success",
-      data: [],
-    });
-    const { foodItems } = data;
-    res.status(200).json({
-      status: "success",
-      data: foodItems,
-    });*/
   } catch (err) {
     console.log("err:", err);
     return res
@@ -256,43 +234,34 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
 exports.getRating = async (req, res) => {
   console.log(req.params);
   const userId = req.params.userId;
-  let data = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: [],
-        include: [
-          {
-            model: order,
-            attributes: ["rating"],
-            include: [
-              {
-                model: student,
-                attributes: ["id"],
-                include: [
-                  {
-                    model: user,
-                    attributes: ["username", "phoneNum"],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      })
-      .then((record) => {
-        resolve(record);
-      });
+  const sequelize = new Sequelize(databaseName, "root", "", {
+    host: "localhost",
+    dialect: "mysql",
   });
-  const { orders } = data;
-  data = orders.map((item) => {
-    const {
-      rating,
-      student: {
-        user: { username, phoneNum },
-      },
-    } = item;
-    return { rating, username, phoneNum };
-  });
+  let data = await sequelize.query(
+    `SELECT 
+  orders.rating as rating ,
+  orders.rateDesc as content,
+  DATE_FORMAT(orders.createdAt, '%m/%d/%Y') AS date,
+  students.id AS id,
+  students.image as image,
+  users.username as reviewer,
+  users.phoneNum as phoneNum
+FROM 
+  restaurants
+  LEFT JOIN orders ON restaurants.id = orders.restaurantId
+  LEFT JOIN students ON orders.studentId = students.id
+  LEFT JOIN users ON students.userId = users.id
+WHERE 
+  restaurants.userId = ${userId}
+GROUP BY 
+  orders.studentId;
+`,
+
+    {
+      type: QueryTypes.SELECT,
+      replacements: { localFormatter: localFormatter },
+    }
+  );
   res.status(200).json(data);
 };

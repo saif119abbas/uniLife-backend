@@ -42,6 +42,7 @@ exports.editDormitoryOwnerValidation = Joi.object({
   email: Joi.string()
     .pattern(/\w@gmail.com$/)
     .message("❌ You must use a gamil email"),
+  username: Joi.string(),
   password: Joi.string()
     .min(8)
     .message("❌ Password should contain at least 8 characters"),

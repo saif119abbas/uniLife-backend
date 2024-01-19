@@ -26,7 +26,11 @@ const {
   getMajor,
   deletePost,
 } = require("../contoller/userController/generalController");
-
+const {
+  getFaculties,
+  getFloors,
+  getClasses,
+} = require("../contoller/adminController/facultyAction");
 const {
   adminOrStuPermission,
   RestauarntOrStuPermission,
@@ -65,6 +69,7 @@ router.delete(
   adminOrStuPermission,
   deletePost
 );
+router.get("/faculty/:userId", protect, adminOrStuPermission, getFaculties);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);

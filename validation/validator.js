@@ -142,7 +142,8 @@ exports.validtaeEditRestaurant = (req, res, next) => {
   next();
 };
 exports.validtaeAddDormitoryOwner = (req, res, next) => {
-  const data = req.body;
+  console.log("validate=", req.body.data);
+  const data = JSON.parse(req.body.data);
   const { error, val } = addDormitoryOwnerValidation.validate(data);
   if (error) {
     return res.status(400).json({
@@ -153,7 +154,7 @@ exports.validtaeAddDormitoryOwner = (req, res, next) => {
   next();
 };
 exports.validtaeEditDormitoryOwner = (req, res, next) => {
-  const data = req.body;
+  const data = JSON.parse(req.body.data);
   const { error, val } = editDormitoryOwnerValidation.validate(data);
   if (error) {
     return res.status(400).json({
@@ -188,8 +189,15 @@ exports.validtaeEditFoodItem = (req, res, next) => {
 exports.validtaeAddDormitoryPost = (req, res, next) => {
   console.log(req.body.data);
   const data = JSON.parse(req.body.data);
-  const { description, location } = data;
-  const { error, _ } = addPostValidtaion.validate({ description, location });
+  const { services, lon, lat, distance, numberOfRoom, gender } = data;
+  const { error, _ } = addPostValidtaion.validate({
+    services,
+    lon,
+    lat,
+    distance,
+    numberOfRoom,
+    gender,
+  });
   if (error) {
     return res.status(400).json({
       status: "failed",

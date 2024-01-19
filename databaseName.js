@@ -1,2 +1,2 @@
-const databaseName = "unilife2";
+const databaseName = "unilife";
 module.exports = databaseName;

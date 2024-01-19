@@ -1,17 +1,36 @@
 const AppError = require("../../utils/appError");
-const {
-  dormitoryOwner,
-  dormitoryPost,
-  room,
-  user,
-  images,
-} = require("../../models");
+const { dormitoryOwner, dormitoryPost, room, user } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
-exports.getAllDormitoryPost = catchAsync(async (req, res, next) => {
+const { Op } = require("sequelize");
+exports.getAllDormitoryPost = async (req, res, next) => {
   try {
+    let condition1 = {};
+    let condition2 = {};
+    const { type, distance, gender, order } = req.body;
+    let DESC = "DESC";
+    if (distance) {
+      condition1 = { ...condition1, distance: { [Op.lte]: distance } };
+      DESC = order;
+    }
+    if (gender) {
+      condition1 = { ...condition1, gender };
+    }
+    if (type) {
+      condition2 = { ...condition2, type };
+    }
     const dorimtoryPosts = await dormitoryPost.findAll({
-      order: [["createdAt", "DESC"]],
-      attributes: ["id", "descrption", "location"],
+      order: [["distance", DESC]],
+      where: condition1,
+      attributes: [
+        "id",
+        "numberOfRoom",
+        "services",
+        "lon",
+        "lat",
+        "distance",
+        "gender",
+        "image",
+      ],
       include: [
         {
           model: dormitoryOwner,
@@ -25,11 +44,15 @@ exports.getAllDormitoryPost = catchAsync(async (req, res, next) => {
         },
         {
           model: room,
-          attributes: ["typeOfRoom", "rent", "numberOfPerson"],
-        },
-        {
-          model: images,
-          attributes: ["image"],
+          where: condition2,
+          attributes: [
+            "id",
+            "type",
+            "rent",
+            "numberOfPerson",
+            "image",
+            "avilableSeat",
+          ],
         },
       ],
     });
@@ -45,19 +68,25 @@ exports.getAllDormitoryPost = catchAsync(async (req, res, next) => {
         username: post.dormitoryOwner.user.username,
         email: post.dormitoryOwner.user.email,
         phoneNum: post.dormitoryOwner.user.phoneNum,
-        description: post.descrption,
-        location: post.location,
+        services: post.services,
+        lon: post.lon,
+        lat: post.lat,
         room: post.rooms,
-        images: post.images,
+        image: post.image,
+        gender: post.gender,
+        distance: post.distance,
       };
       data.push(item);
     }
     res.status(200).json({ data });
   } catch (err) {
-    console.log("Myerr", err);
-    return next(new AppError("An error occurred please try again", 500));
+    console.log("The error", err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
-});
+};
 exports.getPost = catchAsync(async (req, res, next) => {
   try {
     const dorimtoryId = req.params.dorimtoryId;
@@ -98,33 +127,48 @@ exports.getPost = catchAsync(async (req, res, next) => {
     };
     res.status(200).json({ data });
   } catch (err) {
-    console.log("My err", err);
-    return next(new AppError("An error occurred please try again", 500));
+    console.log("The error", err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getMyPosts = catchAsync(async (req, res, next) => {
   try {
     const myPosts = await dormitoryPost.findAll({
-      attributes: ["id", "descrption", "location"],
+      attributes: [
+        "id",
+        "numberOfRoom",
+        "services",
+        "lon",
+        "lat",
+        "distance",
+        "gender",
+        "image",
+      ],
       order: [["createdAt", "DESC"]],
       include: [
         {
           model: room,
-          attributes: ["typeOfRoom", "rent", "numberOfPerson"],
-        },
-        {
-          model: images,
-          attributes: ["image"],
+          attributes: [
+            "id",
+            "type",
+            "rent",
+            "numberOfPerson",
+            "image",
+            "avilableSeat",
+          ],
         },
       ],
     });
-    if (!myPosts)
-      return res
-        .status(404)
-        .json({ status: "failed", message: "you don't have any post" });
-    res.status(200).json({ data: myPosts });
+    if (!myPosts) return res.status(200).json([]);
+    return res.status(200).json({ data: myPosts });
   } catch (err) {
-    console.log("Myerr", err);
-    return next(new AppError("An error occurred please try again", 500));
+    console.log("The error", err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });

@@ -1,38 +1,35 @@
 module.exports = (sequelize, DataTypes) => {
   const room = sequelize.define("room", {
-    roomId: {
+    id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
       autoIncrement: true,
       allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
     },
-    typeOfRoom: {
+    image: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    type: {
       type: DataTypes.STRING,
       allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
     },
     rent: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
     },
     numberOfPerson: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      validator: {
-        notEmpty: false,
-      },
+    },
+    avilableSeat: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
   });
   room.associate = (models) => {
     room.belongsTo(models.dormitoryPost);
+    room.hasMany(models.student);
   };
   return room;
 };

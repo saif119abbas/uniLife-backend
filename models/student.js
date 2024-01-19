@@ -26,6 +26,9 @@ module.exports = (sequelize, DataTypes) => {
     student.hasMany(models.post, { foreignKey: "studentId" });
     student.hasMany(models.message, { foreignKey: "studentId" });
     student.hasMany(models.FCM);
+    student.hasMany(models.report);
+    student.hasMany(models.emergency);
+    student.belongsTo(models.room);
   };
   return student;
 };

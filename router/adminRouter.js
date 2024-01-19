@@ -36,6 +36,12 @@ const {
   blockedStudent,
 } = require("../contoller/adminController/studentAction");
 const {
+  totalUsers,
+  totalPost,
+  topRestaurant,
+  popularRestaurant,
+} = require("../contoller/adminController/dashboardController");
+const {
   validtaeAddRestaurant,
   validtaeEditRestaurant,
   validtaeAddDormitoryOwner,
@@ -87,6 +93,7 @@ router.post(
   "/dormitoryowner/:userId",
   protect,
   adminPermission,
+  upload.single("image"),
   validtaeAddDormitoryOwner,
   addDormitoryOwner
 );
@@ -94,6 +101,7 @@ router.patch(
   "/dormitoryowner/:userId/:dormitoryId",
   protect,
   adminPermission,
+  upload.single("image"),
   validtaeEditDormitoryOwner,
   editDormitoryOwner
 );
@@ -130,7 +138,6 @@ router.delete(
   adminPermission,
   deleteFaculty
 );
-router.get("/faculty/:userId", protect, adminPermission, getFaculties);
 router.post(
   "/floor/:userId/:facultyId",
   protect,
@@ -179,4 +186,14 @@ router.get(
   searchPostByDate
 );
 router.get("/lastposts/:userId", protect, adminPermission, getLastPosts);
+/* dashboard*/
+router.get("/userjoin/:userId", protect, adminPermission, totalUsers);
+router.get("/totalpost/:userId", protect, adminPermission, totalPost);
+router.get(
+  "/popularrestaurant/:userId",
+  protect,
+  adminPermission,
+  popularRestaurant
+);
+router.get("/toprestaurant/:userId", protect, adminPermission, topRestaurant);
 module.exports = router;

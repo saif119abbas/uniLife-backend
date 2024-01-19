@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   addDormitoryPost,
   deleteDormitoryPost,
+  assignUser,
 } = require("../contoller/dormitory/dormitoryController");
 const { upload } = require("../images/handleImag");
 const { getMyPosts } = require("../contoller/dormitory/externalController");
@@ -32,4 +33,10 @@ router.delete(
   deleteDormitoryPost
 );
 router.get("/mydormitory/:userId", protect, dormitoryPermission, getMyPosts);
+router.patch(
+  "/usertoroom/:userId/:roomId",
+  protect,
+  dormitoryPermission,
+  assignUser
+);
 module.exports = router;

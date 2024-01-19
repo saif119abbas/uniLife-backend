@@ -13,7 +13,6 @@ const {
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
-const { count } = require("firebase/firestore");
 const databaseName = require("../../databaseName");
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
