@@ -126,7 +126,7 @@ exports.getLocation = catchAsync(async (req, res) => {
           });
       });
 
-      data.nextFac = toFacultyName;
+      data.nextFac = `${toFacultyName}`;
       console.log(data.faculty);
       return res.status(200).json(data);
     }
@@ -146,7 +146,7 @@ exports.getLocation = catchAsync(async (req, res) => {
       if (!floorId)
         return res.status(400).json({
           status: "failed",
-          message: `Invalid Destination Class Number`,
+          message: " Invalid Destination Class Number",
         });
       toFloor = formatFloor(toFloor);
       currFloor = formatFloor(currFloor);
@@ -206,7 +206,7 @@ const formatFloor = (floorNumber) => {
   console.log("floor:", floorNumber);
   console.log("floor[0]:", floorNumber.charAt(0));
   if (floorNumber === "G") return 0;
-  else if (floorNumber.charAt(0) === "B")
+  else if (floorNumber.charAt(0) === B)
     return -1 * parseInt(floorNumber.charAt(1));
   else return parseInt(floorNumber);
 };

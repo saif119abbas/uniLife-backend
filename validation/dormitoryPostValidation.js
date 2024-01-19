@@ -3,6 +3,9 @@ exports.addPostValidtaion = Joi.object({
   services: Joi.string()
     .required()
     .error(new Error("❌ Please add a sevices of this item")),
+  name: Joi.string()
+    .required()
+    .error(new Error("❌ Please add a name of dormitory")),
   lon: Joi.number()
     .required()
     .error(new Error("❌ Please add a lon of this item")),
