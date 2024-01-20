@@ -62,6 +62,11 @@ const {
   createEmergency,
   getMyRoom,
 } = require("../contoller/studentController/emergencyController");
+const {
+  savePost,
+  gtesSavePost,
+  removeSaved,
+} = require("../contoller/studentController/savePostController");
 const { studentPermission } = require("../permission");
 const router = express.Router();
 //router.use(protect);
@@ -198,4 +203,17 @@ router.post(
   createEmergency
 );
 router.get("/room/:userId", protect, studentPermission, getMyRoom);
+router.post(
+  "/domitorysave/:userId/:dormitoryPostId",
+  protect,
+  studentPermission,
+  savePost
+);
+router.delete(
+  "/domitorysave/:userId/:dormitoryPostId",
+  protect,
+  studentPermission,
+  removeSaved
+);
+router.get("/domitorysave/:userId", protect, studentPermission, gtesSavePost);
 module.exports = router;

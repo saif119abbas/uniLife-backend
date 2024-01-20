@@ -2,6 +2,8 @@ const AppError = require("../../utils/appError");
 const { dormitoryOwner, dormitoryPost, room, user } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { Op } = require("sequelize");
+const { localFormatter } = require("../../utils/formatDate");
+
 exports.getAllDormitoryPost = async (req, res, next) => {
   try {
     let condition1 = {};
@@ -31,6 +33,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         "gender",
         "image",
         "name",
+        "createdAt",
       ],
       include: [
         {
@@ -77,6 +80,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         gender: post.gender,
         distance: post.distance,
         name: post.name,
+        createdAt: localFormatter(post.createdAt),
       };
       data.push(item);
     }
