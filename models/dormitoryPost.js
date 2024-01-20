@@ -55,6 +55,7 @@ module.exports = (sequelize, DataTypes) => {
   dormitoryPost.associate = (models) => {
     dormitoryPost.belongsTo(models.dormitoryOwner);
     dormitoryPost.hasMany(models.room);
+    dormitoryPost.hasMany(models.savedDormitory);
   };
   return dormitoryPost;
 };

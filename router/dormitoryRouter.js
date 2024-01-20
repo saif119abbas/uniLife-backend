@@ -26,10 +26,9 @@ router.post(
   addDormitoryPost
 );
 router.delete(
-  "/dormitory/:userId/:dorimtoryPostid",
+  "/dormitory/:userId/:dormitoryPostId",
   protect,
   dormitoryPermission,
-  dormitoryPostCheck,
   deleteDormitoryPost
 );
 router.get("/mydormitory/:userId", protect, dormitoryPermission, getMyPosts);

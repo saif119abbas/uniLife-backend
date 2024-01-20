@@ -189,7 +189,7 @@ exports.validtaeEditFoodItem = (req, res, next) => {
 exports.validtaeAddDormitoryPost = (req, res, next) => {
   console.log(req.body.data);
   const data = JSON.parse(req.body.data);
-  const { services, lon, lat, distance, numberOfRoom, gender } = data;
+  const { services, lon, lat, distance, numberOfRoom, gender, name } = data;
   const { error, _ } = addPostValidtaion.validate({
     services,
     lon,
@@ -197,6 +197,7 @@ exports.validtaeAddDormitoryPost = (req, res, next) => {
     distance,
     numberOfRoom,
     gender,
+    name,
   });
   if (error) {
     return res.status(400).json({

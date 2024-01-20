@@ -14,6 +14,7 @@ const { Op } = require("sequelize");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 
 exports.addDormitoryPost = async (req, res) => {
+  console.log(req.files);
   const data = JSON.parse(req.body.data);
   const files = req.files;
   const userId = req.params.userId;
@@ -36,6 +37,7 @@ exports.addDormitoryPost = async (req, res) => {
       services: data.services,
       lon: data.lon,
       lat: data.lat,
+      name: data.name,
       distance: data.distance,
       gender: data.gender,
       dormitoryOwnerId,
@@ -99,8 +101,8 @@ exports.addDormitoryPost = async (req, res) => {
 };
 exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
   try {
-    const id = req.params.dorimtoryPostid;
-    const userId = req.params.userId;
+    const { userId, dormitoryPostId } = req.params;
+
     const dormitoryOwnerId = await new Promise((resolve) => {
       dormitoryOwner
         .findOne({ where: { userId }, attributes: ["id"] })
@@ -112,36 +114,36 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
     await room.findAll({ where: { dormitoryPostId: id } }).then((record) => {
       numberOfRoom = record.length;
     });*/
-    const numberOfImages = new Promise((resolve, reject) => {
-      images.destroy({ where: { dormitoryPostId: id } }).then((deleteCount) => {
-        resolve(deleteCount);
-      });
-    });
-    if (numberOfImages === 0)
-      return res.status(404).json({
-        status: "failed",
-        message: "this post not found",
-      });
-    for (let i = 1; i <= numberOfImages; i++) {
+
+    /* for (let i = 1; i <= numberOfImages; i++) {
       const nameImage = `/dormitoryposts/${id}_${i}`;
       await deleteFile(nameImage);
-    }
-    await room.destroy({ where: { dormitoryPostId: id } }).then((count) => {
-      console.log(count);
-      if (count >= 1) {
-        dormitoryPost.destroy({ where: { id } }).then((count) => {
-          if (count === 1) return res.status(204).json({});
-          else if (count === 0)
-            return res
-              .status(404)
-              .json({ status: "failed", message: "this post not found" });
-        });
-      }
-      if (count === 0)
-        res
-          .status(404)
-          .json({ status: "failed", message: "this post not found" });
-    });
+    }*/
+    await room
+      .destroy({ where: { dormitoryPostId } })
+      .then(async (roomCount) => {
+        console.log(roomCount);
+        if (roomCount >= 1) {
+          for (let i = 0; i < roomCount; i++) {
+            const nameImage = `/dormitoryposts/${dormitoryPostId}_${i}`;
+            await deleteFile(nameImage);
+          }
+          await dormitoryPost
+            .destroy({ where: { id: dormitoryPostId, dormitoryOwnerId } })
+            .then((count) => {
+              if (count === 1) {
+                return res.status(204).json({});
+              } else
+                return res
+                  .status(404)
+                  .json({ status: "failed", message: "this post not found" });
+            });
+        }
+        if (roomCount === 0)
+          res
+            .status(404)
+            .json({ status: "failed", message: "this post not found" });
+      });
   } catch (err) {
     console.log("My error:", err);
     return next(new AppError("An error occurred please try again", 500));

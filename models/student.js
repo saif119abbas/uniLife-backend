@@ -29,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
     student.hasMany(models.report);
     student.hasMany(models.emergency);
     student.belongsTo(models.room);
+    student.hasMany(models.savedDormitory);
   };
   return student;
 };
