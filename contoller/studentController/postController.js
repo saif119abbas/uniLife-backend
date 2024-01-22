@@ -10,7 +10,12 @@ const {
   major,
   post,
   postMajor,
+  notification,
+  order,
+  FCM,
 } = require("../../models");
+const { pushNotification } = require("../../notification");
+
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
   for (const name of majors) {
@@ -257,6 +262,9 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
             status: "failed",
             message: "not found user",
           });
+      })
+      .catch((err) => {
+        reject(err);
       });
   });
   // console.log("body", req.body);
@@ -282,7 +290,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     });
     if (catigoryId) condition = { ...condition, catigoryId };
   }
-  if (myMajor.toLowerCase() !== "all" && myMajor) {
+  if (myMajor && myMajor.toLowerCase() !== "all") {
     const majors = await major.findAll({
       attributes: ["id"],
       where: { name: myMajor },
@@ -303,13 +311,13 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     include: [
       {
         model: student,
+        attributes: ["userId", "image"],
         include: [
           {
             model: user,
             attributes: ["username"],
           },
         ],
-        attributes: ["userId"],
       },
     ],
     offset: (pageNumber - 1) * 2,
@@ -323,82 +331,190 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       description: post.description,
       image: post.image,
       studentId: post.studentId,
+      createdAt: post.createdAt,
       username: post.student.user.username,
       userId: post.student.userId,
+      userImage: post.student.image,
     };
   });
   console.log(data);
   res.status(200).json(data);
 });
 exports.reservesdPost = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const myStudent = await student.findOne({
-    attributes: ["blocked", "id"],
-    where: { userId },
-  });
-  if (myStudent.blocked)
-    return res.status(403).json({
+  try {
+    const userId = req.params.userId;
+    const myStudent = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["blocked", "id", "image"],
+          where: { userId },
+          include: [
+            {
+              model: user,
+              attributes: ["username"],
+            },
+            {
+              model: FCM,
+              attributes: ["token"],
+            },
+          ],
+        })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => reject(err));
+    });
+    //return res.status(200).json(myStudent);
+    if (myStudent.blocked)
+      return res.status(403).json({
+        status: "failed",
+        message: "you are blocked, you can't reserved post",
+      });
+    const {
+      image,
+      FCMs,
+      user: { username },
+    } = myStudent;
+    const reservedBy = myStudent.id;
+    const id = req.params.postId;
+    await post
+      .update(
+        { reservedBy },
+        {
+          where: {
+            reservedBy: null,
+            id,
+            studentId: { [Op.not]: myStudent.id },
+          },
+        }
+      )
+      .then(async (count) => {
+        if (count[0] === 1) {
+          const studentId = await new Promise((resolve, reject) => {
+            post
+              .findOne({ where: { id } })
+              .then((record) => resolve(record.studentId))
+              .catch((err) => reject(err));
+          });
+          const data = {
+            studentId,
+            type: "reservepost",
+            text: `The user ${username} reserve your item`,
+            image,
+          };
+
+          FCMs.map(async (item) => {
+            await pushNotification(item.token, data.type, data.text);
+          });
+          await notification
+            .create(data)
+            .then((record) => {
+              return res
+                .status(200)
+                .json({ status: "success", message: "reserved successfully" });
+            })
+            .catch((err) => {
+              throw err;
+            });
+        } else if (count[0] === 0)
+          return res.status(404).json({
+            status: "failed",
+            message: "not found post",
+          });
+      });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
       status: "failed",
-      message: "you are blocked, you can't reserved post",
+      message: "Internal Server Error",
     });
-  const reservedBy = myStudent.id;
-  const id = req.params.postId;
-  await post
-    .update(
-      { reservedBy },
-      { where: { reservedBy: null, id, studentId: { [Op.not]: myStudent.id } } }
-    )
-    .then((count) => {
-      if (count[0] === 1)
-        return res
-          .status(200)
-          .json({ status: "success", message: "reserved successfully" });
-      else if (count[0] === 0)
-        return res.status(404).json({
-          status: "failed",
-          message: "not found post",
-        });
-    });
+  }
 });
-exports.unReservesdPost = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const myStudent = await student.findOne({
-    attributes: ["blocked", "id"],
-    where: { userId },
-  });
-  if (!myStudent)
-    return res.status(403).json({
+exports.unReservesdPost = async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    const myStudent = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["blocked", "id", "image"],
+          where: { userId },
+          include: [
+            {
+              model: user,
+              attributes: ["username"],
+            },
+            {
+              model: FCM,
+              attributes: ["token"],
+            },
+          ],
+        })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => reject(err));
+    });
+    if (!myStudent)
+      return res.status(403).json({
+        status: "failed",
+        message: "you are not student",
+      });
+    if (myStudent.blocked)
+      return res.status(403).json({
+        status: "failed",
+        message: "you are blocked, you can't reserved post",
+      });
+    const {
+      image,
+      FCMs,
+      user: { username },
+    } = myStudent;
+    const studentId = myStudent.id;
+    const id = req.params.postId;
+    await post
+      .update(
+        { reservedBy: null },
+        { where: { [Op.or]: [{ reservedBy: studentId }, { studentId }], id } }
+      )
+      .then(async (count) => {
+        if (count[0] === 1) {
+          const data = {
+            studentId,
+            type: "reservepost",
+            text: `The user ${username} cancel reserve your item`,
+            image,
+          };
+
+          FCMs.map(async (item) => {
+            await pushNotification(item.token, data.type, data.text);
+          });
+          await notification
+            .create(data)
+            .then(() => {
+              return res
+                .status(200)
+                .json({ status: "success", message: "reserved canceled" });
+            })
+            .catch((err) => {
+              throw err;
+            });
+        } else if (count[0] === 0)
+          return res.status(404).json({
+            status: "failed",
+            message: "not found post or you this item not reserved",
+          });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.log("my error: ", err);
+    return res.status(500).json({
       status: "failed",
-      message: "you are not student",
+      message: "Internal Server Error",
     });
-  if (myStudent.blocked)
-    return res.status(403).json({
-      status: "failed",
-      message: "you are blocked, you can't reserved post",
-    });
-  const studentId = myStudent.id;
-  const id = req.params.postId;
-  await post
-    .update(
-      { reservedBy: null },
-      { where: { [Op.or]: [{ reservedBy: studentId }, { studentId }], id } }
-    )
-    .then((count) => {
-      if (count[0] === 1)
-        return res
-          .status(200)
-          .json({ status: "success", message: "reserved canceled" });
-      else if (count[0] === 0)
-        return res.status(404).json({
-          status: "failed",
-          message: "not found post or you this item not reserved",
-        });
-    })
-    .catch((err) => {
-      console.log("my error: ", err);
-      return next(new AppError("An error occurred please try again", 500));
-    });
-});
+  }
+};
 exports.searchPost = catchAsync(async (req, res, next) => {
   try {
     const desc = req.query.description;
@@ -471,7 +587,7 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
   const posts = await new Promise((resolve, reject) => {
     post
       .findAll({
-        attributes: ["id", "reservedBy", "image", "description"],
+        attributes: ["id", "reservedBy", "image", "description", "createdAt"],
         include: [
           {
             model: student,
@@ -523,6 +639,7 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
       username: post.student.user.username,
       reservedBy: username,
       image: post.image,
+      createdAt: post.createdAt,
       description: post.description,
     });
   }
@@ -548,7 +665,7 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
     const posts = await new Promise((resolve, reject) => {
       post
         .findAll({
-          attributes: ["id", "image", "description"],
+          attributes: ["id", "image", "description", "createdAt"],
           include: [
             {
               model: student,
@@ -575,6 +692,7 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
         username: post.student.user.username,
         image: post.image,
         description: post.description,
+        createdAt: post.createdAt,
       });
     }
 
@@ -605,7 +723,7 @@ exports.getPostForStudent = async (req, res, next) => {
     const posts = await new Promise((resolve, reject) => {
       post
         .findAll({
-          attributes: ["id", "image", "description"],
+          attributes: ["id", "image", "description", "createdAt"],
           include: [
             {
               model: student,
@@ -631,6 +749,7 @@ exports.getPostForStudent = async (req, res, next) => {
         id: post.id,
         username: post.student.user.username,
         image: post.image,
+        createdAt: post.createdAt,
         description: post.description,
       });
     }

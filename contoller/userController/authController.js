@@ -389,3 +389,65 @@ exports.retriveData = catchAsync(async (_, res) => {
   console.log(data);
   res.status(200).json(data);
 });
+exports.editPassword = async (req, res, next) => {
+  try {
+    const { password, newPassword, confirmPassword } = req.body;
+    const { userId } = req.params;
+    const passwordStored = await new Promise((resolve, reject) => {
+      user
+        .findOne({ where: { id: userId }, attributes: ["password"] })
+        .then((record) => {
+          resolve(record.password);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (!passwordStored)
+      return res
+        .status(404)
+        .json({ status: "failed", message: "not found user" });
+    const isCorrect = await new Promise((resolve, reject) => {
+      bcrypt.compare(password, passwordStored, (err, passwordIsCorrect) => {
+        if (err) reject(err);
+        else resolve(passwordIsCorrect);
+      });
+    });
+    if (!isCorrect)
+      return res
+        .status(400)
+        .json({ status: "failed", message: "password incorrect" });
+    if (newPassword !== confirmPassword)
+      return res.status(400).json({
+        status: "failed",
+        message: "new password and confirm password doesn't match",
+      });
+    const hash = await new Promise((resolve, reject) => {
+      bcrypt.hash(newPassword, 12, (err, hash) => {
+        if (err) reject(err);
+        else resolve(hash);
+      });
+    });
+    console.log(hash);
+    await user
+      .update({ password: hash }, { where: { id: userId } })
+      .then(([count]) => {
+        if (count === 1)
+          return res
+            .status(200)
+            .json({ status: "success", message: "updated successfully" });
+        else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "not found user" });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
