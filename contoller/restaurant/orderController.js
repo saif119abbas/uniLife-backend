@@ -108,7 +108,7 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
         restaurant
           .findOne({
             where: { userId },
-            attributes: ["id"],
+            attributes: ["id", "image"],
             include: [
               {
                 model: order,
@@ -127,10 +127,10 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
           .then((record) => {
             const data = {
               restaurantId: record.id,
+              image: record.image,
               status: record.orders[0].status,
               studentId: record.orders[0].studentId,
               FCMs: record.orders[0].student.FCMs,
-              image: record.orders[0].student.image,
             };
             resolve(data);
           });
