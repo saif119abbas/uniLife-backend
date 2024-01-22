@@ -4,25 +4,42 @@ const sql = require("@sequelize/core");
 const Sequelize = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
-const { student, user, message, sequelize } = require("../../models");
+const { student, user, message, FCM } = require("../../models");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const databaseName = require("../../databaseName");
+const { resolve } = require("path");
 exports.sendMessage = catchAsync(async (req, res, next) => {
   try {
     const { userId } = req.params;
-    let { receiverId } = req.params;
-    const senderId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
+    //let { receiverId } = req.params;
+    const userReceiverId = req.params.receiverId;
+    const { senderId, FCMSender } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          where: { userId },
+          include: [{ model: FCM, attribute: ["token"] }],
+        })
+        .then((record) => {
+          const data = { senderId: record.id, FCMSender: record.FCMs };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
     });
-    receiverId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId: receiverId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
+    const { receiverId, FCMReceiver } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          where: { userId: userReceiverId },
+          include: [{ model: FCM, attribute: ["token"] }],
+        })
+        .then((record) => {
+          const data = { receiverId: record.id, FCMReceiver: record.FCMs };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
     });
     let text = "";
+
     if (req.body.data) {
       const data = JSON.parse(req.body.data);
       text = data.text;
@@ -61,7 +78,10 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
       });
   } catch (err) {
     console.log("my error", err);
-    return next(new AppError("An error occurred please try again", 500));
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.getMessage = catchAsync(async (req, res, next) => {

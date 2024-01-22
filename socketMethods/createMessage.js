@@ -1,6 +1,8 @@
-const { student, user, message } = require("../models");
+const { student, user, message, FCM } = require("../models");
 const { UploadFile, getURL, deleteFile } = require("../firebaseConfig");
 const { Op } = require("sequelize");
+const { pushNotification } = require("../notification");
+
 exports.sendMessage = async (userId, receiverId, text) => {
   try {
     const senderId = await new Promise((resolve, reject) => {
@@ -33,17 +35,31 @@ exports.sendMessage = async (userId, receiverId, text) => {
     // return next(new AppError("An error occurred please try again", 500));
   }
 };
-exports.sendMessage = async (userId, receiverId, text) => {
+exports.sendMessage = async (userId, userReceiverId, text) => {
   try {
-    const senderId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
+    const { senderId, FCMSender } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          where: { userId },
+          include: [{ model: FCM, attribute: ["token"] }],
+        })
+        .then((record) => {
+          const data = { senderId: record.id, FCMSender: record.FCMs };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
     });
-    receiverId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId: receiverId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
+    const { receiverId, FCMReceiver } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          where: { userId: userReceiverId },
+          include: [{ model: FCM, attribute: ["token"] }],
+        })
+        .then((record) => {
+          const data = { receiverId: record.id, FCMReceiver: record.FCMs };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
     });
     const data = {
       receiverId,
@@ -73,6 +89,11 @@ exports.sendMessage = async (userId, receiverId, text) => {
     //   });
     // }
     if (status) {
+      FCMReceiver.map(async (item) => {
+        const title = "message";
+        const body = text;
+        await pushNotification(item.token, title, body);
+      });
       console.log("in status");
       return "done";
     }
@@ -82,17 +103,24 @@ exports.sendMessage = async (userId, receiverId, text) => {
     // return next(new AppError("An error occurred please try again", 500));
   }
 };
-exports.sendImage = async (userId, receiverId, file) => {
+exports.sendImage = async (userId, userReceiverId, file) => {
   try {
     const senderId = await new Promise((resolve, reject) => {
       student.findOne({ where: { userId } }).then((record) => {
         if (record.id) resolve(record.id);
       });
     });
-    receiverId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId: receiverId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
+    const { receiverId, FCMReceiver } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          where: { userId: userReceiverId },
+          include: [{ model: FCM, attribute: ["token"] }],
+        })
+        .then((record) => {
+          const data = { receiverId: record.id, FCMReceiver: record.FCMs };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
     });
     const data = {
       receiverId,
@@ -116,6 +144,11 @@ exports.sendImage = async (userId, receiverId, file) => {
       await UploadFile(buf, nameImage);
       const image = await getURL(nameImage);
       await message.update({ image }, { where: { id } });
+      FCMReceiver.map(async (item) => {
+        const title = "message";
+        const body = "send photo";
+        await pushNotification(item.token, title, body);
+      });
       /* res.status(201).json({
         status: "success",
         message: "Post created successfully",

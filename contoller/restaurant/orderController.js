@@ -9,6 +9,7 @@ const {
   orderItem,
   order,
   FCM,
+  notification,
 } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
@@ -100,89 +101,114 @@ exports.getOrders = catchAsync(async (req, res, next) => {
   }
 });
 exports.updateOrder = catchAsync(async (req, res, next) => {
-  const { orderId, userId } = req.params;
-  let { status, restaurantId, studentId } = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: ["id"],
-        include: [
-          {
-            model: order,
-            attributes: ["status", "studentId"],
-            where: { orderId },
-          },
-        ],
-      })
-      .then((record) => {
-        const data = {
-          restaurantId: record.id,
-          status: record.orders[0].status,
-          studentId: record.orders[0].studentId,
-        };
-        resolve(data);
-      });
-  });
-  //res.status(200).json(data);
-
-  status = status.trim().toUpperCase();
-  switch (status) {
-    case "PENDING":
-      status = "RECEIVED";
-      break;
-    case "RECEIVED":
-      status = "IN PROGRESS";
-      break;
-    case "IN PROGRESS":
-      status = "READY";
-      break;
-    case "READY":
-      status = "DELIVERED";
-      break;
-    default:
-      status = "PENDING";
-      break;
-  }
-  await order
-    .update({ status }, { where: { orderId, restaurantId } })
-    .then(async (count) => {
-      if (count[0] === 1) {
-        const FCMS = await new Promise((resolve, reject) => {
-          FCM.findAll({
-            where: { studentId },
-            attributes: ["token"],
-          }).then((record) => {
-            resolve(record);
+  try {
+    const { orderId, userId } = req.params;
+    let { status, restaurantId, studentId, image, FCMs } = await new Promise(
+      (resolve) => {
+        restaurant
+          .findOne({
+            where: { userId },
+            attributes: ["id"],
+            include: [
+              {
+                model: order,
+                attributes: ["status", "studentId"],
+                where: { orderId },
+                include: [
+                  {
+                    model: student,
+                    attributes: ["image"],
+                    include: [{ model: FCM, attributes: ["token"] }],
+                  },
+                ],
+              },
+            ],
+          })
+          .then((record) => {
+            const data = {
+              restaurantId: record.id,
+              status: record.orders[0].status,
+              studentId: record.orders[0].studentId,
+              FCMs: record.orders[0].student.FCMs,
+              image: record.orders[0].student.image,
+            };
+            resolve(data);
           });
-        });
-        FCMS.map(async (item) => {
-          await pushNotification(
-            item.token,
-            "Order:" + orderId + " Status Update",
+      }
+    );
 
+    status = status.trim().toUpperCase();
+    switch (status) {
+      case "PENDING":
+        status = "RECEIVED";
+        break;
+      case "RECEIVED":
+        status = "IN PROGRESS";
+        break;
+      case "IN PROGRESS":
+        status = "READY";
+        break;
+      case "READY":
+        status = "DELIVERED";
+        break;
+      default:
+        status = "PENDING";
+        break;
+    }
+
+    await order
+      .update({ status }, { where: { orderId, restaurantId } })
+      .then(async (count) => {
+        if (count[0] === 1) {
+          const text =
             status === "DELIVERED"
               ? "Thanks for ordering, Rate your order please"
-              : "Your Order is " + status
-          );
-        });
-        return res.status(200).json({
-          status: "success",
-          message: "status updated",
-        });
-      } else if (count[0] === 0)
-        return res
-          .status(404)
-          .json({
-            status: "failed",
-            message: "not found",
-          })
-          .catch((err) => {
-            console.log(err);
-            return next(
-              new AppError("An error occurred please try again", 500)
+              : "Your Order is " + status;
+          const data = {
+            studentId,
+            image,
+            text,
+            type: "Update your order",
+          };
+          await notification
+            .create(data)
+            .then((record) => {})
+            .catch((err) => {
+              throw err;
+            });
+
+          FCMs.map(async (item) => {
+            await pushNotification(
+              item.token,
+              "Order:" + orderId + " Status Update",
+
+              status === "DELIVERED"
+                ? "Thanks for ordering, Rate your order please"
+                : "Your Order is " + status
             );
           });
+          return res.status(200).json({
+            status: "success",
+            message: "status updated",
+          });
+        } else if (count[0] === 0)
+          return res
+            .status(404)
+            .json({
+              status: "failed",
+              message: "not found",
+            })
+            .catch((err) => {
+              console.log(err);
+              throw err;
+            });
+      });
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
     });
+  }
 });
 exports.weeklyDashboard = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
@@ -505,6 +531,19 @@ exports.lastReviewer = async (req, res, next) => {
     res.status(200).json(responseData);
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.cancelOrder = async (req, res, next) => {
+  try {
+  } catch (err) {
+    console.error("Error:", err);
+    console.error("Error:", err);
+    console.error("Error:", err);
+    res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
 };

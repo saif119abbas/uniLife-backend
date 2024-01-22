@@ -6,6 +6,7 @@ const {
   storeData,
   retriveData,
   downloadFile,
+  editPassword,
 } = require("../contoller/userController/authController");
 const { getMenu } = require("../contoller/restaurant/restaurantController");
 const {
@@ -43,6 +44,7 @@ router.post(
   verifyUpdatePassword
 );
 router.post("/restPassword", protect, validtaeResetPassword, restPassword);
+router.patch("/password/:userId", protect, editPassword);
 router.get(
   "/restaurants/:userId",
   protect,

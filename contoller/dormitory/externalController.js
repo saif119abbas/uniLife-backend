@@ -1,27 +1,66 @@
 const AppError = require("../../utils/appError");
-const { dormitoryOwner, dormitoryPost, room, user } = require("../../models");
+const {
+  dormitoryOwner,
+  dormitoryPost,
+  room,
+  user,
+  savedDormitory,
+  student,
+} = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 const { Op } = require("sequelize");
 const { localFormatter } = require("../../utils/formatDate");
 
-exports.getAllDormitoryPost = async (req, res, next) => {
+exports.getAllDormitoryPost = async (req, res) => {
   try {
+    const { userId } = req.params;
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId }, attributes: ["id"] })
+        .then((record) => {
+          resolve(record.id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    console.log("From here=", studentId);
+    let ids = await new Promise((resolve, reject) => {
+      savedDormitory
+        .findAll({ where: { studentId }, attributes: ["dormitoryPostId"] })
+        .then((record) => {
+          console;
+          resolve(record);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    console.log("ids=", ids);
+    ids = ids.map((item) => item.dormitoryPostId);
+    console.log("ids=", ids);
     let condition1 = {};
     let condition2 = {};
-    const { type, distance, gender, order } = req.body;
+    let { type, distance, gender, order, price } = req.body;
+    type = type.toLowerCase();
+    gender = gender.toLowerCase();
+    console.log(type, distance, gender, order, price);
     let DESC = "DESC";
     if (distance) {
       condition1 = { ...condition1, distance: { [Op.lte]: distance } };
-      DESC = order;
     }
-    if (gender) {
+    if (gender !== "any") {
       condition1 = { ...condition1, gender };
     }
-    if (type) {
+    if (type !== "any") {
       condition2 = { ...condition2, type };
     }
+    if (price) {
+      condition2 = { ...condition2, rent: { [Op.lte]: price } };
+      DESC = order;
+    }
+    console.log("D:", DESC);
     const dorimtoryPosts = await dormitoryPost.findAll({
-      order: [["distance", DESC]],
       where: condition1,
       attributes: [
         "id",
@@ -38,7 +77,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
       include: [
         {
           model: dormitoryOwner,
-          attributes: ["userId"],
+          attributes: ["userId", "image"],
           include: [
             {
               model: user,
@@ -49,6 +88,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         {
           model: room,
           where: condition2,
+
           attributes: [
             "id",
             "type",
@@ -59,20 +99,29 @@ exports.getAllDormitoryPost = async (req, res, next) => {
           ],
         },
       ],
+      order: [[{ model: room }, "rent", DESC]],
+      separate: true,
     });
-    if (!dorimtoryPosts)
+    //console.log(dorimtoryPosts);
+    if (!dorimtoryPosts) {
       return res
         .status(404)
         .json({ status: "failed", message: "no post found" });
+    }
     let data = [];
     for (const post of dorimtoryPosts) {
       console.log("post:", post);
+      const saved =
+        ids.find((id) => id === parseInt(post.id)) !== undefined ? true : false;
+
       const item = {
         id: post.id,
         username: post.dormitoryOwner.user.username,
         email: post.dormitoryOwner.user.email,
         phoneNum: post.dormitoryOwner.user.phoneNum,
+        numRooms: post.numberOfRoom,
         services: post.services,
+        ownerImage: post.dormitoryOwner.image,
         lon: post.lon,
         lat: post.lat,
         room: post.rooms,
@@ -81,6 +130,7 @@ exports.getAllDormitoryPost = async (req, res, next) => {
         distance: post.distance,
         name: post.name,
         createdAt: localFormatter(post.createdAt),
+        saved,
       };
       data.push(item);
     }

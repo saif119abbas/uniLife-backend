@@ -1,5 +1,12 @@
 const AppError = require("../../utils/appError");
 const { Op } = require("sequelize");
+const paypal = require("paypal-rest-sdk");
+
+paypal.configure({
+  mode: "sandbox", //sandbox or live
+  client_id: process.env.PAYPAL_CLIENT_KEY,
+  client_secret: process.env.PAYPAL_SECRET_KEY,
+});
 const Sequelize = require("sequelize");
 const {
   order,
@@ -376,3 +383,95 @@ exports.rate = catchAsync(async (req, res, next) => {
       .json({ status: "failed", message: "Internal Server Error" });
   }
 });
+
+exports.paypalOrder = (req, res) => {
+  try {
+    var create_payment_json = {
+      intent: "sale",
+      payer: {
+        payment_method: "paypal",
+      },
+      redirect_urls: {
+        return_url:
+          "http://192.168.1.8:3000/api/v1/unilife/payment/order/success",
+        cancel_url:
+          "http://192.168.1.8:3000/api/v1/unilife/payment/order/cancel",
+      },
+      transactions: [
+        {
+          item_list: {
+            items: [
+              {
+                name: "item",
+                sku: "item",
+                price: "1.00",
+                currency: "USD",
+                quantity: 1,
+              },
+            ],
+          },
+          amount: {
+            currency: "USD",
+            total: "1.00",
+          },
+          description: "This is the payment description.",
+        },
+      ],
+    };
+
+    paypal.payment.create(create_payment_json, function (error, payment) {
+      if (error) {
+        throw error;
+      } else {
+        const locale = "en_US";
+
+        console.log("Create Payment Response");
+        console.log(payment);
+        console.log(payment.links[1].href);
+        res.redirect(payment.links[1].href);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.paypalExecute = (req, res) => {
+  try {
+    const { PayerID, paymentId } = req.query;
+    console.log("gg");
+    const execute_payment_json = {
+      payer_id: PayerID,
+      transactions: [
+        {
+          amount: {
+            currency: "USD",
+            total: "1.00",
+          },
+        },
+      ],
+    };
+
+    paypal.payment.execute(
+      paymentId,
+      execute_payment_json,
+      function (error, payment) {
+        if (error) {
+          console.log(error.response);
+          throw error;
+        } else {
+          console.log("Get Payment Response");
+          console.log(JSON.stringify(payment));
+          res.render("success");
+        }
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};

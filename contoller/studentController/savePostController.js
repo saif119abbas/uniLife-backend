@@ -3,6 +3,8 @@ const {
   student,
   dormitoryPost,
   room,
+  dormitoryOwner,
+  user,
 } = require("../../models");
 const { localFormatter } = require("../../utils/formatDate");
 
@@ -88,6 +90,16 @@ exports.gtesSavePost = async (req, res, next) => {
                         "avilableSeat",
                       ],
                     },
+                    {
+                      model: dormitoryOwner,
+                      attributes: ["userId", "image"],
+                      include: [
+                        {
+                          model: user,
+                          attributes: ["username", "email", "phoneNum"],
+                        },
+                      ],
+                    },
                   ],
                 },
               ],
@@ -104,15 +116,30 @@ exports.gtesSavePost = async (req, res, next) => {
     const { savedDormitories } = data;
     const retrieveData = savedDormitories.map((item) => {
       const { id, dormitoryPost } = item;
-      const dormitoryPostId = dormitoryPost.id;
       const savedAt = localFormatter(item.createdAt);
-      dormitoryPost.id = undefined;
-      return {
-        dormitoryPostId,
-        id,
+      const {
+        dormitoryOwner: { user, userId, image },
+      } = dormitoryPost;
+      const { username, email, phoneNum } = user;
+      const myData = {
+        id: dormitoryPost.id,
+        username,
+        email,
+        phoneNum,
+        ownerImage: image,
+        numRooms: dormitoryPost.numberOfRoom,
+        services: dormitoryPost.services,
+        lon: dormitoryPost.lon,
+        lat: dormitoryPost.lat,
+        room: dormitoryPost.rooms,
+        image: dormitoryPost.image,
+        gender: dormitoryPost.gender,
+        distance: dormitoryPost.distance,
+        name: dormitoryPost.name,
         savedAt,
-        ...dormitoryPost.get(),
+        //  createdAt: localFormatter(dormitoryPost.createdAt),
       };
+      return myData;
     });
     return res.status(200).json(retrieveData);
   } catch (err) {
