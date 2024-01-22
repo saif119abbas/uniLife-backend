@@ -311,7 +311,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     include: [
       {
         model: student,
-        attributes: ["userId", "image"],
+        attributes: ["userId", "image", "major"],
         include: [
           {
             model: user,
@@ -335,6 +335,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       username: post.student.user.username,
       userId: post.student.userId,
       userImage: post.student.image,
+      major: post.student.major,
     };
   });
   console.log(data);
@@ -515,60 +516,7 @@ exports.unReservesdPost = async (req, res, next) => {
     });
   }
 };
-exports.searchPost = catchAsync(async (req, res, next) => {
-  try {
-    const desc = req.query.description;
-    const userId = req.params.userId;
-    const studentId = await new Promise((resolve, reject) => {
-      student
-        .findOne({ where: { userId } })
-        .then((res) => resolve(res))
-        .catch((err) => reject(err));
-    });
-    const posts = await new Promise((resolve, reject) => {
-      post
-        .findAll({
-          where: {
-            studentId: { [Op.not]: studentId },
-            description: { [Op.like]: ` %${desc}% ` },
-          },
-          attributes: ["description", "image", "id", "studentId", "createdAt"],
-          include: [
-            {
-              model: student,
-              where: { blocked: false },
-              attributes: ["userId"],
-              include: [
-                {
-                  model: user,
-                  role: process.env.STUDENT,
-                  attributes: ["username"],
-                },
-              ],
-            },
-          ],
-        })
-        .then((record) => resolve(record))
-        .catch((err) => reject(err));
-    });
-    if (!posts || posts.length === 0) return res.status(200).json([]);
-    const data = posts.map((post) => ({
-      id: post.id,
-      username: post.student.user.username,
-      userId: post.student.userId,
-      description: post.description,
-      image: post.image,
-      createdAt: post.createdAt,
-    }));
-    res.status(200).json(data);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal Server Error",
-    });
-  }
-});
+
 exports.getMyPost = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const studentId = await new Promise((resolve, reject) => {
@@ -591,7 +539,7 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
         include: [
           {
             model: student,
-            attributes: ["id"],
+            attributes: ["id", "image", "major"],
             include: [{ model: user, attributes: ["username"] }],
           },
         ],
@@ -641,6 +589,8 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
       image: post.image,
       createdAt: post.createdAt,
       description: post.description,
+      userImage: post.student.image,
+      major: post.student.major,
     });
   }
 
@@ -669,7 +619,7 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
           include: [
             {
               model: student,
-              attributes: ["id"],
+              attributes: ["id", "image", "major"],
               include: [{ model: user, attributes: ["username"] }],
             },
           ],
@@ -693,6 +643,8 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
         image: post.image,
         description: post.description,
         createdAt: post.createdAt,
+        major: post.student.major,
+        userImage: post.student.image,
       });
     }
 
@@ -727,7 +679,7 @@ exports.getPostForStudent = async (req, res, next) => {
           include: [
             {
               model: student,
-              attributes: ["id"],
+              attributes: ["id", "image", "major"],
               include: [{ model: user, attributes: ["username"] }],
             },
           ],
@@ -751,6 +703,8 @@ exports.getPostForStudent = async (req, res, next) => {
         image: post.image,
         createdAt: post.createdAt,
         description: post.description,
+        userImage: post.student.image,
+        major: post.student.major,
       });
     }
 

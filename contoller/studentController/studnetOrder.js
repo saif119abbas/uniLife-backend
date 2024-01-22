@@ -80,6 +80,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       status: "PENDING",
       totalPrice,
       notes: data.notes,
+      paymentType: "on receive",
     });
 
     const orderItemData = data.orderItem;
@@ -141,6 +142,133 @@ exports.createOrder = catchAsync(async (req, res, next) => {
     });
   }
 });
+const createOrderPaybal = async (body, userId) => {
+  try {
+    const data = body;
+    console.log("Hiii", data, userId);
+    const myStudent = await student.findOne({
+      attributes: ["id"],
+      where: { userId },
+    });
+    if (!myStudent) {
+      console.log("1");
+      return { success: false };
+    }
+    const studentId = myStudent.id;
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ where: { userId: data.restaurantId }, attributes: ["id"] })
+        .then((record) => resolve(record.id))
+        .catch((err) => reject(err));
+    });
+    const menuMenuId = await new Promise((resolve, reject) => {
+      menu
+        .findOne({ where: { restaurantId }, attributes: ["menuId"] })
+        .then((record) => resolve(record.menuId))
+        .catch((err) => reject(err));
+    });
+
+    const foodIds = data.orderArr.map((item) => parseInt(item.foodId));
+    const status = await new Promise((resolve, reject) => {
+      foodItem
+        .findAll({
+          where: { menuMenuId },
+        })
+        .then((result) => {
+          const availableFoodIds = result.map((food) => food.foodId);
+          console.log(availableFoodIds);
+          console.log(foodIds);
+          const allIncluded = foodIds.every((id) =>
+            availableFoodIds.includes(id)
+          );
+          resolve(allIncluded);
+        })
+        .catch((error) => reject(error));
+    });
+    if (!status) {
+      console.log("2");
+      return { success: false };
+    }
+    console.log("myData", data);
+    console.log("studentId:", studentId);
+    let countOrder = 0;
+    let totalPrice = 0;
+
+    const myOrders = await order.create({
+      restaurantId,
+      studentId,
+      status: "PENDING",
+      totalPrice,
+      notes: data.notes,
+      paymentType: "paypal",
+    });
+
+    const orderItemData = data.orderArr;
+    let orders = [];
+
+    for (let item of orderItemData) {
+      const fooditemPrice = await foodItem.findOne({
+        where: { foodId: item.foodId, menuMenuId },
+        attributes: ["price", "count"],
+      });
+      const count = fooditemPrice.count + 1;
+      const unitPrice = item.Qauntity * fooditemPrice.price;
+      totalPrice += unitPrice;
+      const orderItems = await new Promise((resolve, reject) => {
+        orderItem
+          .create({
+            Qauntity: item.Qauntity,
+            unitPrice,
+            orderOrderId: myOrders.orderId,
+          })
+          .then((myItems) => {
+            resolve(myItems);
+          })
+          .catch((err) => {
+            reject(err);
+            console.log(err);
+            return next(new AppError("An error ouccured please try agin", 500));
+          });
+      });
+      orders.push({
+        name: "item",
+        sku: "item",
+        price: fooditemPrice.price,
+        quantity: item.Qauntity,
+        currency: "ILS",
+      });
+
+      await OrderItem_FoodItem.create({
+        foodItemFoodId: item.foodId,
+        orderItemOrderItemId: orderItems.orderItemId,
+      })
+        .then(() => {
+          foodItem.update({ count }, { where: { foodId: item.foodId } });
+        })
+        .catch((err) => {
+          throw err;
+        });
+      countOrder++;
+    }
+    console.log("zz", orders);
+    if (countOrder === data.orderArr.length) {
+      return await order
+        .update({ totalPrice }, { where: { orderId: myOrders.orderId } })
+        .then(() => {
+          const data = { success: true, totalPrice, itemsArray: orders };
+          return data;
+        })
+        .catch((err) => {
+          console.log("3");
+          return { success: false };
+        });
+    }
+  } catch (err) {
+    console.log(err);
+    console.log("5");
+    return { success: false };
+  }
+};
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -384,7 +512,14 @@ exports.rate = catchAsync(async (req, res, next) => {
   }
 });
 
-exports.paypalOrder = (req, res) => {
+exports.paypalOrder = async (req, res) => {
+  const data = req.body;
+  const { userId } = req.params;
+  console.log(data, userId);
+  data.orderArr = JSON.parse(data.orderArr);
+  const resp = await createOrderPaybal(data, userId);
+  console.log("FK", resp);
+  const { itemsArray, success, totalPrice } = resp;
   try {
     var create_payment_json = {
       intent: "sale",
@@ -400,42 +535,38 @@ exports.paypalOrder = (req, res) => {
       transactions: [
         {
           item_list: {
-            items: [
-              {
-                name: "item",
-                sku: "item",
-                price: "1.00",
-                currency: "USD",
-                quantity: 1,
-              },
-            ],
+            items: itemsArray,
           },
           amount: {
-            currency: "USD",
-            total: "1.00",
+            currency: "ILS",
+            total: totalPrice,
           },
           description: "This is the payment description.",
         },
       ],
     };
 
-    paypal.payment.create(create_payment_json, function (error, payment) {
-      if (error) {
-        throw error;
-      } else {
-        const locale = "en_US";
+    await new Promise((resolve, reject) => {
+      paypal.payment.create(create_payment_json, function (error, payment) {
+        if (error) {
+          console.log("gg", error.response.details);
+          reject(error);
+        } else {
+          const locale = "en_US";
 
-        console.log("Create Payment Response");
-        console.log(payment);
-        console.log(payment.links[1].href);
-        res.redirect(payment.links[1].href);
-      }
+          console.log("Create Payment Response");
+          console.log(payment);
+          console.log(payment.links[1].href);
+          req.session.price = totalPrice;
+          res.redirect(payment.links[1].href);
+        }
+      });
     });
   } catch (error) {
     console.error(error);
     return res
       .status(500)
-      .json({ status: "failed", message: "Internal Server Error" });
+      .json({ status: "failed", message: "Internall Server Error" });
   }
 };
 exports.paypalExecute = (req, res) => {
@@ -447,8 +578,8 @@ exports.paypalExecute = (req, res) => {
       transactions: [
         {
           amount: {
-            currency: "USD",
-            total: "1.00",
+            currency: "ILS",
+            total: req.session.price,
           },
         },
       ],

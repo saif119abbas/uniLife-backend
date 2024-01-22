@@ -41,7 +41,7 @@ exports.getAllDormitoryPost = async (req, res) => {
     console.log("ids=", ids);
     let condition1 = {};
     let condition2 = {};
-    let { type, distance, gender, order, price } = req.body;
+    let { type, distance, gender, order, price } = req.query;
     type = type.toLowerCase();
     gender = gender.toLowerCase();
     console.log(type, distance, gender, order, price);

@@ -26,7 +26,6 @@ const {
   getPostForStudent,
   reservesdPost,
   unReservesdPost,
-  searchPost,
   getMyPost,
   deletePost,
   getMyReservePost,
@@ -113,7 +112,7 @@ router.get("/payment/order/cancel", (req, res) => {
   res.render("cancel");
 });
 router.get("/payment", (req, res) => {
-  res.render("success");
+  res.render("index");
 });
 router.post("/payment/order/:userId", paypalOrder);
 router.get("/payment/order/success", paypalExecute);
@@ -170,7 +169,6 @@ router.patch(
   upload.single("image"),
   unReservesdPost
 );
-router.get("/post/search/:userId", protect, studentPermission, searchPost);
 router.get(
   "/reservedpost/:userId",
   protect,

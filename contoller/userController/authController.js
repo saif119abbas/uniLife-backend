@@ -49,6 +49,7 @@ exports.login = catchAsync(async (req, res, next) => {
     expiresIn = `24h`;
     data.id = myUser.id;
     data.role = myUser.role;
+    data.username = myUser.username;
     if (myUser.role === process.env.STUDENT) {
       const studentId = await new Promise((resolve, reject) => {
         student
@@ -444,6 +445,90 @@ exports.editPassword = async (req, res, next) => {
       .catch((err) => {
         throw err;
       });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.getUserId = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    const userId = await new Promise((resolve, reject) => {
+      FCM.findOne({
+        where: { token },
+        attributes: ["id", "username"],
+        include: [{ model: student, attributes: ["userId"] }],
+      })
+        .then((record) => resolve(record.student.userId))
+        .catch((err) => reject(err));
+    });
+    return res.status(200).json(userId);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.getUser = async (req, res, next) => {
+  try {
+    // 1) Getting token and check of it's there
+    let token;
+    console.log("xDDDDDDD", req.headers.authorization);
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      console.log("Yes");
+      token = req.headers.authorization.split(" ")[1];
+    }
+    if (!token) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Unauthorized",
+      });
+    }
+
+    /* if (localStorage.getItem("jwt") !== token)
+  return next(new AppError("someerror happen please try again", 401));*/
+
+    // 2) Verification token
+    console.log("token:", token);
+    const id = await new Promise((resolve, reject) => {
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          console.log(err);
+          return next(
+            new AppError("An error occurred while verifying the token.", 500)
+          );
+        }
+        resolve(decoded.id);
+        console.log("Hi", decoded.id);
+        /* if (Date.now() / 1000 - res.iat <= res.exp)
+        return next(new AppError("Timed out please try again", 401));*/
+      });
+    });
+    const username = await new Promise((resolve, reject) => {
+      user
+        .findOne({
+          attributes: ["username"],
+          where: { id },
+        })
+        .then((data) => {
+          if (!data) {
+            return res.status(401).json({
+              status: "failed",
+              message: "Unauthorized",
+            });
+          }
+          console.log("my data", data.username);
+          resolve(data.username);
+        });
+    });
+
+    return res.status(200).json({ id, username });
   } catch (err) {
     console.error(err);
     return res

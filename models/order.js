@@ -33,6 +33,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    paymentType: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
   });
   order.associate = (models) => {
     order.hasMany(models.orderItem);

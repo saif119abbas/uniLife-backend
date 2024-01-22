@@ -7,6 +7,7 @@ const {
   retriveData,
   downloadFile,
   editPassword,
+  getUser,
 } = require("../contoller/userController/authController");
 const { getMenu } = require("../contoller/restaurant/restaurantController");
 const {
@@ -37,6 +38,7 @@ const {
   RestauarntOrStuPermission,
 } = require("../permission");
 router.post("/login", validtaeLogin, login);
+router.get("/user", getUser);
 router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
 router.post(
   "/verifyUpdatePassword",
