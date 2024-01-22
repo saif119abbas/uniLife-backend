@@ -1,4 +1,5 @@
 const express = require("express");
+const app = express();
 const cors = require("cors");
 const cron = require("node-cron");
 const cookieParser = require("cookie-parser");
@@ -12,10 +13,13 @@ const userRouter = require("./router/userRouter");
 const { initializeFirebaseApp } = require("./firebaseConfig");
 const bodyParser = require("body-parser");
 const { clear } = require("./utils/blackList");
-const app = express();
+const engines = require("consolidate");
+app.engine("ejs", engines.ejs);
+app.set("views", "./views");
+app.set("view engine", "ejs");
 
 app.use(express.json());
-
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
   session({
     secret: process.env.SECRET_SESSION,
