@@ -46,6 +46,8 @@ const {
   getOffers,
   getPoular,
   rate,
+  paypalOrder,
+  paypalExecute,
 } = require("../contoller/studentController/studnetOrder");
 const {
   sendMessage,
@@ -107,6 +109,15 @@ router.post(
 );
 router.get("/orders/:userId", protect, studentPermission, getOrders);
 router.patch("/orders/:userId/:orderId", protect, studentPermission, rate);
+router.get("/payment/order/cancel", (req, res) => {
+  res.render("cancel");
+});
+router.get("/payment", (req, res) => {
+  res.render("success");
+});
+router.post("/payment/order/:userId", paypalOrder);
+router.get("/payment/order/success", paypalExecute);
+
 router.get("/poularmeal/:userId", protect, studentPermission, getPoular);
 router.get(
   "/offer/:userId/:restaurantId",
