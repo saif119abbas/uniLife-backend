@@ -7,6 +7,7 @@ const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const { sendMessage, sendImage } = require("./SocketMethods/createMessage");
+
 const io = new Server(server, {
   cors: {
     origin: [
@@ -95,7 +96,7 @@ io.on("connection", (socket) => {
   });
 });
 
-db.sequelize.sync({}).then(() => {
+db.sequelize.sync().then(() => {
   // Start the server
   server.listen(process.env.PORT || 3000, () => {
     console.log(`Server is running on port ${process.env.PORT}`);

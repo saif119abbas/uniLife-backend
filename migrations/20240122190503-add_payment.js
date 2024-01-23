@@ -8,6 +8,6 @@ module.exports = {
     });*/
   },
   down: async (queryInterface, _) => {
-    /// await queryInterface.removeColumn("orders", "paymentType");
+    //await queryInterface.removeColumn("orders", "paymentType");
   },
 };

@@ -59,6 +59,10 @@ const { addAdmin } = require("../contoller/adminController/addAdmin");
 const { adminPermission } = require("../permission");
 const { protect } = require("../contoller/userController/authController");
 const { floorFacultyCheck } = require("../MiddleWare/checkFloorFaculty");
+const {
+  addAds,
+  getAdds,
+} = require("../contoller/adminController/adsController");
 router.post(
   "/restaurants/:userId",
   protect,
@@ -196,4 +200,12 @@ router.get(
   popularRestaurant
 );
 router.get("/toprestaurant/:userId", protect, adminPermission, topRestaurant);
+router.post(
+  "/adds/:userId",
+  protect,
+  adminPermission,
+  upload.single("image"),
+  addAds
+);
+router.get("/adds/:userId", protect, adminPermission, getAdds);
 module.exports = router;

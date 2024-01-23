@@ -30,6 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     student.hasMany(models.emergency);
     student.belongsTo(models.room);
     student.hasMany(models.savedDormitory);
+    student.hasMany(models.notification);
   };
   return student;
 };
