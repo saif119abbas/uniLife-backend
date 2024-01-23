@@ -23,6 +23,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    seen: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   });
   notification.associate = (models) => {
     notification.belongsTo(models.student);

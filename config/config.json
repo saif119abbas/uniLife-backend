@@ -2,7 +2,7 @@
   "development": {
     "username": "root",
     "password": null,
-    "database": "uniLife2",
+    "database": "uniLife",
     "host": "localhost",
     "dialect": "mysql"
   },

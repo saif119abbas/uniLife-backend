@@ -69,6 +69,10 @@ const {
   removeSaved,
 } = require("../contoller/studentController/savePostController");
 const { studentPermission } = require("../permission");
+const {
+  getNotifications,
+  getUnseenCount,
+} = require("../contoller/studentController/notificationController");
 const router = express.Router();
 //router.use(protect);
 router.post("/signup", upload.single("image"), validtaeSignup, signup);
@@ -225,4 +229,16 @@ router.delete(
   removeSaved
 );
 router.get("/domitorysave/:userId", protect, studentPermission, gtesSavePost);
+router.get(
+  "/notification/:userId",
+  protect,
+  studentPermission,
+  getNotifications
+);
+router.get(
+  "/notificationcount/:userId",
+  protect,
+  studentPermission,
+  getUnseenCount
+);
 module.exports = router;
