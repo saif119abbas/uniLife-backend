@@ -15,6 +15,7 @@ const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
+const cons = require("consolidate");
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
@@ -536,14 +537,51 @@ exports.lastReviewer = async (req, res, next) => {
       .json({ status: "failed", message: "Internal Server Error" });
   }
 };
-exports.cancelOrder = async (req, res, next) => {
+exports.removeOrder = async (req, res) => {
+  const { userId, orderId } = req.params;
+  const { status } = await new Promise((resolve, reject) => {
+    resolve(cancelOrder(orderId, userId));
+  });
+  console.log(status);
+  if (status) return res.status(204).json({});
+  else return res.status(404).json({});
+};
+
+const cancelOrder = async (orderId, userId) => {
   try {
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ where: { userId } })
+        .then((res) => {
+          resolve(res.id);
+        })
+        .catch((err) => reject(err));
+    });
+    const count = await new Promise((resolve, reject) => {
+      orderItem
+        .destroy({ where: { orderOrderId: orderId } })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+
+    if (count === 1) {
+      const count = await new Promise((resolve, reject) => {
+        order
+          .destroy({ where: { orderId, restaurantId } })
+          .then((count) => {
+            resolve(count);
+          })
+          .catch((err) => reject(err));
+      });
+      console.log(count);
+      console.log(orderId, restaurantId);
+      if (count === 1) return { status: true };
+      else return { status: false };
+    }
+    return { status: false };
   } catch (err) {
-    console.error("Error:", err);
-    console.error("Error:", err);
-    console.error("Error:", err);
-    res
-      .status(500)
-      .json({ status: "failed", message: "Internal Server Error" });
+    return { status: false };
   }
 };

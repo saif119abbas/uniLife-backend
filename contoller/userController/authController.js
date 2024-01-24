@@ -225,11 +225,12 @@ exports.protect = catchAsync(async (req, res, next) => {
     });
   });
   console.log(parseInt(req.params.userId));
-  console.log(id);
+  console.log("userToken=", id);
+  console.log("userID=", parseInt(req.params.userId));
   if (parseInt(req.params.userId) !== id)
     return res.status(403).json({
       status: "failed",
-      message: "not allowed",
+      message: "not allowed1",
     });
   // 3) Check if user still exists
 

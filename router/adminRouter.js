@@ -18,6 +18,8 @@ const {
 const {
   addMajor,
   addCatigory,
+  reportedPost,
+  removeMajor,
 } = require("../contoller/adminController/postAction");
 const {
   addFloor,
@@ -40,6 +42,8 @@ const {
   totalPost,
   topRestaurant,
   popularRestaurant,
+  dormitoryPostCount,
+  reportedPostCount,
 } = require("../contoller/adminController/dashboardController");
 const {
   validtaeAddRestaurant,
@@ -62,6 +66,8 @@ const { floorFacultyCheck } = require("../MiddleWare/checkFloorFaculty");
 const {
   addAds,
   getAdds,
+  editAdds,
+  removeAdds,
 } = require("../contoller/adminController/adsController");
 router.post(
   "/restaurants/:userId",
@@ -122,6 +128,7 @@ router.get(
   getDormitoryOwners
 );
 router.post("/major/:userId", protect, adminPermission, addMajor);
+router.delete("/major/:userId/:majorId", protect, adminPermission, removeMajor);
 router.post("/catigory/:userId", protect, adminPermission, addCatigory);
 router.post(
   "/faculty/:userId",
@@ -190,6 +197,7 @@ router.get(
   searchPostByDate
 );
 router.get("/lastposts/:userId", protect, adminPermission, getLastPosts);
+router.get("/report/:userId", protect, adminPermission, reportedPost);
 /* dashboard*/
 router.get("/userjoin/:userId", protect, adminPermission, totalUsers);
 router.get("/totalpost/:userId", protect, adminPermission, totalPost);
@@ -200,6 +208,18 @@ router.get(
   popularRestaurant
 );
 router.get("/toprestaurant/:userId", protect, adminPermission, topRestaurant);
+router.get(
+  "/dormitorycount/:userId",
+  protect,
+  adminPermission,
+  dormitoryPostCount
+);
+router.get(
+  "/reportppostcount/:userId",
+  protect,
+  adminPermission,
+  reportedPostCount
+);
 router.post(
   "/adds/:userId",
   protect,
@@ -207,5 +227,13 @@ router.post(
   upload.single("image"),
   addAds
 );
+router.patch(
+  "/adds/:userId/:adId",
+  protect,
+  adminPermission,
+  upload.single("image"),
+  editAdds
+);
+router.delete("/adds/:userId/:adId", protect, adminPermission, removeAdds);
 router.get("/adds/:userId", protect, adminPermission, getAdds);
 module.exports = router;

@@ -15,6 +15,7 @@ const {
   FCM,
 } = require("../../models");
 const { pushNotification } = require("../../notification");
+const { resolve } = require("path");
 
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
@@ -291,9 +292,19 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     if (catigoryId) condition = { ...condition, catigoryId };
   }
   if (myMajor && myMajor.toLowerCase() !== "all") {
-    const majors = await major.findAll({
+    const name = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId }, attributes: ["major"] })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    const majors = await major.findOne({
       attributes: ["id"],
-      where: { name: myMajor },
+      where: { name },
     });
     const majorsId = majors.map((item) => item.id);
     const Items = await postMajor.findAll({
@@ -431,7 +442,7 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
     });
   }
 });
-exports.unReservesdPost = async (req, res, next) => {
+exports.unReservesdPost = async (req, res) => {
   try {
     const userId = req.params.userId;
     const myStudent = await new Promise((resolve, reject) => {
@@ -443,10 +454,6 @@ exports.unReservesdPost = async (req, res, next) => {
             {
               model: user,
               attributes: ["username"],
-            },
-            {
-              model: FCM,
-              attributes: ["token"],
             },
           ],
         })
@@ -467,11 +474,29 @@ exports.unReservesdPost = async (req, res, next) => {
       });
     const {
       image,
-      FCMs,
       user: { username },
     } = myStudent;
     const studentId = myStudent.id;
     const id = req.params.postId;
+    const { status, reservedBy, studentId2 } = await new Promise(
+      (resolve, reject) => {
+        post
+          .findOne({
+            where: {
+              id,
+            },
+            attributes: ["reservedBy", "studentId"],
+          })
+          .then((record) => {
+            resolve({
+              status: record.studentId === studentId,
+              reservedBy: record.reservedBy,
+              studentId2: record.studentId,
+            });
+          })
+          .catch((err) => reject(err));
+      }
+    );
     await post
       .update(
         { reservedBy: null },
@@ -479,13 +504,31 @@ exports.unReservesdPost = async (req, res, next) => {
       )
       .then(async (count) => {
         if (count[0] === 1) {
+          console.log(status);
+          let FCMs;
+          if (status) {
+            FCMs = await new Promise((resolve, reject) => {
+              FCM.findAll({ where: { studentId: reservedBy } })
+                .then((record) => {
+                  resolve(record);
+                })
+                .catch((err) => reject(err));
+            });
+          } else {
+            FCMs = await new Promise((resolve, reject) => {
+              FCM.findAll({ where: { studentId: studentId2 } })
+                .then((record) => {
+                  resolve(record);
+                })
+                .catch((err) => reject(err));
+            });
+          }
           const data = {
-            studentId,
+            studentId: status ? reservedBy : studentId2,
             type: "reservepost",
             text: `The user ${username} cancel reserve your item`,
             image,
           };
-
           FCMs.map(async (item) => {
             await pushNotification(item.token, data.type, data.text);
           });
