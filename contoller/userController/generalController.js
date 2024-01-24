@@ -70,7 +70,7 @@ exports.getCatigory = catchAsync(async (_, res) => {
 });
 exports.getMajor = catchAsync(async (_, res) => {
   const data = await new Promise((resolve, _) => {
-    major.findAll({ attributes: ["name"] }).then((record) => {
+    major.findAll({ attributes: ["name", "id"] }).then((record) => {
       if (record) resolve(record);
       else
         return res.status(404).json({

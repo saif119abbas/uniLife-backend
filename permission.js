@@ -21,7 +21,7 @@ exports.adminPermission = catchAsync(async (_, res, next) => {
   if (role !== process.env.ADMIN)
     return res.status(403).json({
       status: "failed",
-      message: "not allowed",
+      message: "not allowed2",
     });
   else return next();
 });

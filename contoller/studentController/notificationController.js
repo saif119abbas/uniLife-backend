@@ -14,19 +14,7 @@ exports.getNotifications = async (req, res) => {
 
           include: {
             model: notification,
-            attributes: [
-              "id",
-              "text",
-              "type",
-              "image",
-              "seen",
-              [
-                Sequelize.literal(
-                  'DATE_FORMAT(`notifications`.`createdAt`, "%m/%d/%Y")'
-                ),
-                "orderAt",
-              ],
-            ],
+            attributes: ["id", "text", "type", "image", "seen", "createdAt"],
           },
         })
         .then((record) => {
@@ -37,6 +25,11 @@ exports.getNotifications = async (req, res) => {
         });
     });
     const { notifications } = data;
+    const ids = notifications.map((item) => item.id);
+    await notification.update(
+      { seen: true },
+      { where: { seen: false, id: { [Op.in]: ids } } }
+    );
     res.status(200).json(notifications);
   } catch (err) {
     console.log(err);

@@ -141,10 +141,12 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       senderId: sender,
     };
   });
-
+  const ids = messages.map((message) => message.id);
+  await message.update(
+    { seen: true },
+    { where: { id: { [Op.in]: ids }, seen: false } }
+  );
   console.log(userReceiverId, userId + "GG");
-  // messages.receiverId = userReceiverId;
-
   return res.status(200).json({ data: messages });
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
@@ -158,7 +160,7 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
     const messages = await sequelize.query(
       `SELECT m.id, m.text, m.createdAt,
       r.image AS image, u.username AS username,
-      COUNT(CASE WHEN m.seen = false THEN 1 END) AS unseenCount,
+      COUNT(CASE WHEN m.seen = false AND m.receiverId = s.id THEN 1 END) AS unseenCount,
       u.id AS otherPersonId  
     FROM messages m
     JOIN (

@@ -17,6 +17,7 @@ const {
   foodLastWeek,
   lastReviewer,
   totalOrder,
+  removeOrder,
 } = require("../contoller/restaurant/orderController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
@@ -56,6 +57,12 @@ router.get(
   protect,
   restaurantPermission,
   getOrders
+);
+router.delete(
+  "/order/restaurant/:userId/:orderId",
+  protect,
+  restaurantPermission,
+  removeOrder
 );
 router.patch(
   "/addoffer/:userId/:foodId",
