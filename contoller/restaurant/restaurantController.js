@@ -6,14 +6,16 @@ const {
   user,
   student,
   order,
+  FCM,
 } = require("../../models");
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
 
 const { localFormatter } = require("../../utils/formatDate");
 const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
+const { pushNotification } = require("../../notification");
 exports.addFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   console.log("addFoodItem");
@@ -37,18 +39,44 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
 
   if (!menuId)
     return res.status(404).json({ status: "failed", message: "not found" });
-  let myFoodItem = JSON.parse(req.body.data);
+  let data = JSON.parse(req.body.data);
+  let fcms = [];
+  let username;
+  if (data.category.toLowerCase() === "special offers") {
+    fcms = await new Promise((resolve, reject) => {
+      FCM.findAll({ attributes: ["token"] })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    username = await new Promise((resolve, reject) => {
+      user
+        .findOne({ where: { id: userId }, attributes: ["username"] })
+        .then((record) => {
+          resolve(record.username);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    data = { ...data, until: new Date(data.until) };
+  } else {
+    data = { ...data, until: null };
+  }
   const myImage = req.file;
   console.log("The image: ", myImage);
   console.log("The food", req.body);
-  myFoodItem = {
-    ...myFoodItem,
+  data = {
+    ...data,
     menuMenuId: menuId,
   };
   let status = false;
   const foodId = await new Promise((resolve, reject) => {
     foodItem
-      .create(myFoodItem)
+      .create(data)
       .then((data) => {
         if (data) resolve(data.foodId);
         status = true;
@@ -72,10 +100,14 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
     const image = await getURL(nameImage);
     console.log(image);
     foodItem.update({ image }, { where: { foodId } }).then((count) => {
-      if (count[0] === 1)
+      if (count[0] === 1) {
+        const title = "New Special Offer";
+        const body = ` ${username} has a new special offer, don't miss it`;
+        fcms.map((fcm) => pushNotification(fcm.token, title, body));
         return res
           .status(201)
           .json({ status: "success", message: "created successfully" });
+      }
     });
   } else {
     res
@@ -86,6 +118,7 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
 exports.getMenu = catchAsync(async (req, res, next) => {
   try {
     console.log("get Menu");
+    const date = new Date();
     const { restaurantId, userId } = req.params;
     let id = restaurantId;
     if (!restaurantId) id = userId;
@@ -120,7 +153,10 @@ exports.getMenu = catchAsync(async (req, res, next) => {
             "image",
             "category",
           ],
-          where: { menuMenuId },
+          where: {
+            menuMenuId,
+            until: { [Op.lte]: date },
+          },
         })
         .then((record) => {
           console.log("data:", record);
@@ -140,6 +176,13 @@ exports.editFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const myFoodItem = JSON.parse(req.body.data);
   const file = req.file;
+  if (file) {
+    const nameImage = `/foodItems/${foodId}`;
+    console.log(file);
+    await UploadFile(file.buffer, nameImage);
+    const image = await getURL(nameImage);
+    myFoodItem.image = image;
+  }
   const myRestaurant = await restaurant.findOne({
     where: { userId },
   });
@@ -157,11 +200,6 @@ exports.editFoodItem = catchAsync(async (req, res, next) => {
     });
   const foodId = req.params.foodId;
   const menuId = myMenu.menuId;
-  const nameImage = `/foodItems/${foodId}`;
-  console.log(file);
-  await UploadFile(file.buffer, nameImage);
-  const image = await getURL(nameImage);
-  myFoodItem.image = image;
   console.log("menuId: ", menuId);
   foodItem
     .update(myFoodItem, { where: { foodId, menuMenuId: menuId } })
@@ -212,17 +250,20 @@ exports.deleteFoodItem = catchAsync(async (req, res, next) => {
   console.log("menuId: ", menuId);
   foodItem
     .destroy({ where: { foodId, menuMenuId: menuId } })
-    .then((deleteCount) => {
+    .then(async (deleteCount) => {
       if (deleteCount > 1)
         return res.status(403).json({
           status: "failed",
           message: "not allowed",
         });
-      else if (deleteCount === 0)
+      else if (deleteCount === 0) {
+        const nameImage = `/foodItem/${foodId}`;
+        await deleteFile(nameImage);
         return res.status(404).json({
           status: "failed",
           message: "not found",
         });
+      }
       if (deleteCount === 1)
         return res.status(204).json({
           status: "failed",
@@ -267,4 +308,29 @@ WHERE
     }
   );
   res.status(200).json(data);
+};
+exports.setOpened = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("sss", userId);
+    restaurant
+      .update(
+        { isOpen: Sequelize.literal("NOT isOpen") },
+        { where: { userId } }
+      )
+      .then(([count]) => {
+        if (count === 0) {
+          console.log("NOO");
+          return res.status(404).json({ status: "fail", message: "not found" });
+        }
+        return res
+          .status(200)
+          .json({ status: "success", message: "updated successfully" });
+      });
+  } catch (err) {
+    console.log("my error", err);
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 };

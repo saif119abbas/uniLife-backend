@@ -11,6 +11,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    isOpen: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   });
   restaurant.associate = (models) => {
     restaurant.hasOne(models.menu);

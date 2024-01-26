@@ -83,13 +83,16 @@ exports.editAdds = catchAsync(async (req, res, next) => {
     const id = req.params.adId;
     const data = JSON.parse(req.body.data);
     const file = req.file;
-    const nameImage = `/adds/${id}`;
-    console.log(file);
-    await UploadFile(file.buffer, nameImage);
-    const image = await getURL(nameImage);
+    if (file) {
+      const nameImage = `/adds/${id}`;
+      console.log(file);
+      await UploadFile(file.buffer, nameImage);
+      const image = await getURL(nameImage);
+      data.image = image;
+    }
     const count = await new Promise((resolve, reject) => {
       ads
-        .update({ ...data, image }, { where: { id } })
+        .update({ data }, { where: { id } })
         .then((count) => {
           resolve(count);
         })
