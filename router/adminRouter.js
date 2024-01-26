@@ -219,18 +219,6 @@ router.get(
   adminPermission,
   reportedPostCount
 );
-router.get(
-  "/dormitorycount/:userId",
-  protect,
-  adminPermission,
-  dormitoryPostCount
-);
-router.get(
-  "/reportppostcount/:userId",
-  protect,
-  adminPermission,
-  reportedPostCount
-);
 router.post(
   "/adds/:userId",
   protect,

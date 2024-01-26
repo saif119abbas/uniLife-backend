@@ -118,7 +118,6 @@ exports.addFoodItem = catchAsync(async (req, res, next) => {
 exports.getMenu = catchAsync(async (req, res, next) => {
   try {
     console.log("get Menu");
-    const date = new Date();
     const { restaurantId, userId } = req.params;
     let id = restaurantId;
     if (!restaurantId) id = userId;
@@ -142,6 +141,8 @@ exports.getMenu = catchAsync(async (req, res, next) => {
 
     console.log(foodItem);
     console.log(restaurantId);
+    const currentDateWithoutTime = new Date().toISOString().split("T")[0]; // Get current date without time
+
     const data = await new Promise((resolve, reject) => {
       foodItem
         .findAll({
@@ -152,10 +153,17 @@ exports.getMenu = catchAsync(async (req, res, next) => {
             "nameOfFood",
             "image",
             "category",
+            "until", // Include the "until" field in the result
           ],
           where: {
             menuMenuId,
-            until: { [Op.lte]: date },
+            [Op.or]: [
+              { category: { [Op.ne]: "Special Offers" } }, // Exclude special offers from the date check
+              {
+                category: "Special Offers",
+                until: { [Op.gte]: currentDateWithoutTime }, // Check until date for special offers
+              },
+            ],
           },
         })
         .then((record) => {

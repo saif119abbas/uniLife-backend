@@ -82,7 +82,7 @@ exports.addCatigory = catchAsync(async (req, res, next) => {
 });
 exports.searchPostByDate = async (req, res, next) => {
   try {
-    const { type, studentId } = req.body;
+    const { type, studentId } = req.query;
     let include = [
       {
         model: student,
