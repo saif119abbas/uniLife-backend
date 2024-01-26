@@ -87,45 +87,30 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
     const restaurantData = JSON.parse(req.body.data);
     const file = req.file;
     console.log(restaurantData);
-    let hash = undefined;
-    if (restaurantData.password) {
-      if (restaurantData.password !== restaurantData.confirmPassword) {
-        console.log("password mismatch");
-        return res.status(400).json({
-          status: "falied",
-          message: "the password and confirm password do not match",
-        });
-      }
-      hash = await new Promise((resolve, reject) => {
-        bcrypt.hash(restaurantData.password, 12, (err, hash) => {
-          if (err) {
-            reject(new AppError("an error occurred please try again", 500));
-          } else {
-            resolve(hash);
-          }
-        });
+    let image = "";
+    if (file) {
+      const nameImage = `/restaurant/${userId}`;
+      console.log(file);
+      await UploadFile(file.buffer, nameImage);
+      image = await getURL(nameImage);
+      const count = await new Promise((resolve, reject) => {
+        restaurant
+          .update({ image }, { where: { userId } })
+          .then(([count]) => {
+            resolve(count);
+          })
+          .catch((err) => {
+            reject(err);
+          });
       });
-      restaurantData.password = hash;
+      if (count === 0)
+        return res.status(404).json({
+          status: "failed",
+          message: "not found",
+        });
     }
-    const nameImage = `/restaurant/${userId}`;
-    console.log(file);
-    await UploadFile(file.buffer, nameImage);
-    const image = await getURL(nameImage);
     console.log("the url", image);
 
-    console.log("the data", restaurantData);
-    /*const id = await new Promise((resolve, reject) => {
-    restaurant
-    .findOne({ attributes: ["userId"], where: { id: restaurantId } })
-    .then((record) => {
-      if (record) resolve(record.userId);
-      else
-      return res
-            .status(404)
-            .json({ status: "failed", message: "not found restaurant" });
-      });
-  });*/
-    // console.log("userId", userId);
     const count = await new Promise((resolve, reject) => {
       user
         .update(restaurantData, {
@@ -141,17 +126,9 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
     });
 
     if (count === 1) {
-      restaurant.update({ image }, { where: { userId } }).then(([count]) => {
-        if (count === 1)
-          return res.status(200).json({
-            status: "success",
-            message: "updated successfuly",
-          });
-
-        return res.status(404).json({
-          status: "failed",
-          message: "not found",
-        });
+      return res.status(200).json({
+        status: "success",
+        message: "updated successfully",
       });
     } else if (count === 0) {
       return res.status(404).json({

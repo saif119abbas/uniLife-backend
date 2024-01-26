@@ -117,20 +117,15 @@ exports.searchPostByDate = async (req, res, next) => {
     const data = await new Promise((resolve, reject) => {
       post
         .findAll({
-          attributes: ["id", "description", "image", "reservedBy", "createdAt"],
+          attributes: [
+            "id",
+            "description",
+            "image",
+            "reservedBy",
+            "createdAt",
+            "studentId",
+          ],
           include: include,
-          /*{
-              model: student,
-              as: "reservedBy",
-              attributes: ["image"],
-              include: [
-                {
-                  model: user,
-                  attributes: ["username", "phoneNum", "email"],
-                },
-              ],
-            },*/
-            },*/
         })
         .then((record) => {
           resolve(record);
@@ -146,10 +141,11 @@ exports.searchPostByDate = async (req, res, next) => {
         id: item.id,
         description: item.description,
         image: item.image,
-        image: item.image,
+
         studentImage: item.student.image,
         userId: item.student.userId,
         username: item.student.user.username,
+        studentId: item.studentId,
       };
       console.log(studentId);
       console.log(itemIsReported);
@@ -157,7 +153,7 @@ exports.searchPostByDate = async (req, res, next) => {
         console.log(studentId);
         if (
           (!reported || itemIsReported) &&
-          retrievedItem.userId === parseInt(studentId)
+          retrievedItem.studentId === parseInt(studentId)
         ) {
           console.log("one");
           retrievedData.push(retrievedItem);
@@ -168,11 +164,6 @@ exports.searchPostByDate = async (req, res, next) => {
         retrievedData.push(retrievedItem);
       }
     });
-    /*if (reported) {
-        if (itemIsReported) return retrievedItem;
-        return {};
-      }
-      return retrievedItem;*/
     res.status(200).json(retrievedData);
   } catch (err) {
     console.log(err);

@@ -88,8 +88,15 @@ exports.editDormitoryOwner = async (req, res) => {
     const file = req.file;
     const nameImage = `/dormitoryOwner/${dormitoryId}`;
     console.log(file);
-    await UploadFile(file.buffer, nameImage);
-    const image = await getURL(nameImage);
+    let image = "";
+    const dormitoryOwnerData = {
+      SSN: data.SSN,
+    };
+    if (file) {
+      await UploadFile(file.buffer, nameImage);
+      image = await getURL(nameImage);
+      dormitoryOwnerData.image = image;
+    }
     console.log(image);
     const userData = {
       email: data.email,
@@ -97,10 +104,7 @@ exports.editDormitoryOwner = async (req, res) => {
       username: data.username,
       phoneNum: data.phoneNum,
     };
-    const dormitoryOwnerData = {
-      SSN: data.SSN,
-      image,
-    };
+
     const count = await new Promise((resolve, reject) => {
       user
         .update(userData, {

@@ -2,8 +2,9 @@ const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
 const { student, user } = require("../../models");
 const { Sequelize } = require("sequelize");
-exports.getStudents = catchAsync(async (_, res) => {
+exports.getStudents = catchAsync(async (req, res) => {
   try {
+ 
     let data = await user.findAll({
       where: { role: process.env.STUDENT },
       attributes: ["id", "username", "phoneNum", "email", "createdAt"],
@@ -29,10 +30,11 @@ exports.blockedStudent = async (req, res) => {
   console.log("blockedStudent");
   try {
     const userId = req.params.studentId;
+    console.log("sss", userId);
     student
       .update(
         { blocked: Sequelize.literal("NOT blocked") },
-        { where: { userId } }
+        { where: { id: userId } }
       )
       .then(([count]) => {
         if (count === 0) {

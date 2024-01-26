@@ -227,7 +227,6 @@ exports.protect = catchAsync(async (req, res, next) => {
   console.log(parseInt(req.params.userId));
   console.log(id);
   if (parseInt(req.params.userId) !== id) {
-    console.log("gg");
     return res.status(403).json({
       status: "failed",
       message: "not allowed1",

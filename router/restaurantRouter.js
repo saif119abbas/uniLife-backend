@@ -6,6 +6,7 @@ const {
   deleteFoodItem,
   getMenu,
   getRating,
+  setOpened,
 } = require("../contoller/restaurant/restaurantController");
 const {
   getOrders,
@@ -58,12 +59,6 @@ router.get(
   restaurantPermission,
   getOrders
 );
-router.delete(
-  "/order/restaurant/:userId/:orderId",
-  protect,
-  restaurantPermission,
-  removeOrder
-);
 router.patch(
   "/addoffer/:userId/:foodId",
   protect,
@@ -91,4 +86,10 @@ router.get("/totalorder/:userId", protect, totalOrder);
 router.get("/dashboard/food/:userId", protect, foodLastWeek);
 router.get("/lastreviwer/:userId", protect, lastReviewer);
 router.get("/rating/:userId", protect, getRating);
+router.patch(
+  "/restaurantstatus/:userId",
+  protect,
+  restaurantPermission,
+  setOpened
+);
 module.exports = router;
