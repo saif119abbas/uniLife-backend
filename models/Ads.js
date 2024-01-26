@@ -24,6 +24,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false,
     },
+    link: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   });
 
   return ads;

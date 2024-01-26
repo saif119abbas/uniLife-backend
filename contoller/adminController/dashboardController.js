@@ -1,6 +1,13 @@
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
-const { restaurant, user, post, order } = require("../../models");
+const {
+  restaurant,
+  user,
+  post,
+  order,
+  dormitoryPost,
+  report,
+} = require("../../models");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
 exports.totalUsers = async (_, res) => {
@@ -144,10 +151,6 @@ exports.popularRestaurant = async (_, res) => {
 };
 exports.topRestaurant = async (_, res) => {
   try {
-    const today = new Date();
-    const lastWeek = new Date(today);
-    lastWeek.setDate(lastWeek.getDate() - 2);
-    lastWeek.setHours(0, 0, 0, 0);
     const data = await new Promise((resolve, reject) => {
       restaurant
         .findAll({
@@ -169,6 +172,67 @@ exports.topRestaurant = async (_, res) => {
       user: undefined,
     }));
     return res.status(200).json(retrivedData);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.dormitoryPostCount = async (_, res) => {
+  try {
+    const today = new Date();
+    const lastWeek = new Date(today);
+    lastWeek.setDate(lastWeek.getDate() - 7);
+    lastWeek.setHours(0, 0, 0, 0);
+    const count = await new Promise((resolve, reject) => {
+      dormitoryPost
+        .count({
+          where: {
+            createdAt: {
+              [Op.lt]: today,
+              [Op.gte]: lastWeek,
+            },
+          },
+          distinct: true,
+          col: "id",
+        })
+        .then((count) => resolve(count))
+        .catch((err) => reject(err));
+    });
+
+    return res.status(200).json(count);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+
+exports.reportedPostCount = async (_, res) => {
+  try {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+    const count = await new Promise((resolve, reject) => {
+      report
+        .count({
+          where: {
+            createdAt: {
+              [Op.lt]: today,
+              [Op.gte]: yesterday,
+            },
+          },
+          distinct: true,
+          col: "id",
+        })
+        .then((count) => resolve(count))
+        .catch((err) => reject(err));
+    });
+
+    return res.status(200).json(count);
   } catch (err) {
     console.log(err);
     return res

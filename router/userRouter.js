@@ -37,6 +37,7 @@ const {
   adminOrStuPermission,
   RestauarntOrStuPermission,
 } = require("../permission");
+const { getAdds } = require("../contoller/adminController/adsController");
 router.post("/login", validtaeLogin, login);
 router.get("/user", getUser);
 router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
@@ -74,6 +75,7 @@ router.delete(
   deletePost
 );
 router.get("/faculty/:userId", protect, adminOrStuPermission, getFaculties);
+router.get("/adds/:userId", protect, adminOrStuPermission, getAdds);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);

@@ -226,11 +226,13 @@ exports.protect = catchAsync(async (req, res, next) => {
   });
   console.log(parseInt(req.params.userId));
   console.log(id);
-  if (parseInt(req.params.userId) !== id)
+  if (parseInt(req.params.userId) !== id) {
+    console.log("gg");
     return res.status(403).json({
       status: "failed",
       message: "not allowed",
     });
+  }
   // 3) Check if user still exists
 
   const role = await new Promise((resolve, reject) => {
@@ -534,5 +536,32 @@ exports.getUser = async (req, res, next) => {
     return res
       .status(500)
       .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.logout = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId }, attributes: ["id"] })
+        .then((record) => {
+          resolve(record.id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    await FCM.destroy({ where: { studentId } }).then((count) => {
+      return res.status(204).json({
+        status: "success",
+        message: "logedout successfully",
+      });
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 };

@@ -113,13 +113,18 @@ exports.gtesSavePost = async (req, res, next) => {
           reject(err);
         });
     });
+
     const { savedDormitories } = data;
+    console.log(savedDormitories.dormitoryPost);
+
     const retrieveData = savedDormitories.map((item) => {
       const { id, dormitoryPost } = item;
+
       const savedAt = localFormatter(item.createdAt);
       const {
         dormitoryOwner: { user, userId, image },
       } = dormitoryPost;
+
       const { username, email, phoneNum } = user;
       const myData = {
         id: dormitoryPost.id,

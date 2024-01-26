@@ -139,7 +139,7 @@ exports.getMenu = catchAsync(async (req, res, next) => {
 exports.editFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const myFoodItem = JSON.parse(req.body.data);
-  const myImage = req.file;
+  const file = req.file;
   const myRestaurant = await restaurant.findOne({
     where: { userId },
   });
@@ -155,9 +155,13 @@ exports.editFoodItem = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "not found",
     });
-  if (myImage) myFoodItem.image = myImage;
   const foodId = req.params.foodId;
   const menuId = myMenu.menuId;
+  const nameImage = `/foodItems/${foodId}`;
+  console.log(file);
+  await UploadFile(file.buffer, nameImage);
+  const image = await getURL(nameImage);
+  myFoodItem.image = image;
   console.log("menuId: ", menuId);
   foodItem
     .update(myFoodItem, { where: { foodId, menuMenuId: menuId } })
@@ -242,6 +246,7 @@ exports.getRating = async (req, res) => {
     `SELECT 
   orders.rating as rating ,
   orders.rateDesc as content,
+  orders.orderId AS orderId,
   DATE_FORMAT(orders.createdAt, '%m/%d/%Y') AS date,
   students.id AS id,
   students.image as image,
@@ -253,9 +258,7 @@ FROM
   LEFT JOIN students ON orders.studentId = students.id
   LEFT JOIN users ON students.userId = users.id
 WHERE 
-  restaurants.userId = ${userId}
-GROUP BY 
-  orders.studentId;
+  restaurants.userId = ${userId} AND orders.rating != 0
 `,
 
     {

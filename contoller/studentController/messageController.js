@@ -141,7 +141,11 @@ exports.getMessage = catchAsync(async (req, res, next) => {
       senderId: sender,
     };
   });
-
+  const ids = messages.map((message) => message.id);
+  await message.update(
+    { seen: true },
+    { where: { id: { [Op.in]: ids }, seen: false, receiverId: senderId } }
+  );
   console.log(userReceiverId, userId + "GG");
   // messages.receiverId = userReceiverId;
 
@@ -156,29 +160,34 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
     });
     const userId = req.params.userId;
     const messages = await sequelize.query(
-      `SELECT m.id, m.text, m.createdAt,
-      r.image AS image, u.username AS username,
-      COUNT(CASE WHEN m.seen = false THEN 1 END) AS unseenCount,
-      u.id AS otherPersonId  
-    FROM messages m
-    JOIN (
+      `SELECT 
+      m.id,
+      m.text,
+      m.createdAt,
+      r.image AS image,
+      u.username AS username,
+      u.id AS otherPersonId,
+      r.image AS userimage,
+      (SELECT COUNT(*) FROM messages m_unseen WHERE m_unseen.receiverId = s.id AND m_unseen.seen = 0) AS unseenMessageCount
+  FROM messages m
+  JOIN (
       SELECT 
-        MAX(m2.createdAt) AS lastMessageTime,
-        CASE
-          WHEN senderId = s.id THEN m2.receiverId
-          WHEN receiverId = s.id THEN m2.senderId
-        END AS otherPersonId
+          MAX(m2.createdAt) AS lastMessageTime,
+          CASE
+              WHEN senderId = s.id THEN m2.receiverId
+              WHEN receiverId = s.id THEN m2.senderId
+          END AS otherPersonId
       FROM messages m2
       JOIN students s ON (m2.senderId = s.id OR m2.receiverId = s.id) AND s.userId = ${userId}
       WHERE m2.senderId = s.id OR m2.receiverId = s.id
       GROUP BY otherPersonId
-    ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
-    LEFT JOIN users u2 ON u2.id = ${userId}
-    LEFT JOIN students s ON s.userId = u2.id
-    LEFT JOIN students r ON lastMessages.otherPersonId = r.id
-    LEFT JOIN users u ON r.userId = u.id
-    WHERE (m.senderId = s.id OR m.receiverId =  s.id)
-    ORDER BY m.createdAt DESC;
+  ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
+  LEFT JOIN users u2 ON u2.id = ${userId}
+  LEFT JOIN students s ON s.userId = u2.id
+  LEFT JOIN students r ON lastMessages.otherPersonId = r.id
+  LEFT JOIN users u ON r.userId = u.id
+  WHERE (m.receiverId = s.id OR m.senderId= s.id) -- Only include messages where the user is the receiver
+  ORDER BY m.createdAt DESC;
       `,
       {
         type: QueryTypes.SELECT,

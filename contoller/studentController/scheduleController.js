@@ -128,45 +128,50 @@ exports.deleteLecture = catchAsync(async (req, res, next) => {
       return next(new AppError("An error occured please try again"), 500);
     });
 });
-exports.getLectures = catchAsync(async (req, res, next) => {
+exports.getLectures = async (req, res) => {
   const userId = req.params.userId;
-  // console.log(studentId);
-  const myStudent = await student.findOne({
-    attributes: ["id"],
-    where: { userId },
-  });
-  if (!myStudent) {
-    return res.status(403).json({
-      status: "Not allowed action",
-      message: "Something went wrong please try again",
+  try {
+    const data = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["id"],
+          where: { userId },
+          include: {
+            model: schedule,
+            attributes: ["scheduleId"],
+            include: {
+              model: lecture,
+              attributes: [
+                "id",
+                "classNumber",
+                "Name",
+                "startTime",
+                "endTime",
+                "day",
+              ],
+            },
+          },
+        })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    const {
+      schedule: { lectures },
+    } = data;
+
+    return res.status(200).json(lectures);
+  } catch (err) {
+    console.log(err);
+    return res.status(200).json({
+      status: "failed",
+      message: "Internal Server Error",
     });
   }
-  const studentId = myStudent.id;
-  const mySchedule = await schedule.findOne({
-    where: { studentId },
-  });
-  console.log(mySchedule);
-  await lecture
-    .findAll({
-      attributes: ["id", "classNumber", "Name", "startTime", "endTime", "day"],
-      where: {
-        scheduleScheduleId: mySchedule.scheduleId,
-      },
-    })
-    .then((data) => {
-      if (data.length === 0)
-        return res.status(404).json({
-          status: "failed",
-          message: "you don't have a lecture this day",
-        });
-
-      return res.status(200).json(data);
-    })
-    .catch((err) => {
-      console.log("My error occurred", err);
-      if (err) return next(new AppError("an ouccured please try again", 500));
-    });
-});
+};
 // cron.schedule("*/30 * * * * 0-3", async () => {
 //   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 //   try {

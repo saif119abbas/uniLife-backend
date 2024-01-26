@@ -64,6 +64,10 @@ module.exports = (sequelize, DataTypes) => {
     image: {
       type: DataTypes.STRING,
     },
+    until: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   });
   foodItem.associate = (models) => {
     foodItem.belongsTo(models.menu); // A Profile belongs to a User

@@ -24,17 +24,17 @@ exports.formatDate = (inputDay) => {
     today.getMonth() === inputDay.getMonth() &&
     today.getDate() === inputDay.getDate()
   )
-    date = `today ${inputDay.getHours()}:${inputDay.getMinutes()}:${inputDay.getSeconds()}`;
+    date = `today ${inputDay.getHours()}:${inputDay.getMinutes()}`;
   else if (
     yesterday.getFullYear() === inputDay.getFullYear() &&
     yesterday.getMonth() === inputDay.getMonth() &&
     yesterday.getDate() === inputDay.getDate()
   )
-    date = `yesterday ${inputDay.getHours()}:${inputDay.getMinutes()}:${inputDay.getSeconds()}`;
+    date = `yesterday ${inputDay.getHours()}:${inputDay.getMinutes()}`;
   else {
-    date = `${inputDay.getFullYear()},${
+    date = `${inputDay.getDate()}\/${
       months[inputDay.getMonth()]
-    },${inputDay.getDate()} ${inputDay.getHours()}:${inputDay.getMinutes()}:${inputDay.getSeconds()} `;
+    }\/${inputDay.getFullYear()} ${inputDay.getHours()}:${inputDay.getMinutes()}`;
   }
   return date;
 };

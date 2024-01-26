@@ -115,7 +115,7 @@ exports.createPost = catchAsync(async (req, res, next) => {
     await UploadFile(file.buffer, nameImage);
     const image = await getURL(nameImage);
     await post.update({ image }, { where: { id } });
-    res.status(201).json({
+    return res.status(201).json({
       status: "success",
       message: "Post created successfully",
       // Include any additional data you want to send back
@@ -344,6 +344,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
 exports.reservesdPost = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
+    const postId = req.params.postId;
     const myStudent = await new Promise((resolve, reject) => {
       student
         .findOne({
@@ -354,14 +355,28 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
               model: user,
               attributes: ["username"],
             },
-            {
-              model: FCM,
-              attributes: ["token"],
-            },
           ],
         })
         .then((record) => {
           resolve(record);
+        })
+        .catch((err) => reject(err));
+    });
+    const myStudent2 = await new Promise((resolve, reject) => {
+      post
+        .findOne({
+          attributes: ["id"],
+          where: { id: postId },
+          include: [
+            {
+              model: student,
+              attributes: ["id"],
+              include: [{ model: FCM, attributes: ["token"] }],
+            },
+          ],
+        })
+        .then((record) => {
+          resolve(record.student);
         })
         .catch((err) => reject(err));
     });
@@ -373,11 +388,13 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
       });
     const {
       image,
-      FCMs,
       user: { username },
     } = myStudent;
     const reservedBy = myStudent.id;
+
     const id = req.params.postId;
+    const { FCMs } = myStudent2;
+    console.log("FF", FCMs);
     await post
       .update(
         { reservedBy },
@@ -400,12 +417,13 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
           const data = {
             studentId,
             type: "reservepost",
-            text: `The user ${username} reserve your item`,
+            text: `user ${username} has reserved your an item you posted`,
             image,
           };
 
           FCMs.map(async (item) => {
-            await pushNotification(item.token, data.type, data.text);
+            console.log("FF", item);
+            await pushNotification(item.token, "Item Reserved", data.text);
           });
           await notification
             .create(data)
@@ -431,7 +449,7 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
     });
   }
 });
-exports.unReservesdPost = async (req, res, next) => {
+exports.unReservesdPost = async (req, res) => {
   try {
     const userId = req.params.userId;
     const myStudent = await new Promise((resolve, reject) => {
@@ -443,10 +461,6 @@ exports.unReservesdPost = async (req, res, next) => {
             {
               model: user,
               attributes: ["username"],
-            },
-            {
-              model: FCM,
-              attributes: ["token"],
             },
           ],
         })
@@ -467,11 +481,29 @@ exports.unReservesdPost = async (req, res, next) => {
       });
     const {
       image,
-      FCMs,
       user: { username },
     } = myStudent;
     const studentId = myStudent.id;
     const id = req.params.postId;
+    const { status, reservedBy, studentId2 } = await new Promise(
+      (resolve, reject) => {
+        post
+          .findOne({
+            where: {
+              id,
+            },
+            attributes: ["reservedBy", "studentId"],
+          })
+          .then((record) => {
+            resolve({
+              status: record.studentId === studentId,
+              reservedBy: record.reservedBy,
+              studentId2: record.studentId,
+            });
+          })
+          .catch((err) => reject(err));
+      }
+    );
     await post
       .update(
         { reservedBy: null },
@@ -479,13 +511,31 @@ exports.unReservesdPost = async (req, res, next) => {
       )
       .then(async (count) => {
         if (count[0] === 1) {
+          console.log(status);
+          let FCMs;
+          if (status) {
+            FCMs = await new Promise((resolve, reject) => {
+              FCM.findAll({ where: { studentId: reservedBy } })
+                .then((record) => {
+                  resolve(record);
+                })
+                .catch((err) => reject(err));
+            });
+          } else {
+            FCMs = await new Promise((resolve, reject) => {
+              FCM.findAll({ where: { studentId: studentId2 } })
+                .then((record) => {
+                  resolve(record);
+                })
+                .catch((err) => reject(err));
+            });
+          }
           const data = {
-            studentId,
+            studentId: status ? reservedBy : studentId2,
             type: "reservepost",
             text: `The user ${username} cancel reserve your item`,
             image,
           };
-
           FCMs.map(async (item) => {
             await pushNotification(item.token, data.type, data.text);
           });
@@ -516,7 +566,6 @@ exports.unReservesdPost = async (req, res, next) => {
     });
   }
 };
-
 exports.getMyPost = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
   const studentId = await new Promise((resolve, reject) => {

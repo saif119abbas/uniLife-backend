@@ -17,6 +17,7 @@ const {
   foodLastWeek,
   lastReviewer,
   totalOrder,
+  cancelOrder,
 } = require("../contoller/restaurant/orderController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
@@ -69,6 +70,12 @@ router.patch(
   protect,
   restaurantPermission,
   updateOrder
+);
+router.patch(
+  "/order/cancel/:userId/:orderId",
+  protect,
+  restaurantPermission,
+  cancelOrder
 );
 router.get("/weeklydashboard/:userId", protect, weeklyDashboard);
 router.get("/dailyrevenue/:userId", protect, dailyDashboard);

@@ -24,6 +24,8 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
       });
     });
     restaurantData.password = hash;
+    const { restaurantDesc } = restaurantData;
+    restaurantData.restaurantData = undefined;
     restaurantData.role = process.env.RESTAURANT;
     const userId = await new Promise((resolve, reject) => {
       user.create(restaurantData).then((record) => {
@@ -39,7 +41,7 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
     console.log(image);
     const restaurantId = await new Promise((resolve) => {
       restaurant
-        .create({ userId, image })
+        .create({ userId, image, restaurantDesc })
         .then((record) => {
           if (record) {
             res.locals.restaurantId = record.id;

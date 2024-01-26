@@ -37,18 +37,27 @@ exports.sendMessage = async (userId, receiverId, text) => {
 };
 exports.sendMessage = async (userId, userReceiverId, text) => {
   try {
-    const { senderId, FCMSender } = await new Promise((resolve, reject) => {
-      student
-        .findOne({
-          where: { userId },
-          include: [{ model: FCM, attribute: ["token"] }],
-        })
-        .then((record) => {
-          const data = { senderId: record.id, FCMSender: record.FCMs };
-          if (record) resolve(data);
-        })
-        .catch((err) => reject(err));
-    });
+    const { senderId, FCMSender, username } = await new Promise(
+      (resolve, reject) => {
+        student
+          .findOne({
+            where: { userId },
+            include: [
+              { model: FCM, attribute: ["token"] },
+              { model: user, attributes: ["username"] },
+            ],
+          })
+          .then((record) => {
+            const data = {
+              senderId: record.id,
+              FCMSender: record.FCMs,
+              username: record.user.username,
+            };
+            if (record) resolve(data);
+          })
+          .catch((err) => reject(err));
+      }
+    );
     const { receiverId, FCMReceiver } = await new Promise((resolve, reject) => {
       student
         .findOne({
@@ -56,7 +65,10 @@ exports.sendMessage = async (userId, userReceiverId, text) => {
           include: [{ model: FCM, attribute: ["token"] }],
         })
         .then((record) => {
-          const data = { receiverId: record.id, FCMReceiver: record.FCMs };
+          const data = {
+            receiverId: record.id,
+            FCMReceiver: record.FCMs,
+          };
           if (record) resolve(data);
         })
         .catch((err) => reject(err));
@@ -90,7 +102,7 @@ exports.sendMessage = async (userId, userReceiverId, text) => {
     // }
     if (status) {
       FCMReceiver.map(async (item) => {
-        const title = "message";
+        const title = username;
         const body = text;
         await pushNotification(item.token, title, body);
       });
@@ -105,11 +117,27 @@ exports.sendMessage = async (userId, userReceiverId, text) => {
 };
 exports.sendImage = async (userId, userReceiverId, file) => {
   try {
-    const senderId = await new Promise((resolve, reject) => {
-      student.findOne({ where: { userId } }).then((record) => {
-        if (record.id) resolve(record.id);
-      });
-    });
+    const { senderId, FCMSender, username } = await new Promise(
+      (resolve, reject) => {
+        student
+          .findOne({
+            where: { userId },
+            include: [
+              { model: FCM, attribute: ["token"] },
+              { model: user, attributes: ["username"] },
+            ],
+          })
+          .then((record) => {
+            const data = {
+              senderId: record.id,
+              FCMSender: record.FCMs,
+              username: record.user.username,
+            };
+            if (record) resolve(data);
+          })
+          .catch((err) => reject(err));
+      }
+    );
     const { receiverId, FCMReceiver } = await new Promise((resolve, reject) => {
       student
         .findOne({
@@ -117,7 +145,10 @@ exports.sendImage = async (userId, userReceiverId, file) => {
           include: [{ model: FCM, attribute: ["token"] }],
         })
         .then((record) => {
-          const data = { receiverId: record.id, FCMReceiver: record.FCMs };
+          const data = {
+            receiverId: record.id,
+            FCMReceiver: record.FCMs,
+          };
           if (record) resolve(data);
         })
         .catch((err) => reject(err));
@@ -145,8 +176,8 @@ exports.sendImage = async (userId, userReceiverId, file) => {
       const image = await getURL(nameImage);
       await message.update({ image }, { where: { id } });
       FCMReceiver.map(async (item) => {
-        const title = "message";
-        const body = "send photo";
+        const title = username;
+        const body = "sent a photo";
         await pushNotification(item.token, title, body);
       });
       /* res.status(201).json({

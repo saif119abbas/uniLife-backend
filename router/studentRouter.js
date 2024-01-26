@@ -6,6 +6,7 @@ const {
   protect,
   editProfile,
   getPofile,
+  logout,
 } = require("../contoller/userController/authController");
 
 const {
@@ -76,6 +77,7 @@ const {
 const router = express.Router();
 //router.use(protect);
 router.post("/signup", upload.single("image"), validtaeSignup, signup);
+router.delete("/logout/:userId", protect, studentPermission, logout);
 router.post("/verify", verify, createSchedule);
 router.patch("/profile/:userId", protect, upload.single("image"), editProfile);
 router.get("/profile/:userId", protect, getPofile);
@@ -241,4 +243,5 @@ router.get(
   studentPermission,
   getUnseenCount
 );
+
 module.exports = router;

@@ -35,8 +35,10 @@ exports.blockedStudent = async (req, res) => {
         { where: { userId } }
       )
       .then(([count]) => {
-        if (count === 0)
+        if (count === 0) {
+          console.log("NOO");
           return res.status(404).json({ status: "fail", message: "not found" });
+        }
         return res
           .status(200)
           .json({ status: "success", message: "updated successfully" });

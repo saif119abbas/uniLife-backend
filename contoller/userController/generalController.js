@@ -16,7 +16,7 @@ exports.getResturants = catchAsync(async (_, res) => {
     include: [
       {
         model: restaurant,
-        attributes: ["image"],
+        attributes: ["image", "rating", "restaurantDesc"],
       },
     ],
   });
@@ -25,7 +25,8 @@ exports.getResturants = catchAsync(async (_, res) => {
   const retrievedData = data.map((item) => ({
     ...item.get(),
     image: item.restaurant.image,
-    // restaurantId: item.restaurant.id,
+    rating: item.restaurant.rating,
+    restaurantDesc: item.restaurant.restaurantDesc,
     restaurant: undefined,
   }));
   return res.status(200).json(retrievedData);

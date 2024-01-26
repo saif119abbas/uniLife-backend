@@ -255,7 +255,12 @@ const createOrderPaybal = async (body, userId) => {
       return await order
         .update({ totalPrice }, { where: { orderId: myOrders.orderId } })
         .then(() => {
-          const data = { success: true, totalPrice, itemsArray: orders };
+          const data = {
+            success: true,
+            totalPrice,
+            itemsArray: orders,
+            orderId: myOrders.orderId,
+          };
           return data;
         })
         .catch((err) => {
@@ -272,12 +277,27 @@ const createOrderPaybal = async (body, userId) => {
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
+    let condition = {};
+    let limit = 5;
+    const { stringDate } = req.query;
+    if (stringDate) {
+      const date = new Date(stringDate);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + 1);
+      condition = {
+        ...condition,
+        createdAt: { [Op.gte]: date, [Op.lt]: nextDate },
+      };
+      limit = null;
+    }
     const studentOrders = await student.findOne({
       where: { userId },
       include: [
         {
           model: order,
-          limit: 5,
+          limit,
+          where: condition,
           order: [["createdAt", "DESC"]],
 
           attributes: [
@@ -309,13 +329,15 @@ exports.getOrders = catchAsync(async (req, res, next) => {
               ],
             },
           ],
-          limit: 5, // Limit the number of orders per student
           separate: true, // Use separate to apply limit to orders, not the student record
           order: [["createdAt", "DESC"]], // Keep descending order
         },
       ],
     });
-
+    console.log(studentOrders);
+    if (!studentOrders) {
+      return res.status(200).json([]);
+    }
     const { orders } = studentOrders;
     let data = [];
     for (const order of orders) {
@@ -488,7 +510,8 @@ exports.rate = catchAsync(async (req, res, next) => {
           .catch((err) => reject(err));
       });
       console.log(data.rating);
-      const newRate = (oldRate + data.rating) / 2;
+
+      const newRate = oldRate === 0 ? data.rating : (oldRate + data.rating) / 2;
       const count = await new Promise((resolve, reject) => {
         restaurant
           .update({ rating: newRate }, { where: { id: restaurantId } })
@@ -512,14 +535,54 @@ exports.rate = catchAsync(async (req, res, next) => {
   }
 });
 
+const cancelOrder = async (orderId, userId) => {
+  try {
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ where: { userId } })
+        .then((res) => {
+          resolve(res.id);
+        })
+        .catch((err) => reject(err));
+    });
+    const count = await new Promise((resolve, reject) => {
+      orderItem
+        .destroy({ where: { orderOrderId: orderId } })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+
+    if (count === 1) {
+      const count = await new Promise((resolve, reject) => {
+        order
+          .destroy({ where: { orderId, restaurantId } })
+          .then((count) => {
+            resolve(count);
+          })
+          .catch((err) => reject(err));
+      });
+      console.log(count);
+      console.log(orderId, restaurantId);
+      if (count === 1) return { status: true };
+      else return { status: false };
+    }
+    return { status: false };
+  } catch (err) {
+    return { status: false };
+  }
+};
+
 exports.paypalOrder = async (req, res) => {
   const data = req.body;
   const { userId } = req.params;
   console.log(data, userId);
+  const { restaurantId } = data.restaurantId;
   data.orderArr = JSON.parse(data.orderArr);
   const resp = await createOrderPaybal(data, userId);
   console.log("FK", resp);
-  const { itemsArray, success, totalPrice } = resp;
+  const { itemsArray, success, totalPrice, orderId } = resp;
   try {
     var create_payment_json = {
       intent: "sale",
@@ -550,10 +613,12 @@ exports.paypalOrder = async (req, res) => {
       paypal.payment.create(create_payment_json, function (error, payment) {
         if (error) {
           console.log("gg", error.response.details);
+          cancelOrder(orderId, restaurantId);
+
           reject(error);
+          res.redirect("cancel");
         } else {
           const locale = "en_US";
-
           console.log("Create Payment Response");
           console.log(payment);
           console.log(payment.links[1].href);
@@ -591,6 +656,7 @@ exports.paypalExecute = (req, res) => {
       function (error, payment) {
         if (error) {
           console.log(error.response);
+          res.render("cancelled");
           throw error;
         } else {
           console.log("Get Payment Response");

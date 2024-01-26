@@ -6,7 +6,11 @@ const db = require("./models");
 const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const { sendMessage, sendImage } = require("./SocketMethods/createMessage");
+const {
+  sendMessage,
+  sendImage,
+  seenMessage,
+} = require("./SocketMethods/createMessage");
 
 const io = new Server(server, {
   cors: {
@@ -49,6 +53,7 @@ io.on("connection", (socket) => {
         senderId,
         image: imageLink,
       });
+      await seenMessage(senderId, receiverId);
     } else {
       console.log(`User ${receiverId} is not connected.`);
     }
@@ -63,6 +68,7 @@ io.on("connection", (socket) => {
       console.log(message);
 
       io.to(receiverSocketId).emit("privateMessage", { senderId, message });
+      await seenMessage(senderId, receiverId);
     } else {
       console.log(`User ${receiverId} is not connected.`);
     }

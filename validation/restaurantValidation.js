@@ -26,6 +26,7 @@ exports.addResturantValidation = Joi.object({
     .message("❌ Must be exactly 10 digits")
     .max(10)
     .message("❌ Must be exactly 10 digits"),
+  restaurantDesc: Joi.string().required(),
 });
 exports.editRestaurantValidation = Joi.object({
   username: Joi.string()
