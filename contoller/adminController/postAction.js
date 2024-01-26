@@ -1,16 +1,25 @@
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
-const { major, catigory, post, student, user } = require("../../models");
+const {
+  major,
+  catigory,
+  post,
+  student,
+  user,
+  report,
+} = require("../../models");
 const { Op } = require("sequelize");
 const { formatDate } = require("../../utils/formatDate");
 exports.addMajor = catchAsync(async (req, res, next) => {
   const data = req.body;
   major
     .create(data)
-    .then(() => {
-      res
-        .status(201)
-        .json({ status: "success", message: "created successfully" });
+    .then((record) => {
+      res.status(201).json({
+        status: "success",
+        message: "created successfully",
+        id: record.id,
+      });
     })
     .catch((err) => {
       console.log(err);
@@ -21,6 +30,36 @@ exports.addMajor = catchAsync(async (req, res, next) => {
         });
       return next(new AppError("An error occurred please try again", 500));
     });
+});
+exports.removeMajor = catchAsync(async (req, res, next) => {
+  try {
+    const id = req.params.majorId;
+    const count = await new Promise((resolve, reject) => {
+      major
+        .destroy({ where: { id } })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (count === 1)
+      return res.status(204).json({
+        status: "success",
+        message: "deleted successfully",
+      });
+    return res.status(404).json({
+      status: "failed",
+      message: "not found",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
 });
 exports.addCatigory = catchAsync(async (req, res, next) => {
   const data = req.body;
@@ -91,6 +130,7 @@ exports.searchPostByDate = async (req, res, next) => {
                 },
               ],
             },*/
+            },*/
         })
         .then((record) => {
           resolve(record);
@@ -139,16 +179,13 @@ exports.searchPostByDate = async (req, res, next) => {
     res.status(500).json({
       status: "falied",
       message: "Internal Server Error",
+      message: "Internal Server Error",
     });
   }
 };
 exports.getLastPosts = async (req, res, next) => {
   try {
-    const upper = new Date();
-    // upper.setHours(0, 0, 0, 0);
-    const lower = new Date(upper);
-    lower.setDate(lower.getDate() - 7);
-    const data = await new Promise((resolve, reject) => {
+    data = await new Promise((resolve, reject) => {
       post
         .findAll({
           // where: {
@@ -168,6 +205,8 @@ exports.getLastPosts = async (req, res, next) => {
                 },
               ],
             },
+            ,
+            {},
           ],
         })
         .then((data) => {

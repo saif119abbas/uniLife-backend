@@ -147,8 +147,6 @@ exports.getMessage = catchAsync(async (req, res, next) => {
     { where: { id: { [Op.in]: ids }, seen: false, receiverId: senderId } }
   );
   console.log(userReceiverId, userId + "GG");
-  // messages.receiverId = userReceiverId;
-
   return res.status(200).json({ data: messages });
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {

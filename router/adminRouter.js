@@ -126,6 +126,7 @@ router.get(
 );
 router.post("/major/:userId", protect, adminPermission, addMajor);
 router.delete("/major/:userId/:majorId", protect, adminPermission, removeMajor);
+router.delete("/major/:userId/:majorId", protect, adminPermission, removeMajor);
 router.post("/catigory/:userId", protect, adminPermission, addCatigory);
 router.post(
   "/faculty/:userId",
@@ -195,6 +196,7 @@ router.get(
 );
 router.get("/lastposts/:userId", protect, adminPermission, getLastPosts);
 router.get("/report/:userId", protect, adminPermission, reportedPost);
+router.get("/report/:userId", protect, adminPermission, reportedPost);
 /* dashboard*/
 router.get("/userjoin/:userId", protect, adminPermission, totalUsers);
 router.get("/totalpost/:userId", protect, adminPermission, totalPost);
@@ -205,6 +207,18 @@ router.get(
   popularRestaurant
 );
 router.get("/toprestaurant/:userId", protect, adminPermission, topRestaurant);
+router.get(
+  "/dormitorycount/:userId",
+  protect,
+  adminPermission,
+  dormitoryPostCount
+);
+router.get(
+  "/reportppostcount/:userId",
+  protect,
+  adminPermission,
+  reportedPostCount
+);
 router.get(
   "/dormitorycount/:userId",
   protect,

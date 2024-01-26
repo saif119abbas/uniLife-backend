@@ -15,6 +15,7 @@ const {
   FCM,
 } = require("../../models");
 const { pushNotification } = require("../../notification");
+const { resolve } = require("path");
 
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
@@ -291,9 +292,19 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     if (catigoryId) condition = { ...condition, catigoryId };
   }
   if (myMajor && myMajor.toLowerCase() !== "all") {
-    const majors = await major.findAll({
+    const name = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId }, attributes: ["major"] })
+        .then((record) => {
+          resolve(record);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    const majors = await major.findOne({
       attributes: ["id"],
-      where: { name: myMajor },
+      where: { name },
     });
     const majorsId = majors.map((item) => item.id);
     const Items = await postMajor.findAll({

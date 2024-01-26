@@ -230,7 +230,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     console.log("gg");
     return res.status(403).json({
       status: "failed",
-      message: "not allowed",
+      message: "not allowed1",
     });
   }
   // 3) Check if user still exists

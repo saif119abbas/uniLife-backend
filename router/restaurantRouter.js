@@ -58,6 +58,12 @@ router.get(
   restaurantPermission,
   getOrders
 );
+router.delete(
+  "/order/restaurant/:userId/:orderId",
+  protect,
+  restaurantPermission,
+  removeOrder
+);
 router.patch(
   "/addoffer/:userId/:foodId",
   protect,

@@ -14,12 +14,6 @@ module.exports = (sequelize, DataTypes) => {
         notEmpty: false,
       },
     },
-    faculty: {
-      type: DataTypes.STRING,
-      validator: {
-        notEmpty: false,
-      },
-    },
   });
   major.associate = (models) => {
     major.belongsToMany(models.post, {

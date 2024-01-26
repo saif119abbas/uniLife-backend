@@ -15,6 +15,7 @@ const catchAsync = require("../../utils/catchAsync");
 const { UploadFile, getURL } = require("../../firebaseConfig");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
+const cons = require("consolidate");
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;

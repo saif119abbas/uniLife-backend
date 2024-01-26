@@ -9,5 +9,6 @@ module.exports = {
   },
   down: async (queryInterface, _) => {
     // await queryInterface.removeColumn("notifications", "seen");
+    // await queryInterface.removeColumn("notifications", "seen");
   },
 };
