@@ -81,8 +81,10 @@ exports.removeAdds = catchAsync(async (req, res, next) => {
 exports.editAdds = catchAsync(async (req, res, next) => {
   try {
     const id = req.params.adId;
+    console.log("adId=", id);
     const data = JSON.parse(req.body.data);
     const file = req.file;
+    console.log("ads data", data);
     if (file) {
       const nameImage = `/adds/${id}`;
       console.log(file);
@@ -92,8 +94,9 @@ exports.editAdds = catchAsync(async (req, res, next) => {
     }
     const count = await new Promise((resolve, reject) => {
       ads
-        .update({ data }, { where: { id } })
-        .then((count) => {
+        .update(data, { where: { id } })
+        .then(([count]) => {
+          console.log(count);
           resolve(count);
         })
         .catch((err) => {
@@ -124,7 +127,7 @@ exports.getAdds = async (req, res) => {
       ads
         .findAll({
           where: { isActive: true },
-          attributes: ["id", "title", "description", "image"],
+          attributes: ["id", "title", "description", "image", "link"],
         })
         .then((record) => {
           resolve(record);
@@ -146,7 +149,14 @@ exports.getAllAdds = async (req, res) => {
     const data = await new Promise((resolve, reject) => {
       ads
         .findAll({
-          attributes: ["id", "title", "description", "image", "isActive"],
+          attributes: [
+            "id",
+            "title",
+            "description",
+            "image",
+            "isActive",
+            "link",
+          ],
         })
         .then((record) => {
           resolve(record);
