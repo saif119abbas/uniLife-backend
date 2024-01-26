@@ -13,9 +13,7 @@ const {
   getFiles,
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
-const { student, user, FCM } = require("../../models");
-const { file } = require("googleapis/build/src/apis/file");
-const { resolve } = require("path");
+const { student, user, FCM, dormitory, restaurant } = require("../../models");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   try {
@@ -60,9 +58,32 @@ exports.login = catchAsync(async (req, res, next) => {
       });
       await FCM.create({ token, studentId });
     }
+    if (myUser.role === process.env.RESTAURANT) {
+      const image = await new Promise((resolve, reject) => {
+        restaurant
+          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .then((record) => {
+            if (record) resolve(record.image);
+          });
+      });
+      data.image = image;
+    }
+    if (myUser.role === process.env.DORMITORY) {
+      const image = await new Promise((resolve, reject) => {
+        dormitory
+          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .then((record) => {
+            if (record) resolve(record.image);
+          });
+      });
+      data.image = image;
+    }
     return createSendToken(data, 200, expiresIn, res);
   } catch (error) {
     console.log(error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
 });
 
