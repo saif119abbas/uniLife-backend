@@ -61,14 +61,46 @@ exports.removeMajor = catchAsync(async (req, res, next) => {
     });
   }
 });
+exports.removeCategory = catchAsync(async (req, res, next) => {
+  try {
+    const id = req.params.categoryId;
+    const count = await new Promise((resolve, reject) => {
+      catigory
+        .destroy({ where: { id } })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (count === 1)
+      return res.status(204).json({
+        status: "success",
+        message: "deleted successfully",
+      });
+    return res.status(404).json({
+      status: "failed",
+      message: "not found",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
+});
 exports.addCatigory = catchAsync(async (req, res, next) => {
   const data = req.body;
   catigory
     .create(data)
-    .then(() => {
-      res
-        .status(201)
-        .json({ status: "success", message: "created successfully" });
+    .then((record) => {
+      res.status(201).json({
+        status: "success",
+        id: record.id,
+        message: "created successfully",
+      });
     })
     .catch((err) => {
       console.log(err);
@@ -83,10 +115,11 @@ exports.addCatigory = catchAsync(async (req, res, next) => {
 exports.searchPostByDate = async (req, res, next) => {
   try {
     const { type, studentId } = req.query;
+    console.log("GG", type, studentId);
     let include = [
       {
         model: student,
-        attributes: ["image", "userId"],
+        attributes: ["image", "userId", "blocked"],
         include: [
           {
             model: user,
@@ -105,7 +138,7 @@ exports.searchPostByDate = async (req, res, next) => {
           attributes: ["id", "message"],
           include: {
             model: student,
-            attributes: ["id"],
+            attributes: ["id", "image"],
             include: {
               model: user,
               attributes: ["username"],
@@ -141,11 +174,12 @@ exports.searchPostByDate = async (req, res, next) => {
         id: item.id,
         description: item.description,
         image: item.image,
-
+        reports: item?.reports,
         studentImage: item.student.image,
         userId: item.student.userId,
         username: item.student.user.username,
         studentId: item.studentId,
+        blocked: item.student.blocked,
       };
       console.log(studentId);
       console.log(itemIsReported);
@@ -196,8 +230,6 @@ exports.getLastPosts = async (req, res, next) => {
                 },
               ],
             },
-            ,
-            {},
           ],
         })
         .then((data) => {
@@ -221,36 +253,7 @@ exports.getLastPosts = async (req, res, next) => {
       .json({ status: "failed", message: "Internal server error" });
   }
 };
-exports.removeMajor = catchAsync(async (req, res, next) => {
-  try {
-    const id = req.params.majorId;
-    const count = await new Promise((resolve, reject) => {
-      major
-        .destroy({ where: { id } })
-        .then((count) => {
-          resolve(count);
-        })
-        .catch((err) => {
-          reject(err);
-        });
-    });
-    if (count === 1)
-      return res.status(204).json({
-        status: "success",
-        message: "deleted successfully",
-      });
-    return res.status(404).json({
-      status: "failed",
-      message: "not found",
-    });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      status: "failed",
-      message: "Internal Server Error",
-    });
-  }
-});
+
 exports.reportedPost = async (_, res) => {
   try {
     const today = new Date();

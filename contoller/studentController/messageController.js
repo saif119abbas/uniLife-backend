@@ -166,9 +166,16 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
       u.username AS username,
       u.id AS otherPersonId,
       r.image AS userimage,
-      (SELECT COUNT(*) FROM messages m_unseen WHERE m_unseen.receiverId = s.id AND m_unseen.seen = 0) AS unseenMessageCount
-  FROM messages m
-  JOIN (
+      (
+          SELECT COUNT(*) 
+          FROM messages m_unseen 
+          WHERE (
+              (m_unseen.senderId = r.id AND m_unseen.receiverId = s.id)
+          )
+          AND m_unseen.seen = 0
+      ) AS unseenMessageCount
+FROM messages m
+JOIN (
       SELECT 
           MAX(m2.createdAt) AS lastMessageTime,
           CASE
@@ -180,12 +187,12 @@ exports.getMyMessage = catchAsync(async (req, res, next) => {
       WHERE m2.senderId = s.id OR m2.receiverId = s.id
       GROUP BY otherPersonId
   ) lastMessages ON (m.createdAt = lastMessages.lastMessageTime)
-  LEFT JOIN users u2 ON u2.id = ${userId}
-  LEFT JOIN students s ON s.userId = u2.id
-  LEFT JOIN students r ON lastMessages.otherPersonId = r.id
-  LEFT JOIN users u ON r.userId = u.id
-  WHERE (m.receiverId = s.id OR m.senderId= s.id) -- Only include messages where the user is the receiver
-  ORDER BY m.createdAt DESC;
+LEFT JOIN users u2 ON u2.id = ${userId}
+LEFT JOIN students s ON s.userId = u2.id
+LEFT JOIN students r ON lastMessages.otherPersonId = r.id
+LEFT JOIN users u ON r.userId = u.id
+WHERE (m.receiverId = s.id OR m.senderId= s.id) -- Only include messages where the user is the receiver
+ORDER BY m.createdAt DESC;
       `,
       {
         type: QueryTypes.SELECT,

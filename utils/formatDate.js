@@ -1,5 +1,4 @@
 exports.formatDate = (inputDay) => {
-  "2024-01-13T11:39:26.000Z";
   const today = new Date();
   const yesterday = new Date(today);
   const months = [
@@ -24,20 +23,30 @@ exports.formatDate = (inputDay) => {
     today.getMonth() === inputDay.getMonth() &&
     today.getDate() === inputDay.getDate()
   )
-    date = `today ${inputDay.getHours()}:${inputDay.getMinutes()}`;
+    date = `today ${inputDay.getHours()}:${inputDay
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   else if (
     yesterday.getFullYear() === inputDay.getFullYear() &&
     yesterday.getMonth() === inputDay.getMonth() &&
     yesterday.getDate() === inputDay.getDate()
   )
-    date = `yesterday ${inputDay.getHours()}:${inputDay.getMinutes()}`;
+    date = `yesterday ${inputDay.getHours()}:${inputDay
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   else {
     date = `${inputDay.getDate()}\/${
       months[inputDay.getMonth()]
-    }\/${inputDay.getFullYear()} ${inputDay.getHours()}:${inputDay.getMinutes()}`;
+    }\/${inputDay.getFullYear()} ${inputDay.getHours()}:${inputDay
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")}`;
   }
   return date;
 };
+
 exports.localFormatter = (date) => {
   console.log(date);
   const options = { day: "2-digit", month: "2-digit", year: "numeric" };

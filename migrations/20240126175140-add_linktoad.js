@@ -2,12 +2,12 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn("ads", "link", {
-      type: Sequelize.STRING,
-      allowNull: true,
-    });
+    // await queryInterface.addColumn("ads", "link", {
+    //   type: Sequelize.STRING,
+    //   allowNull: true,
+    // });
   },
   down: async (queryInterface, _) => {
-    await queryInterface.removeColumn("ads", "link");
+    // await queryInterface.removeColumn("ads", "link");
   },
 };

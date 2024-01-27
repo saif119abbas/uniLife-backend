@@ -19,6 +19,7 @@ const {
   lastReviewer,
   totalOrder,
   cancelOrder,
+  totalRevenu,
 } = require("../contoller/restaurant/orderController");
 const { addOffer } = require("../contoller/restaurant/offerController");
 const {
@@ -85,6 +86,7 @@ router.get("/newcustomer/:userId", protect, newCustomer);
 router.get("/totalorder/:userId", protect, totalOrder);
 router.get("/dashboard/food/:userId", protect, foodLastWeek);
 router.get("/lastreviwer/:userId", protect, lastReviewer);
+router.get("/totalrevenu/:userId", protect, totalRevenu);
 router.get("/rating/:userId", protect, getRating);
 router.patch(
   "/restaurantstatus/:userId",

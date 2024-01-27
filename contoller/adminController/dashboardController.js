@@ -240,3 +240,39 @@ exports.reportedPostCount = async (_, res) => {
       .json({ status: "failed", message: "Internal Server Error" });
   }
 };
+exports.totalUsers = async (_, res) => {
+  try {
+    const data = await new Promise((resolve, reject) => {
+      user
+        .findAll({
+          order: [["createdAt", "DESC"]],
+          attributes: ["id", "username", "email", "phoneNum"],
+          limit: 5,
+          where: {
+            role: process.env.STUDENT,
+          },
+          include: {
+            model: student,
+            attributes: ["blocked", "image", "id"],
+          },
+        })
+        .then((record) => resolve(record))
+        .catch((err) => reject(err));
+    });
+    const receivedData = data.map((item) => ({
+      id: item.id,
+      username: item.username,
+      email: item.email,
+      phoneNum: item.phoneNum,
+      blocked: item.student.blocked,
+      image: item.student.image,
+      studemtId: item.student.id,
+    }));
+    return res.status(200).json(receivedData);
+  } catch (err) {
+    console.log(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};

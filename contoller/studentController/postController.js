@@ -116,6 +116,7 @@ exports.createPost = catchAsync(async (req, res, next) => {
     await UploadFile(file.buffer, nameImage);
     const image = await getURL(nameImage);
     await post.update({ image }, { where: { id } });
+    console.log("Hey dude");
     return res.status(201).json({
       status: "success",
       message: "Post created successfully",
@@ -679,7 +680,7 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
           include: [
             {
               model: student,
-              attributes: ["id", "image", "major"],
+              attributes: ["userId", "image", "major"],
               include: [{ model: user, attributes: ["username"] }],
             },
           ],
@@ -705,6 +706,7 @@ exports.getMyReservePost = catchAsync(async (req, res, next) => {
         createdAt: post.createdAt,
         major: post.student.major,
         userImage: post.student.image,
+        userId: post.student.userId,
       });
     }
 

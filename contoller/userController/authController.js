@@ -13,7 +13,15 @@ const {
   getFiles,
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
-const { student, user, FCM, dormitory, restaurant } = require("../../models");
+const {
+  student,
+  user,
+  FCM,
+  restaurant,
+  dormitoryOwner,
+} = require("../../models");
+const { file } = require("googleapis/build/src/apis/file");
+const { resolve } = require("path");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   try {
@@ -49,28 +57,45 @@ exports.login = catchAsync(async (req, res, next) => {
     data.role = myUser.role;
     data.username = myUser.username;
     if (myUser.role === process.env.STUDENT) {
-      const studentId = await new Promise((resolve, reject) => {
+      const { studentId, blocked } = await new Promise((resolve, reject) => {
         student
-          .findOne({ where: { userId: data.id }, attributes: ["id"] })
+          .findOne({
+            where: { userId: data.id },
+            attributes: ["id", "blocked"],
+          })
           .then((record) => {
-            if (record) resolve(record.id);
+            const data = {
+              studentId: record.id,
+              blocked: record.blocked,
+            };
+            if (record) resolve(data);
           });
       });
+      data.blocked = blocked;
       await FCM.create({ token, studentId });
     }
     if (myUser.role === process.env.RESTAURANT) {
-      const image = await new Promise((resolve, reject) => {
+      console.log("Hello");
+      const { image, isOpen } = await new Promise((resolve, reject) => {
         restaurant
-          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .findOne({
+            where: { userId: data.id },
+            attributes: ["id", "image", "isOpen"],
+          })
           .then((record) => {
-            if (record) resolve(record.image);
+            const data = {
+              image: record.image,
+              isOpen: record.isOpen,
+            };
+            if (record) resolve(data);
           });
       });
       data.image = image;
+      data.isOpen = isOpen;
     }
     if (myUser.role === process.env.DORMITORY) {
       const image = await new Promise((resolve, reject) => {
-        dormitory
+        dormitoryOwner
           .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
           .then((record) => {
             if (record) resolve(record.image);
