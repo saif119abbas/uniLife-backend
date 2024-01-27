@@ -493,8 +493,10 @@ exports.lastReviewer = async (req, res, next) => {
   const { userId } = req.params;
 
   try {
-    const data = await order.findOne({
+    const data = await order.findAll({
       attributes: ["createdAt", "rating", "rateDesc"],
+      order: [["createdAt", "DESC"]],
+      limit: 10,
       where: {
         rating: {
           [Op.not]: null,
@@ -519,29 +521,18 @@ exports.lastReviewer = async (req, res, next) => {
       ],
     });
 
-    if (!data) {
+    if (data.length === 0) {
       console.log("HELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
-      return res.status(404).json({ error: "Record not found" });
+      return res.status(200).json([]);
     }
-
-    const {
-      createdAt,
-      rating,
-      rateDesc,
-      student: {
-        image,
-        user: { username },
-      },
-    } = data;
-
-    const responseData = {
-      date: createdAt,
-      rating,
-      content: rateDesc,
-      image,
-      reviewer: username,
-    };
-    console.log("RRRRRRRRRRRRRRRRRRRRRRRRRRRR", responseData);
+    const retrieveData = data.map((item) => ({
+      date: item.createdAt,
+      rating: item.rating,
+      content: item.rateDesc,
+      image: item.student.image,
+      reviewer: item.student.user.username,
+    }));
+    console.log("RRRRRRRRRRRRRRRRRRRRRRRRRRRR", retrieveData);
     res.status(200).json(responseData);
   } catch (error) {
     console.error("Error:", error);
@@ -627,6 +618,42 @@ exports.cancelOrder = async (req, res, next) => {
               throw err;
             });
       });
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
+};
+exports.totalRevenu = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const totalRevenu = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: [
+            {
+              model: order,
+              attributes: [
+                [
+                  Sequelize.fn("sum", Sequelize.col("totalPrice")),
+                  "totalRevenu",
+                ],
+              ],
+            },
+          ],
+        })
+        .then((record) => {
+          resolve(record.orders[0].dataValues.totalRevenu);
+          console.log(record.orders[0]);
+          // resolve(record);
+        })
+        .catch((err) => reject(err));
+    });
+
+    res.status(200).json({ totalRevenu });
   } catch (err) {
     return res.status(500).json({
       status: "failed",

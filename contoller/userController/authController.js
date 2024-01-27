@@ -76,18 +76,26 @@ exports.login = catchAsync(async (req, res, next) => {
     }
     if (myUser.role === process.env.RESTAURANT) {
       console.log("Hello");
-      const image = await new Promise((resolve, reject) => {
+      const { image, isOpen } = await new Promise((resolve, reject) => {
         restaurant
-          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .findOne({
+            where: { userId: data.id },
+            attributes: ["id", "image", "isOpen"],
+          })
           .then((record) => {
-            if (record) resolve(record.image);
+            const data = {
+              image: record.image,
+              isOpen: record.isOpen,
+            };
+            if (record) resolve(data);
           });
       });
       data.image = image;
+      data.isOpen = isOpen;
     }
     if (myUser.role === process.env.DORMITORY) {
       const image = await new Promise((resolve, reject) => {
-        dormitory
+        dormitoryOwner
           .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
           .then((record) => {
             if (record) resolve(record.image);
