@@ -20,6 +20,7 @@ const {
   addCatigory,
   reportedPost,
   removeMajor,
+  removeCategory,
 } = require("../contoller/adminController/postAction");
 const {
   addFloor,
@@ -126,8 +127,14 @@ router.get(
 );
 router.post("/major/:userId", protect, adminPermission, addMajor);
 router.delete("/major/:userId/:majorId", protect, adminPermission, removeMajor);
-router.delete("/major/:userId/:majorId", protect, adminPermission, removeMajor);
-router.post("/catigory/:userId", protect, adminPermission, addCatigory);
+router.post("/category/:userId", protect, adminPermission, addCatigory);
+router.delete(
+  "/category/:userId/:categoryId",
+  protect,
+  adminPermission,
+  removeCategory
+);
+
 router.post(
   "/faculty/:userId",
   protect,

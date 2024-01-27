@@ -13,7 +13,13 @@ const {
   getFiles,
 } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
-const { student, user, FCM } = require("../../models");
+const {
+  student,
+  user,
+  FCM,
+  restaurant,
+  dormitoryOwner,
+} = require("../../models");
 const { file } = require("googleapis/build/src/apis/file");
 const { resolve } = require("path");
 let expiresIn = "24h";
@@ -51,18 +57,50 @@ exports.login = catchAsync(async (req, res, next) => {
     data.role = myUser.role;
     data.username = myUser.username;
     if (myUser.role === process.env.STUDENT) {
-      const studentId = await new Promise((resolve, reject) => {
+      const { studentId, blocked } = await new Promise((resolve, reject) => {
         student
-          .findOne({ where: { userId: data.id }, attributes: ["id"] })
+          .findOne({
+            where: { userId: data.id },
+            attributes: ["id", "blocked"],
+          })
           .then((record) => {
-            if (record) resolve(record.id);
+            const data = {
+              studentId: record.id,
+              blocked: record.blocked,
+            };
+            if (record) resolve(data);
           });
       });
+      data.blocked = blocked;
       await FCM.create({ token, studentId });
+    }
+    if (myUser.role === process.env.RESTAURANT) {
+      console.log("Hello");
+      const image = await new Promise((resolve, reject) => {
+        restaurant
+          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .then((record) => {
+            if (record) resolve(record.image);
+          });
+      });
+      data.image = image;
+    }
+    if (myUser.role === process.env.DORMITORY) {
+      const image = await new Promise((resolve, reject) => {
+        dormitory
+          .findOne({ where: { userId: data.id }, attributes: ["id", "image"] })
+          .then((record) => {
+            if (record) resolve(record.image);
+          });
+      });
+      data.image = image;
     }
     return createSendToken(data, 200, expiresIn, res);
   } catch (error) {
     console.log(error);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
 });
 

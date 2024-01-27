@@ -66,7 +66,7 @@ router.get(
   RestauarntOrStuPermission,
   getMenu
 );
-router.get("/catigory/:userId", protect, adminOrStuPermission, getCatigory);
+router.get("/category/:userId", protect, adminOrStuPermission, getCatigory);
 router.get("/major/:userId", protect, adminOrStuPermission, getMajor);
 router.delete(
   "/post/:userId/:studentId/:postId",
@@ -79,5 +79,4 @@ router.get("/adds/:userId", protect, adminOrStuPermission, getAdds);
 router.get("/firebase", storeData);
 router.get("/firebaseget", retriveData);
 router.get("/downloadFile", downloadFile);
-//router.use(protect);
 module.exports = router;
