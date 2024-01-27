@@ -7,6 +7,7 @@ const {
   order,
   dormitoryPost,
   report,
+  student,
 } = require("../../models");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
@@ -14,37 +15,32 @@ exports.totalUsers = async (_, res) => {
   try {
     const today = new Date();
     const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 2);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     sevenDaysAgo.setHours(0, 0, 0, 0);
     const totalUsers = await new Promise((resolve, reject) => {
-      user
+      student
         .count({
           where: {
             createdAt: {
               [Op.gte]: sevenDaysAgo,
             },
           },
-          distinct: true,
+
           col: "id",
         })
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
-    const oldUser = await new Promise((resolve, reject) => {
-      user
+    const allUsers = await new Promise((resolve, reject) => {
+      student
         .count({
-          where: {
-            createdAt: {
-              [Op.lt]: sevenDaysAgo,
-            },
-          },
-          distinct: true,
           col: "id",
         })
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
-    return res.status(200).json({ totalUsers, oldUser });
+
+    return res.status(200).json({ totalUsers, allUsers });
   } catch (err) {
     console.log(err);
     return res
@@ -67,6 +63,7 @@ exports.totalPost = async (_, res) => {
               [Op.lt]: today,
               [Op.gte]: yesterday,
             },
+            reservedBy: null,
           },
           distinct: true,
           col: "id",
@@ -74,13 +71,11 @@ exports.totalPost = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
-    const oldPost = await new Promise((resolve, reject) => {
+    const allPosts = await new Promise((resolve, reject) => {
       post
         .count({
           where: {
-            createdAt: {
-              [Op.lt]: yesterday,
-            },
+            reservedBy: null,
           },
           distinct: true,
           col: "id",
@@ -88,7 +83,7 @@ exports.totalPost = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
-    return res.status(200).json({ totalPosts, oldPost });
+    return res.status(200).json({ totalPosts, allPosts });
   } catch (err) {
     console.log(err);
     return res
@@ -110,12 +105,7 @@ exports.popularRestaurant = async (_, res) => {
       `SELECT
       r.id,
       r.userId,
-      r.image,
-      r.rating,
-      r.restaurantDesc,
       u.username,
-      u.phoneNum,
-      
       COUNT(o.restaurantId) AS orderCount
     FROM
       restaurants as r
@@ -154,21 +144,17 @@ exports.topRestaurant = async (_, res) => {
     const data = await new Promise((resolve, reject) => {
       restaurant
         .findAll({
-          attributes: ["id", "image", "userId", "rating", "restaurantDesc"],
+          attributes: ["id", "image", "userId", "rating"],
           order: [["rating", "DESC"]],
-          limit: 2,
-          include: [
-            { model: user, attributes: ["username", "email", "phoneNum"] },
-          ],
+          include: [{ model: user, attributes: ["username"] }],
         })
         .then((record) => resolve(record))
         .catch((err) => reject(err));
     });
     let retrivedData = data.map((item) => ({
       ...item.get(),
-      username: item.user.username,
-      email: item.user.email,
-      phoneNum: item.user.phoneNum,
+      reviewer: item.user.username,
+
       user: undefined,
     }));
     return res.status(200).json(retrivedData);
@@ -185,7 +171,7 @@ exports.dormitoryPostCount = async (_, res) => {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
     lastWeek.setHours(0, 0, 0, 0);
-    const count = await new Promise((resolve, reject) => {
+    const todayDorms = await new Promise((resolve, reject) => {
       dormitoryPost
         .count({
           where: {
@@ -200,8 +186,17 @@ exports.dormitoryPostCount = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
+    const allDorms = await new Promise((resolve, reject) => {
+      dormitoryPost
+        .count({
+          distinct: true,
+          col: "id",
+        })
+        .then((count) => resolve(count))
+        .catch((err) => reject(err));
+    });
 
-    return res.status(200).json(count);
+    return res.status(200).json({ todayDorms, allDorms });
   } catch (err) {
     console.log(err);
     return res
@@ -240,7 +235,7 @@ exports.reportedPostCount = async (_, res) => {
       .json({ status: "failed", message: "Internal Server Error" });
   }
 };
-exports.totalUsers = async (_, res) => {
+/*exports.totalUsers = async (_, res) => {
   try {
     const data = await new Promise((resolve, reject) => {
       user
@@ -275,4 +270,4 @@ exports.totalUsers = async (_, res) => {
       .status(500)
       .json({ status: "failed", message: "Internal Server Error" });
   }
-};
+};*/

@@ -9,7 +9,7 @@ const {
   report,
 } = require("../../models");
 const { Op } = require("sequelize");
-const { formatDate } = require("../../utils/formatDate");
+const { formatDate, localFormatter } = require("../../utils/formatDate");
 exports.addMajor = catchAsync(async (req, res, next) => {
   const data = req.body;
   major
@@ -180,6 +180,7 @@ exports.searchPostByDate = async (req, res, next) => {
         username: item.student.user.username,
         studentId: item.studentId,
         blocked: item.student.blocked,
+        createdAt: formatDate(item.createdAt),
       };
       console.log(studentId);
       console.log(itemIsReported);

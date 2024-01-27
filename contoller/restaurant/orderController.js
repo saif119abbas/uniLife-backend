@@ -468,6 +468,7 @@ exports.foodLastWeek = async (req, res, next) => {
   WHERE
     o.createdAt BETWEEN :lower AND :upper
     AND r.userId = :userId
+    
   GROUP BY
     foodItem.foodId
   ORDER BY
@@ -495,11 +496,11 @@ exports.lastReviewer = async (req, res, next) => {
   try {
     const data = await order.findAll({
       attributes: ["createdAt", "rating", "rateDesc"],
-      order: [["createdAt", "DESC"]],
+      order: [["updatedAt", "DESC"]],
       limit: 10,
       where: {
         rating: {
-          [Op.not]: null,
+          [Op.gt]: 0,
         },
       },
       include: [
@@ -533,7 +534,7 @@ exports.lastReviewer = async (req, res, next) => {
       reviewer: item.student.user.username,
     }));
     console.log("RRRRRRRRRRRRRRRRRRRRRRRRRRRR", retrieveData);
-    res.status(200).json(responseData);
+    res.status(200).json(retrieveData);
   } catch (error) {
     console.error("Error:", error);
     res
