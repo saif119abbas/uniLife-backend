@@ -28,7 +28,9 @@ app.use(
   })
 );
 app.use(bodyParser.json());
-app.use(cors({ origin: "http://localhost:3001" }));
+app.use(
+  cors({ origin: "http://localhost:3001" }, { origin: "http://localhost:3002" })
+);
 app.use(cookieParser(process.env.SECRETKEY));
 app.use(process.env.BASE_URL, studentRouter);
 app.use(process.env.BASE_URL, adminRouter);

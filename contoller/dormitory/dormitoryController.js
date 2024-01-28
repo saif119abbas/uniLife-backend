@@ -149,6 +149,159 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
     return next(new AppError("An error occurred please try again", 500));
   }
 });
+exports.editDormitoryPost = catchAsync(async (req, res, next) => {
+  try {
+    const { userId, dormitoryPostId } = req.params;
+    const data = JSON.parse(req.body.data);
+    const file = req.file;
+    const dormitoryOwnerId = await new Promise((resolve, reject) => {
+      dormitoryOwner
+        .findOne({ where: { userId }, attributes: ["id"] })
+        .then((record) => {
+          if (record) resolve(record.id);
+        })
+        .catch((err) => reject(err));
+    });
+    if (file) {
+      const nameImage = `/dormitoryposts/${dormitoryPostId}_0`;
+      await UploadFile(file.buffer, nameImage);
+      const image = await getURL(nameImage);
+      console.log(image);
+      data.image = image;
+    }
+    await dormitoryPost
+      .update(data, { where: { id: dormitoryPostId, dormitoryOwnerId } })
+      .then(([count]) => {
+        if (count === 1) {
+          return res
+            .status(200)
+            .json({ status: "success", message: "Updated Successfully" });
+        } else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "this post not found" });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.log("My error:", err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+});
+exports.editRoom = async (req, res) => {
+  try {
+    const { userId, dormitoryPostId, roomId } = req.params;
+    const data = JSON.parse(req.body.data);
+
+    const file = req.file;
+    const dormitoryPosts = await new Promise((resolve, reject) => {
+      dormitoryOwner
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: {
+            model: dormitoryPost,
+            where: { id: dormitoryPostId },
+            attributes: ["id"],
+          },
+        })
+        .then((record) => {
+          if (record) resolve(record.dormitoryPosts);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (dormitoryPosts.length === 0 || !dormitoryPosts) {
+      return res.status(403).json({ status: "failed", message: "not allowed" });
+    }
+    if (file) {
+      const { URL } = data;
+
+      const numberImage = URL
+        ? URL.split("%2F")[1].split("?")[0]
+        : `${dormitoryPostId}_1000`;
+      const nameImage = `/dormitoryposts/${numberImage}`;
+      await UploadFile(file.buffer, nameImage);
+      const image = await getURL(nameImage);
+      console.log(image);
+      data.image = image;
+    }
+    data.URL = undefined;
+    await room
+      .update(data, { where: { id: roomId, dormitoryPostId } })
+      .then(([count]) => {
+        if (count === 1) {
+          return res
+            .status(200)
+            .json({ status: "success", message: "Upddated Successfully" });
+        } else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "this post not found" });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.log("My error:", err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.addRoom = async (req, res) => {
+  try {
+    const { userId, dormitoryPostId } = req.params;
+    console.log(req.body.data);
+    const data = JSON.parse(req.body.data);
+    const file = req.file;
+    const numberOfRoom = await new Promise((resolve, reject) => {
+      dormitoryOwner
+        .findOne({
+          where: { userId },
+          attributes: ["id"],
+          include: {
+            model: dormitoryPost,
+            where: { id: dormitoryPostId },
+            attributes: ["id", "numberOfRoom"],
+          },
+        })
+        .then((record) => {
+          if (record) resolve(record?.dormitoryPosts[0].numberOfRoom);
+        })
+        .catch((err) => reject(err));
+    });
+    if (!numberOfRoom) {
+      return res.status(403).json({ status: "failed", message: "not allowed" });
+    }
+
+    const nameImage = `/dormitoryposts/${dormitoryPostId}_${numberOfRoom + 1}`;
+    await UploadFile(file.buffer, nameImage);
+    const image = await getURL(nameImage);
+    console.log(image);
+    data.image = image;
+    await room.create({ ...data, dormitoryPostId }).then(async (record) => {
+      await dormitoryPost.update(
+        { numberOfRoom: numberOfRoom + 1 },
+        { where: { id: dormitoryPostId } }
+      );
+      return res.status(201).json({
+        status: "success",
+        message: "added Successfully",
+        id: record.id,
+      });
+    });
+  } catch (err) {
+    console.log("My error:", err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
 exports.assignUser = async (req, res) => {
   try {
     const { phoneNum } = req.body;
@@ -217,5 +370,67 @@ exports.assignUser = async (req, res) => {
       status: "failed",
       message: "Internal Server Error",
     });
+  }
+};
+exports.deleteRoom = async (req, res) => {
+  try {
+    const { userId, dormitoryPostId, roomId } = req.params;
+    const dormitoryPosts = await new Promise((resolve, reject) => {
+      dormitoryOwner
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: {
+            model: dormitoryPost,
+            where: { id: dormitoryPostId },
+            attributes: ["id"],
+            include: {
+              model: room,
+              where: { id: roomId },
+              attributes: ["image"],
+            },
+          },
+        })
+        .then((record) => {
+          if (record) resolve(record.dormitoryPosts);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (dormitoryPosts.length === 0 || !dormitoryPosts) {
+      return res.status(403).json({ status: "failed", message: "not allowed" });
+    }
+    console.log("hhh=", dormitoryPosts[0].rooms[0].image);
+    const URL = dormitoryPosts[0].rooms[0].image;
+
+    await room
+      .destroy({ where: { id: roomId, dormitoryPostId } })
+      .then(async (count) => {
+        //console.log(count);
+        if (count === 1) {
+          {
+            if (URL) {
+              const numberImage = URL.split("%2F")[1].split("?")[0];
+              const nameImage = `/dormitoryposts/${numberImage}`;
+              await deleteFile(nameImage);
+            }
+            return res
+              .status(204)
+              .json({ status: "success", message: "deleted Successfully" });
+          }
+        } else
+          return res
+            .status(404)
+            .json({ status: "failed", message: "this post not found" });
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.log("My error:", err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
 };

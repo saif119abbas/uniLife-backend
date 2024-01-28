@@ -223,7 +223,7 @@ exports.getMyPosts = catchAsync(async (req, res, next) => {
       ],
     });
     if (!myPosts) return res.status(200).json([]);
-    return res.status(200).json({ data: myPosts });
+    return res.status(200).json(myPosts);
   } catch (err) {
     console.log("The error", err);
     return res.status(500).json({

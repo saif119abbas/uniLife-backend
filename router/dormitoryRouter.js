@@ -4,6 +4,10 @@ const {
   addDormitoryPost,
   deleteDormitoryPost,
   assignUser,
+  editDormitoryPost,
+  editRoom,
+  addRoom,
+  deleteRoom,
 } = require("../contoller/dormitory/dormitoryController");
 const { upload } = require("../images/handleImag");
 const { getMyPosts } = require("../contoller/dormitory/externalController");
@@ -37,5 +41,32 @@ router.patch(
   protect,
   dormitoryPermission,
   assignUser
+);
+router.patch(
+  "/dormitory/:userId/:dormitoryPostId",
+  protect,
+  dormitoryPermission,
+  upload.single("image"),
+  editDormitoryPost
+);
+router.patch(
+  "/room/:userId/:dormitoryPostId/:roomId",
+  protect,
+  dormitoryPermission,
+  upload.single("image"),
+  editRoom
+);
+router.post(
+  "/room/:userId/:dormitoryPostId",
+  protect,
+  dormitoryPermission,
+  upload.single("image"),
+  addRoom
+);
+router.delete(
+  "/room/:userId/:dormitoryPostId/:roomId",
+  protect,
+  dormitoryPermission,
+  deleteRoom
 );
 module.exports = router;
