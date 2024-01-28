@@ -495,7 +495,7 @@ exports.lastReviewer = async (req, res, next) => {
   try {
     const data = await order.findAll({
       attributes: ["createdAt", "rating", "rateDesc"],
-      order: [["createdAt", "DESC"]],
+      order: [["updatedAt", "DESC"]],
       limit: 10,
       where: {
         rating: {
