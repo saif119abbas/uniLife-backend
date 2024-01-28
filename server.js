@@ -10,7 +10,7 @@ const {
   sendMessage,
   sendImage,
   seenMessage,
-} = require("./SocketMethods/createMessage");
+} = require("./socketMethods/createMessage");
 
 const io = new Server(server, {
   cors: {
