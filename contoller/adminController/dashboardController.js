@@ -154,8 +154,10 @@ exports.topRestaurant = async (_, res) => {
     let retrivedData = data.map((item) => ({
       ...item.get(),
       reviewer: item.user.username,
+
       email: item.user.email,
       phoneNum: item.user.phoneNum,
+
       user: undefined,
     }));
     return res.status(200).json(retrivedData);
@@ -172,7 +174,7 @@ exports.dormitoryPostCount = async (_, res) => {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
     lastWeek.setHours(0, 0, 0, 0);
-    const count = await new Promise((resolve, reject) => {
+    const todayDorms = await new Promise((resolve, reject) => {
       dormitoryPost
         .count({
           where: {
@@ -187,7 +189,11 @@ exports.dormitoryPostCount = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
-    const allPosts = await new Promise((resolve, reject) => {
+
+    
+
+    const allDorms = await new Promise((resolve, reject) => {
+ main
       dormitoryPost
         .count({
           distinct: true,
@@ -197,7 +203,8 @@ exports.dormitoryPostCount = async (_, res) => {
         .catch((err) => reject(err));
     });
 
-    return res.status(200).json({ count, allPosts });
+
+    return res.status(200).json({ todayDorms, allDorms });
   } catch (err) {
     console.log(err);
     return res
