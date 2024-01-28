@@ -79,15 +79,30 @@ router.patch(
   restaurantPermission,
   cancelOrder
 );
-router.get("/weeklydashboard/:userId", protect, weeklyDashboard);
-router.get("/dailyrevenue/:userId", protect, dailyDashboard);
-router.get("/totalpeople/:userId", protect, totalPeople);
-router.get("/newcustomer/:userId", protect, newCustomer);
-router.get("/totalorder/:userId", protect, totalOrder);
-router.get("/dashboard/food/:userId", protect, foodLastWeek);
-router.get("/lastreviwer/:userId", protect, lastReviewer);
-router.get("/totalrevenu/:userId", protect, totalRevenu);
-router.get("/rating/:userId", protect, getRating);
+router.get(
+  "/weeklydashboard/:userId",
+  protect,
+  restaurantPermission,
+  weeklyDashboard
+);
+router.get(
+  "/dailyrevenue/:userId",
+  protect,
+  restaurantPermission,
+  dailyDashboard
+);
+router.get("/totalpeople/:userId", protect, restaurantPermission, totalPeople);
+router.get("/newcustomer/:userId", protect, restaurantPermission, newCustomer);
+router.get("/totalorder/:userId", protect, restaurantPermission, totalOrder);
+router.get(
+  "/dashboard/food/:userId",
+  protect,
+  restaurantPermission,
+  foodLastWeek
+);
+router.get("/lastreviwer/:userId", protect, restaurantPermission, lastReviewer);
+router.get("/totalrevenu/:userId", protect, restaurantPermission, totalRevenu);
+router.get("/rating/:userId", protect, restaurantPermission, getRating);
 router.patch(
   "/restaurantstatus/:userId",
   protect,
