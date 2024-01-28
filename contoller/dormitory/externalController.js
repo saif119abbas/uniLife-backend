@@ -88,7 +88,9 @@ exports.getAllDormitoryPost = async (req, res) => {
         {
           model: room,
           where: condition2,
-
+          where: {
+            numberOfPerson: { [Op.gt]: 0 },
+          },
           attributes: [
             "id",
             "type",
@@ -113,6 +115,7 @@ exports.getAllDormitoryPost = async (req, res) => {
       console.log("post:", post);
       const saved =
         ids.find((id) => id === parseInt(post.id)) !== undefined ? true : false;
+      if (post.rooms.length === 0 && !saved) continue;
 
       const item = {
         id: post.id,

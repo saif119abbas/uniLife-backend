@@ -13,6 +13,7 @@ exports.getResturants = catchAsync(async (_, res) => {
   const data = await user.findAll({
     attributes: ["id", "username", "email", "phoneNum", "createdAt"],
     where: { role: process.env.RESTAURANT },
+    order: [[{ model: restaurant }, "rating", DESC]],
     include: [
       {
         model: restaurant,

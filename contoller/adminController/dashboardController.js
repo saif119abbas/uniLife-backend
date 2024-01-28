@@ -155,6 +155,9 @@ exports.topRestaurant = async (_, res) => {
       ...item.get(),
       reviewer: item.user.username,
 
+      email: item.user.email,
+      phoneNum: item.user.phoneNum,
+
       user: undefined,
     }));
     return res.status(200).json(retrivedData);
@@ -186,7 +189,11 @@ exports.dormitoryPostCount = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
+
+    
+
     const allDorms = await new Promise((resolve, reject) => {
+ main
       dormitoryPost
         .count({
           distinct: true,
@@ -195,6 +202,7 @@ exports.dormitoryPostCount = async (_, res) => {
         .then((count) => resolve(count))
         .catch((err) => reject(err));
     });
+
 
     return res.status(200).json({ todayDorms, allDorms });
   } catch (err) {
