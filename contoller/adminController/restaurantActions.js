@@ -46,14 +46,14 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
           if (record) {
             res.locals.restaurantId = record.id;
             resolve(record.id);
-            next();
+            return next();
           }
         })
         .catch((err) => {
           reject(err);
         });
     });
-    if (restaurantId) return next();
+    //if (restaurantId) return next();
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
       return res.status(409).json({

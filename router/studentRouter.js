@@ -76,7 +76,7 @@ const {
 } = require("../contoller/studentController/notificationController");
 const router = express.Router();
 //router.use(protect);
-router.post("/signup", upload.single("image"), validtaeSignup, signup);
+router.post("/signup", validtaeSignup, signup);
 router.delete("/logout/:userId", protect, studentPermission, logout);
 router.post("/verify", verify, createSchedule);
 router.patch("/profile/:userId", protect, upload.single("image"), editProfile);

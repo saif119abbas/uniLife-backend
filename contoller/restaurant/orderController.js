@@ -313,8 +313,7 @@ exports.dailyDashboard = catchAsync(async (req, res, next) => {
             attributes: ["totalPrice"],
             where: {
               createdAt: {
-                [Op.gte]: lower,
-                [Op.lt]: upper,
+                [Op.gt]: lower,
               },
             },
           },
@@ -427,13 +426,13 @@ exports.newCustomer = async (req, res, next) => {
 exports.totalOrder = async (req, res, next) => {
   const userId = req.params.userId;
   const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
   const count = await new Promise((resolve) => {
     order
       .count({
         where: {
           createdAt: {
-            [Op.gte]: sevenDaysAgo,
+            [Op.gt]: sevenDaysAgo,
           },
         },
         col: "studentId",

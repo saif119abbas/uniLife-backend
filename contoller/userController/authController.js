@@ -154,7 +154,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
     req.session.verifyMessage = createMessage();
     console.log("verify", req.session.verifyMessage);
-    //transportMessage(req.session.verifyMessage, createdUser.email);
+    transportMessage(req.session.verifyMessage, createdUser.email);
     stratTime = Date.now();
     expiresIn = "60s";
     res.status(200).json({

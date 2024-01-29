@@ -187,7 +187,6 @@ exports.dormitoryPostCount = async (_, res) => {
     });
 
     const allDorms = await new Promise((resolve, reject) => {
-      main;
       dormitoryPost
         .count({
           distinct: true,

@@ -40,11 +40,12 @@ exports.getAllDormitoryPost = async (req, res) => {
     ids = ids.map((item) => item.dormitoryPostId);
     console.log("ids=", ids);
     let condition1 = {};
-    let condition2 = {};
+    let condition2 = { numberOfPerson: { [Op.gt]: 0 } };
     let { type, distance, gender, order, price } = req.query;
     type = type.toLowerCase();
     gender = gender.toLowerCase();
     console.log(type, distance, gender, order, price);
+
     let DESC = "DESC";
     if (distance) {
       condition1 = { ...condition1, distance: { [Op.lte]: distance } };
@@ -56,9 +57,11 @@ exports.getAllDormitoryPost = async (req, res) => {
       condition2 = { ...condition2, type };
     }
     if (price) {
+      console.log("price", price);
       condition2 = { ...condition2, rent: { [Op.lte]: price } };
       DESC = order;
     }
+    console.log("COND", condition2);
     console.log("D:", DESC);
     const dorimtoryPosts = await dormitoryPost.findAll({
       where: condition1,
@@ -87,10 +90,9 @@ exports.getAllDormitoryPost = async (req, res) => {
         },
         {
           model: room,
+
           where: condition2,
-          where: {
-            numberOfPerson: { [Op.gt]: 0 },
-          },
+
           attributes: [
             "id",
             "type",
@@ -194,6 +196,8 @@ exports.getPost = catchAsync(async (req, res, next) => {
   }
 });
 exports.getMyPosts = catchAsync(async (req, res, next) => {
+  const { userId } = req.params;
+  console.log("gggg", userId);
   try {
     const myPosts = await dormitoryPost.findAll({
       attributes: [
@@ -219,6 +223,12 @@ exports.getMyPosts = catchAsync(async (req, res, next) => {
             "image",
             "avilableSeat",
           ],
+        },
+        {
+          model: dormitoryOwner,
+          where: { userId },
+          attributes: ["image"],
+          include: [{ model: user, attributes: ["phoneNum"] }],
         },
       ],
     });

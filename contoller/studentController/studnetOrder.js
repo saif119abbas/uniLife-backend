@@ -591,9 +591,9 @@ exports.paypalOrder = async (req, res) => {
       },
       redirect_urls: {
         return_url:
-          "http://192.168.1.8:3000/api/v1/unilife/payment/order/success",
+          "http://192.168.1.10:3000/api/v1/unilife/payment/order/success",
         cancel_url:
-          "http://192.168.1.8:3000/api/v1/unilife/payment/order/cancel",
+          "http://192.168.1.10:3000/api/v1/unilife/payment/order/cancel",
       },
       transactions: [
         {
@@ -657,7 +657,6 @@ exports.paypalExecute = (req, res) => {
         if (error) {
           console.log(error.response);
           res.render("cancelled");
-          throw error;
         } else {
           console.log("Get Payment Response");
           console.log(JSON.stringify(payment));

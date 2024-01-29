@@ -19,26 +19,30 @@ const { resolve } = require("path");
 
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
-  for (const name of majors) {
-    try {
-      const majorId = await new Promise((resolve, reject) => {
-        major
-          .findOne({ attributes: ["id"], where: { name } })
-          .then((record) => {
-            console.log("The major id", record.id);
-            if (record.id) {
-              console.log("Found");
-              resolve(record.id);
-            } else
-              reject(new AppError("An error occurred please try again", 500));
-          });
-      });
-      console.log("next:", majorId);
-      const Item = { majorId, postId };
-      await postMajor.create(Item);
-    } catch (err) {
-      console.log("The err", err);
-      return next(new AppError("An error occurred please try again", 500));
+  console.log(majors);
+  let majorId = null;
+  if (majors[0].toLowerCase() !== "all") {
+    for (const name of majors) {
+      try {
+        majorId = await new Promise((resolve, reject) => {
+          major
+            .findOne({ attributes: ["id"], where: { name } })
+            .then((record) => {
+              console.log("The major id", record.id);
+              if (record.id) {
+                console.log("Found");
+                resolve(record.id);
+              } else
+                reject(new AppError("An error occurred please try again", 500));
+            });
+        });
+        console.log("next:", majorId);
+        const Item = { majorId, postId };
+        await postMajor.create(Item);
+      } catch (err) {
+        console.log("The err", err);
+        return next(new AppError("An error occurred please try again", 500));
+      }
     }
   }
 };
@@ -82,20 +86,22 @@ exports.createPost = catchAsync(async (req, res, next) => {
     });
 
     const studentId = myStudent.id;
+    let catigoryId = null;
     console.log("req.file:", req.file); // Correctly log the uploaded file
-
-    const catigoryId = await new Promise((resolve, reject) => {
-      catigory
-        .findOne({ attributes: ["id"], where: { name: data.catigory } })
-        .then((record) => {
-          if (!record || record.length === 0)
-            return res.status(404).json({
-              status: "failed",
-              message: "this catigory is not found",
-            });
-          resolve(record.id);
-        });
-    });
+    if (data.catigory.toLowerCase() !== "other") {
+      catigoryId = await new Promise((resolve, reject) => {
+        catigory
+          .findOne({ attributes: ["id"], where: { name: data.catigory } })
+          .then((record) => {
+            if (!record || record.length === 0)
+              return res.status(404).json({
+                status: "failed",
+                message: "this catigory is not found",
+              });
+            resolve(record.id);
+          });
+      });
+    }
     const file = req.file;
 
     const postData = {
@@ -279,7 +285,8 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     };
   }
   let ids = [];
-  if (myCatigory && myCatigory.toLowerCase() !== "all") {
+  console.log(myCatigory);
+  if (myCatigory && myCatigory.toLowerCase() !== "other") {
     const catigoryId = await new Promise((resolve, reject) => {
       catigory
         .findOne({
@@ -297,21 +304,24 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       student
         .findOne({ where: { userId }, attributes: ["major"] })
         .then((record) => {
-          resolve(record);
+          resolve(record.major);
         })
         .catch((err) => {
           reject(err);
         });
     });
+    console.log(name);
     const majors = await major.findOne({
       attributes: ["id"],
       where: { name },
     });
-    const majorsId = majors.map((item) => item.id);
+    console.log("IDDDD:", majors);
+    const majorsId = majors;
     const Items = await postMajor.findAll({
       attributes: ["postId"],
-      where: { majorId: { [Op.in]: majorsId } },
+      where: { majorId: majorsId.id },
     });
+    console.log("Items:", Items);
     ids = Items.map((item) => item.postId);
     condition = { ...condition, id: { [Op.in]: ids } };
   }
@@ -545,7 +555,7 @@ exports.unReservesdPost = async (req, res) => {
           const data = {
             studentId: status ? reservedBy : studentId2,
             type: "reservepost",
-            text: `The user ${username} cancel reserve your item`,
+            text: `user ${username} cancelled reservation of your item`,
             image,
           };
           FCMs.map(async (item) => {

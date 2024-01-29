@@ -43,10 +43,10 @@ router.get("/user", getUser);
 router.post("/forgetPassword", validtaeForgetPassword, forrgetPassword);
 router.post(
   "/verifyUpdatePassword",
-  validtaeVerifyUpdatePassword,
+
   verifyUpdatePassword
 );
-router.post("/restPassword", protect, validtaeResetPassword, restPassword);
+router.post("/resetPassword", restPassword);
 router.patch("/password/:userId", protect, editPassword);
 router.get(
   "/restaurants/:userId",
@@ -67,7 +67,7 @@ router.get(
   getMenu
 );
 router.get("/category/:userId", protect, adminOrStuPermission, getCatigory);
-router.get("/major/:userId", protect, adminOrStuPermission, getMajor);
+router.get("/major", getMajor);
 router.delete(
   "/post/:userId/:studentId/:postId",
   protect,

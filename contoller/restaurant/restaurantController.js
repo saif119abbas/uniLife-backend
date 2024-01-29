@@ -182,6 +182,7 @@ exports.getMenu = catchAsync(async (req, res, next) => {
 });
 exports.editFoodItem = catchAsync(async (req, res, next) => {
   const userId = req.params.userId;
+  const foodId = req.params.foodId;
   const myFoodItem = JSON.parse(req.body.data);
   const file = req.file;
   if (file) {
@@ -206,7 +207,7 @@ exports.editFoodItem = catchAsync(async (req, res, next) => {
       status: "failed",
       message: "not found",
     });
-  const foodId = req.params.foodId;
+
   const menuId = myMenu.menuId;
   console.log("menuId: ", menuId);
   foodItem

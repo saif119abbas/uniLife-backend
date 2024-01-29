@@ -29,7 +29,7 @@ exports.addAds = async (req, res) => {
     await ads
       .update({ image }, { where: { id } })
       .then(([count]) => {
-        return res.status(200).json({
+        return res.status(201).json({
           status: "success",
           message: "created successfully",
         });

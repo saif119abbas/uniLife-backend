@@ -22,11 +22,11 @@ exports.forrgetPassword = catchAsync(async (req, res) => {
     });
   const email = myUser.email;
   verifyMessage = createMessage();
- /* transportMessage(verifyMessage, email);
+  transportMessage(verifyMessage, email);
   const myToken = {
     status: "success",
     message: "check your email",
-  };*/
+  };
   createSendToken(myToken, 200, "30s", res);
 });
 exports.verifyUpdatePassword = catchAsync(async (req, res) => {
@@ -35,7 +35,7 @@ exports.verifyUpdatePassword = catchAsync(async (req, res) => {
       id: verifyMessage,
     };
     verifyMessage = "";
-    createSendToken(data, 200, "60s", res);
+    return createSendToken(data, 200, "60s", res);
   }
   return res.status(401).json({
     status: "failed",
@@ -52,8 +52,8 @@ exports.restPassword = catchAsync(async (req, res, next) => {
   const email = req.session.email;
   console.log(email);
 
-  if (data.confirmedPassword === data.newPassword) {
-    bcrypt.hash(data.newPassword, 12, (err, hash) => {
+  if (data.password === data.confirmPassword) {
+    bcrypt.hash(data.password, 12, (err, hash) => {
       if (err)
         return next(new AppError("an error occured please try again", 500));
       user
