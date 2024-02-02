@@ -152,8 +152,8 @@ exports.getMessage = catchAsync(async (req, res, next) => {
 exports.getMyMessage = catchAsync(async (req, res, next) => {
   try {
     const Sequelize = require("sequelize");
-    const sequelize = new Sequelize(databaseName, "root", "", {
-      host: "localhost",
+    const sequelize = new Sequelize(databaseName, "admin", "1234saiF", {
+      host: "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
       dialect: "mysql",
     });
     const userId = req.params.userId;

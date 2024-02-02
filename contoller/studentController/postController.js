@@ -255,113 +255,118 @@ exports.deletePost = catchAsync(async (req, res, next) => {
   }
 });
 exports.getPostStudent = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const pageNumber = req.params.pageNumber;
+  try {
+    const userId = req.params.userId;
+    const pageNumber = req.params.pageNumber;
 
-  const { myCatigory, myMajor, description } = req.query;
-  console.log(myMajor, myCatigory);
-  const studentId = await new Promise((resolve, reject) => {
-    student
-      .findOne({ attributes: ["id"], where: { userId } })
-      .then((record) => {
-        if (record.id) resolve(record.id);
-        else
-          res.status(400).json({
-            status: "failed",
-            message: "not found user",
-          });
-      })
-      .catch((err) => {
-        reject(err);
-      });
-  });
-  // console.log("body", req.body);
-
-  let condition = { studentId: { [Op.not]: studentId }, reservedBy: null };
-  if (description) {
-    condition = {
-      ...condition,
-      description: { [Op.like]: ` %${description}%` },
-    };
-  }
-  let ids = [];
-  console.log(myCatigory);
-  if (myCatigory && myCatigory.toLowerCase() !== "other") {
-    const catigoryId = await new Promise((resolve, reject) => {
-      catigory
-        .findOne({
-          attributes: ["id"],
-          where: { name: myCatigory },
-        })
+    const { myCatigory, myMajor, description } = req.query;
+    console.log(myMajor, myCatigory);
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ attributes: ["id"], where: { userId } })
         .then((record) => {
           if (record.id) resolve(record.id);
-        });
-    });
-    if (catigoryId) condition = { ...condition, catigoryId };
-  }
-  if (myMajor && myMajor.toLowerCase() !== "all") {
-    const name = await new Promise((resolve, reject) => {
-      student
-        .findOne({ where: { userId }, attributes: ["major"] })
-        .then((record) => {
-          resolve(record.major);
+          else
+            res.status(400).json({
+              status: "failed",
+              message: "not found user",
+            });
         })
         .catch((err) => {
           reject(err);
         });
     });
-    console.log(name);
-    const majors = await major.findOne({
-      attributes: ["id"],
-      where: { name },
-    });
-    console.log("IDDDD:", majors);
-    const majorsId = majors;
-    const Items = await postMajor.findAll({
-      attributes: ["postId"],
-      where: { majorId: majorsId.id },
-    });
-    console.log("Items:", Items);
-    ids = Items.map((item) => item.postId);
-    condition = { ...condition, id: { [Op.in]: ids } };
-  }
-  console.log("ids", ids);
+    // console.log("body", req.body);
 
-  const posts = await post.findAll({
-    where: condition,
-    attributes: ["id", "studentId", "image", "description", "createdAt"],
-    include: [
-      {
-        model: student,
-        attributes: ["userId", "image", "major"],
-        include: [
-          {
-            model: user,
-            attributes: ["username"],
-          },
-        ],
-      },
-    ],
-    offset: (pageNumber - 1) * 2,
-    limit: 2,
-  });
-  console.log(myCatigory, myMajor);
-  if (!posts || posts.length === 0) return res.status(200).json([]);
-  const data = posts.map((post) => {
-    return {
-      id: post.id,
-      description: post.description,
-      image: post.image,
-      studentId: post.studentId,
-      createdAt: post.createdAt,
-      username: post.student.user.username,
-      userId: post.student.userId,
-      userImage: post.student.image,
-      major: post.student.major,
-    };
-  });
-  console.log(data);
-  res.status(200).json(data);
+    let condition = { studentId: { [Op.not]: studentId }, reservedBy: null };
+    if (description) {
+      condition = {
+        ...condition,
+        description: { [Op.like]: `%${description}%` },
+      };
+    }
+    let ids = [];
+    console.log(myCatigory);
+    if (myCatigory && myCatigory.toLowerCase() !== "all") {
+      const catigoryId = await new Promise((resolve, reject) => {
+        catigory
+          .findOne({
+            attributes: ["id"],
+            where: { name: myCatigory },
+          })
+          .then((record) => {
+            if (record.id) resolve(record.id);
+          });
+      });
+      if (catigoryId) condition = { ...condition, catigoryId };
+    }
+    if (myMajor && myMajor.toLowerCase() !== "all") {
+      const name = await new Promise((resolve, reject) => {
+        student
+          .findOne({ where: { userId }, attributes: ["major"] })
+          .then((record) => {
+            resolve(record.major);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      });
+      console.log(name);
+      const majors = await major.findOne({
+        attributes: ["id"],
+        where: { name },
+      });
+      console.log("IDDDD:", majors);
+      const majorsId = majors;
+      const Items = await postMajor.findAll({
+        attributes: ["postId"],
+        where: { majorId: majorsId.id },
+      });
+      console.log("Items:", Items);
+      ids = Items.map((item) => item.postId);
+      condition = { ...condition, id: { [Op.in]: ids } };
+    }
+    console.log("ids", ids);
+    console.log(condition);
+    const posts = await post.findAll({
+      where: condition,
+      attributes: ["id", "studentId", "image", "description", "createdAt"],
+      include: [
+        {
+          model: student,
+          attributes: ["userId", "image", "major"],
+          include: [
+            {
+              model: user,
+              attributes: ["username"],
+            },
+          ],
+        },
+      ],
+      offset: (pageNumber - 1) * 2,
+      limit: 2,
+    });
+    console.log(myCatigory, myMajor);
+    if (!posts || posts.length === 0) return res.status(200).json([]);
+    const data = posts.map((post) => {
+      return {
+        id: post.id,
+        description: post.description,
+        image: post.image,
+        studentId: post.studentId,
+        createdAt: post.createdAt,
+        username: post.student.user.username,
+        userId: post.student.userId,
+        userImage: post.student.image,
+        major: post.student.major,
+      };
+    });
+
+    console.log(data);
+    res.status(200).json(data);
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
 });
 exports.reservesdPost = catchAsync(async (req, res, next) => {
   try {
