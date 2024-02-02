@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 const { UploadFile, getURL } = require("../../firebaseConfig");
 
 const AppError = require("../../utils/appError");
-const { restaurant, menu, user, foodItem } = require("../../models");
+const { restaurant, menu, user, foodItem, order } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
 exports.addRestaurant = catchAsync(async (req, res, next) => {
   console.log("edited");
@@ -46,6 +46,7 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
           if (record) {
             res.locals.restaurantId = record.id;
             resolve(record.id);
+
             return next();
           }
         })
@@ -61,7 +62,10 @@ exports.addRestaurant = catchAsync(async (req, res, next) => {
         message: "This account is already created",
       });
     console.log(err);
-    return next(new AppError("an error occurred please try again", 500));
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 });
 exports.createMenu = catchAsync(async (req, res, next) => {
@@ -70,7 +74,7 @@ exports.createMenu = catchAsync(async (req, res, next) => {
   };
   menu
     .create(menuData)
-    .then(() => {
+    .then(async (record) => {
       return res.status(201).json({
         status: "success",
         message: "created successfully",
@@ -138,7 +142,7 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
     }
   } catch (err) {
     if (err.name === "SequelizeUniqueConstraintError")
-      res.status(409).json({
+      return res.status(409).json({
         status: "failed",
         message: "This account is already created",
       });
@@ -148,46 +152,52 @@ exports.editRestaurant = catchAsync(async (req, res, next) => {
   }
 });
 exports.deleteRestaurant = catchAsync(async (req, res, next) => {
-  const userId = req.params.restaurantId;
-  await restaurant
-    .destroy({ where: { userId } })
-    .then((deleteCount) => {
-      if (deleteCount > 1)
-        return next(new AppError("Somethig went wrong please try again", 500));
-      else if (deleteCount === 1) {
-        user
-          .destroy({ where: { id: userId, role: process.env.RESTAURANT } })
-          .then((count2) => {
-            console.log("deleteCount=", count2);
-            if (count2 > 1)
-              return next(
-                new AppError("Somethig went wrong please try again", 500)
-              );
-            else if (count2 === 1) return res.status(204).json({});
-            else if (count2 === 0)
-              res.status(404).json({
-                status: "failed",
-                message: "not found1",
-              });
-          })
-          .catch((err) => {
-            console.log("my error: ", err);
-            if (err)
-              return next(
-                new AppError("An error occured please try again"),
-                500
-              );
+  try {
+    const userId = req.params.restaurantId;
+    const restaurantId = res.locals.restaurantId;
+    await order.destroy({ where: { restaurantId } });
+    await restaurant
+      .destroy({ where: { userId } })
+      .then((deleteCount) => {
+        if (deleteCount > 1)
+          return next(
+            new AppError("Somethig went wrong please try again", 500)
+          );
+        else if (deleteCount === 1) {
+          user
+            .destroy({ where: { id: userId, role: process.env.RESTAURANT } })
+            .then((count2) => {
+              console.log("deleteCount=", count2);
+              if (count2 > 1)
+                return next(
+                  new AppError("Somethig went wrong please try again", 500)
+                );
+              else if (count2 === 1) return res.status(204).json({});
+              else if (count2 === 0)
+                res.status(404).json({
+                  status: "failed",
+                  message: "not found1",
+                });
+            })
+            .catch((err) => {
+              throw err;
+            });
+        } else if (deleteCount === 0)
+          res.status(404).json({
+            status: "failed",
+            message: "This restaurant was not found2",
           });
-      } else if (deleteCount === 0)
-        res.status(404).json({
-          status: "failed",
-          message: "This restaurant was not found2",
-        });
-    })
-    .catch((err) => {
-      if (err)
-        return next(new AppError("An error occured please try again"), 500);
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    console.log("my error: ", err);
+    res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
     });
+  }
 });
 exports.deleteMenu = catchAsync(async (req, res, next) => {
   const userId = req.params.restaurantId;
@@ -222,6 +232,7 @@ exports.deleteMenu = catchAsync(async (req, res, next) => {
         message: "Internal Server Error",
       });
     });
+  res.locals.restaurantId = restaurantId;
 });
 /*exports.editCardID = catchAsync(async (req, res, next) => {
   const cardID = req.body.cardID;

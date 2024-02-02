@@ -191,9 +191,7 @@ exports.getLocation = catchAsync(async (req, res) => {
     console.log(classrooms);
     data.rightLeft = dir * (classrooms.length + 1);
     console.log(data);
-    return res.status(200).json({
-      data,
-    });
+    return res.status(200).json(data);
   } catch (err) {
     console.log("err:", err);
     return res.status(500).json({

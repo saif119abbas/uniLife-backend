@@ -1,23 +1,23 @@
 {
   "development": {
-    "username": "root",
-    "password": null,
-    "database": "uniLife2",
-    "host": "127.0.0.1",
+    "username": "admin",
+    "password": "1234saiF",
+    "database": "unilife2",
+    "host": "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
     "dialect": "mysql"
   },
   "test": {
-    "username": "root",
-    "password": null,
+    "username": "admin",
+    "password": "1234saiF",
     "database": "unilife2",
-    "host": "127.0.0.1",
+    "host": "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
     "dialect": "mysql"
   },
   "production": {
-    "username": "root",
-    "password": null,
+    "username": "admin",
+    "password": "1234saiF",
     "database": "unilife2",
-    "host": "127.0.0.1",
+    "host": "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
     "dialect": "mysql"
   }
 }

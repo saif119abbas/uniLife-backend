@@ -22,6 +22,7 @@ const {
 } = require("../../models");
 const { file } = require("googleapis/build/src/apis/file");
 const { resolve } = require("path");
+const { rejects } = require("assert");
 let expiresIn = "24h";
 exports.login = catchAsync(async (req, res, next) => {
   try {
@@ -150,6 +151,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     req.session.phoneNum = createdUser.phoneNum;
     req.session.username = createdUser.username;
     req.session.major = createdUser.major;
+    req.session.role = process.env.STUDENT;
     // req.session.image = image;
 
     req.session.verifyMessage = createMessage();
@@ -164,74 +166,101 @@ exports.signup = catchAsync(async (req, res, next) => {
 });
 
 exports.verify = catchAsync(async (req, res, next) => {
-  console.log("verify", req.session.verifyMessage);
-  if (!req.body)
-    res.status(400).json({
-      status: "failed",
-      message:
-        "You need to provide the verfication code to verify your account",
-    });
+  try {
+    console.log("verify", req.session.verifyMessage);
+    if (!req.body)
+      res.status(400).json({
+        status: "failed",
+        message:
+          "You need to provide the verfication code to verify your account",
+      });
 
-  if (req.body.verifyCode === req.session.verifyMessage) {
-    req.session.verifyMessage = "";
-    //expiresIn = "24h";
-    console.log(
-      req.session.email,
-      req.session.password,
-      req.session.phoneNum,
-      req.session.major
-    );
-    const myData = {
-      email: req.session.email,
-      password: req.session.password,
-      phoneNum: req.session.phoneNum,
-      username: req.session.username,
-      role: process.env.student,
-    };
-    let status = false;
-    await user
-      .create(myData)
-      .then(async (data) => {
+    if (req.body.verifyCode === req.session.verifyMessage) {
+      req.session.verifyMessage = "";
+      //expiresIn = "24h";
+      console.log(
+        req.session.email,
+        req.session.password,
+        req.session.phoneNum,
+        req.session.major
+      );
+      const myData = {
+        email: req.session.email,
+        password: req.session.password,
+        phoneNum: req.session.phoneNum,
+        username: req.session.username,
+        role: req.session.role,
+      };
+      let status = false;
+      const userId = await new Promise((resolve, reject) => {
+        user
+          .create(myData)
+          .then((data) => {
+            resolve(data.id);
+          })
+          .catch((err) => {
+            console.log("My error:", err);
+            reject(err);
+          });
+      });
+      if (myData.role === process.env.STUDENT) {
         await student
-          .create({ userId: data.id, major: req.session.major })
+          .create({ userId, major: req.session.major })
           .then((data) => {
             req.session.userId = data.userId;
             req.session.studentId = data.id;
             return next();
           })
           .catch((err) => {
-            console.log("My error:", err);
-            if (err.name === "SequelizeUniqueConstraintError")
-              return res.status(409).json({
-                status: "failed",
-                message: "This account is already created",
-              });
-            return next(
-              new AppError("An error occured please try again ", 500)
-            );
+            throw err;
           });
-      })
-      .catch((err) => {
-        console.log("My error:", err);
-        if (err.name === "SequelizeUniqueConstraintError")
-          return res.status(409).json({
-            status: "failed",
-            message: "This account is already created",
+      } else if (myData.role === process.env.RESTAURANT) {
+        await restaurant
+          .create({
+            userId,
+            image: req.session.image,
+            restaurantDesc: req.session.restaurantDesc,
+          })
+          .then((data) => {
+            req.session.userId = data.userId;
+            req.session.studentId = data.id;
+            return next();
+          })
+          .catch((err) => {
+            throw err;
           });
-        return next(new AppError("An error occured please try again ", 500));
+      } else if (myData.role === process.env.DORMITORY) {
+        await restaurant
+          .create({
+            userId,
+            image: req.session.image,
+            SSN: req.session.SSN,
+          })
+          .then((data) => {
+            req.session.userId = data.userId;
+            req.session.studentId = data.id;
+            return next();
+          })
+          .catch((err) => {
+            throw err;
+          });
+      }
+    } else {
+      return res.status(400).json({
+        status: "failed",
+        message: "verfied message not correct",
       });
-    /* if (status) {
-      const nameImage = `/student profile/${req.session.studentId}`;
-      console.log("before uploading:", req.session.image);
-      await UploadFile(req.session.image.buffer, nameImage);
-      const image = await getURL(nameImage);
-      await student.update({ image }, { where: { id: req.session.studentId } });
-      return next();
-    }*/
+    }
+  } catch (err) {
+    if (err.name === "SequelizeUniqueConstraintError")
+      return res.status(409).json({
+        status: "failed",
+        message: "This account is already created",
+      });
+    res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
-});
-exports.logout = catchAsync(async (req, res, next) => {
-  addToken((token = req.headers.authorization.split(" ")[1]));
 });
 
 exports.protect = catchAsync(async (req, res, next) => {

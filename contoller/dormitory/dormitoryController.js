@@ -123,26 +123,21 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
       .destroy({ where: { dormitoryPostId } })
       .then(async (roomCount) => {
         console.log(roomCount);
-        if (roomCount >= 1) {
-          for (let i = 0; i < roomCount; i++) {
-            const nameImage = `/dormitoryposts/${dormitoryPostId}_${i}`;
-            await deleteFile(nameImage);
-          }
-          await dormitoryPost
-            .destroy({ where: { id: dormitoryPostId, dormitoryOwnerId } })
-            .then((count) => {
-              if (count === 1) {
-                return res.status(204).json({});
-              } else
-                return res
-                  .status(404)
-                  .json({ status: "failed", message: "this post not found" });
-            });
+
+        for (let i = 0; i < roomCount; i++) {
+          const nameImage = `/dormitoryposts/${dormitoryPostId}_${i}`;
+          await deleteFile(nameImage);
         }
-        if (roomCount === 0)
-          res
-            .status(404)
-            .json({ status: "failed", message: "this post not found" });
+        await dormitoryPost
+          .destroy({ where: { id: dormitoryPostId, dormitoryOwnerId } })
+          .then((count) => {
+            if (count === 1) {
+              return res.status(204).json({});
+            } else
+              return res
+                .status(404)
+                .json({ status: "failed", message: "this post not found" });
+          });
       });
   } catch (err) {
     console.log("My error:", err);
@@ -379,11 +374,11 @@ exports.deleteRoom = async (req, res) => {
       dormitoryOwner
         .findOne({
           where: { userId },
-          attributes: [],
+          attributes: ["id"],
           include: {
             model: dormitoryPost,
             where: { id: dormitoryPostId },
-            attributes: ["id"],
+            attributes: ["numberOfRoom"],
             include: {
               model: room,
               where: { id: roomId },
@@ -401,8 +396,10 @@ exports.deleteRoom = async (req, res) => {
     if (dormitoryPosts.length === 0 || !dormitoryPosts) {
       return res.status(403).json({ status: "failed", message: "not allowed" });
     }
+    // return res.status(200).json(dormitoryPosts);
     console.log("hhh=", dormitoryPosts[0].rooms[0].image);
     const URL = dormitoryPosts[0].rooms[0].image;
+    const numberOfRoom = dormitoryPosts[0].numberOfRoom - 1;
 
     await room
       .destroy({ where: { id: roomId, dormitoryPostId } })
@@ -415,6 +412,10 @@ exports.deleteRoom = async (req, res) => {
               const nameImage = `/dormitoryposts/${numberImage}`;
               await deleteFile(nameImage);
             }
+            await dormitoryPost.update(
+              { numberOfRoom },
+              { where: { id: dormitoryPostId } }
+            );
             return res
               .status(204)
               .json({ status: "success", message: "deleted Successfully" });
