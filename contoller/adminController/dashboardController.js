@@ -96,7 +96,7 @@ exports.popularRestaurant = async (_, res) => {
   try {
     const today = new Date();
     const lastWeek = new Date(today);
-    lastWeek.setDate(lastWeek.getDate() - 2);
+    lastWeek.setDate(lastWeek.getDate() - 7);
     lastWeek.setHours(0, 0, 0, 0);
     /*const sequelize = new Sequelize(databaseName, "root", "", {
       host: "localhost",

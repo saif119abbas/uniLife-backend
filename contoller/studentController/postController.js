@@ -317,6 +317,21 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
         where: { name },
       });
       console.log("IDDDD:", majors);
+      // const posts2 = await post.findAll({
+      //   attributes: ["id"],
+      //   include: [
+      //     {
+      //       model: postMajor,
+      //       attributes: ["postId"],
+      //       required: false,
+      //       where: {
+      //         postId: { [Sequelize.Op.eq]: null },
+      //       },
+      //     },
+      //   ],
+      // });
+      // console.log("POSTS2:", posts2);
+
       const majorsId = majors;
       const Items = await postMajor.findAll({
         attributes: ["postId"],
@@ -324,10 +339,12 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       });
       console.log("Items:", Items);
       ids = Items.map((item) => item.postId);
+
       condition = { ...condition, id: { [Op.in]: ids } };
     }
     console.log("ids", ids);
     console.log(condition);
+
     const posts = await post.findAll({
       where: condition,
       attributes: ["id", "studentId", "image", "description", "createdAt"],

@@ -307,6 +307,7 @@ exports.weeklyDashboard = catchAsync(async (req, res, next) => {
     };
     res.status(200).json(data);
   } catch (err) {
+    console.log(err);
     return res
       .status(500)
       .json({ status: "fail", message: "Internal server error" });
@@ -508,7 +509,7 @@ exports.foodLastWeek = async (req, res, next) => {
     COUNT(OI_FI.orderItemOrderItemId) AS orderCount
     FROM
     foodItems AS foodItem
-    LEFT JOIN orderitem_fooditems AS OI_FI  ON foodItem.foodId = OI_FI.foodItemFoodId
+    LEFT JOIN OrderItem_FoodItems AS OI_FI  ON foodItem.foodId = OI_FI.foodItemFoodId
     LEFT JOIN orderItems AS OI ON OI_FI.orderItemOrderItemId = OI.orderItemId
     LEFT JOIN orders AS o ON OI.orderOrderId  = o.orderId 
     LEFT JOIN restaurants AS r ON o.restaurantId = r.id
@@ -534,6 +535,7 @@ exports.foodLastWeek = async (req, res, next) => {
 
     res.status(200).json({ data });
   } catch (error) {
+    console.log(error);
     return res
       .status(500)
       .json({ status: "fail", message: "Internal server error" });

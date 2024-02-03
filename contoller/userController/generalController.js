@@ -6,10 +6,19 @@ const {
   major,
   post,
   student,
+  order,
 } = require("../../models");
+const { Op, Sequelize } = require("sequelize");
+
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const catchAsync = require("../../utils/catchAsync");
 exports.getResturants = catchAsync(async (_, res) => {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  const lower = new Date(`${currentYear}/${currentMonth - 1}/01`);
+  const upper = new Date(`${currentYear}/${currentMonth}/01`);
+
   const data = await user.findAll({
     attributes: ["id", "username", "email", "phoneNum", "createdAt"],
     where: { role: process.env.RESTAURANT },
@@ -17,11 +26,33 @@ exports.getResturants = catchAsync(async (_, res) => {
     include: [
       {
         model: restaurant,
-        attributes: ["image", "rating", "restaurantDesc", "isOpen"],
+        attributes: ["id", "image", "rating", "restaurantDesc", "isOpen"],
+        include: [
+          {
+            model: order,
+            attributes: [
+              [
+                Sequelize.fn("SUM", Sequelize.col("totalPrice")),
+                "entitlements",
+              ],
+            ],
+            where: {
+              paymentType: "paypal",
+              createdAt: {
+                [Op.gte]: lower,
+                [Op.lt]: upper,
+              },
+            },
+            required: false,
+          },
+        ],
       },
     ],
+    group: ["restaurant.id"], // Group by restaurant to get the sum for each restaurant
   });
-  console.log(data);
+
+  const role = res.locals.role;
+  console.log(data[0].restaurant.orders[0].dataValues.entitlements);
   if (data.length === 0) return res.status(200).json([]);
   const retrievedData = data.map((item) => ({
     ...item.get(),
@@ -29,6 +60,12 @@ exports.getResturants = catchAsync(async (_, res) => {
     rating: item.restaurant.rating,
     restaurantDesc: item.restaurant.restaurantDesc,
     isOpen: item.restaurant.isOpen,
+    entitlements:
+      role !== process.env.STUDENT
+        ? item.restaurant.orders.length > 0
+          ? item.restaurant.orders[0].dataValues.entitlements
+          : 0
+        : undefined,
     restaurant: undefined,
   }));
   return res.status(200).json(retrievedData);
