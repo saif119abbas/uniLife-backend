@@ -197,12 +197,7 @@ router.post(
   studentPermission,
   requestPost
 );
-router.get(
-  "/request/:userId/:postId",
-  protect,
-  studentPermission,
-  getRequestPost
-);
+router.get("/request/:userId", protect, studentPermission, getRequestPost);
 router.post(
   "/message/:userId/:receiverId",
   protect,
