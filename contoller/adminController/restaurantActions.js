@@ -1,6 +1,5 @@
 const bcrypt = require("bcrypt");
 const { UploadFile, getURL } = require("../../firebaseConfig");
-
 const AppError = require("../../utils/appError");
 const { restaurant, menu, user, foodItem, order } = require("../../models");
 const catchAsync = require("../../utils/catchAsync");
@@ -200,39 +199,48 @@ exports.deleteRestaurant = catchAsync(async (req, res, next) => {
   }
 });
 exports.deleteMenu = catchAsync(async (req, res, next) => {
-  const userId = req.params.restaurantId;
-  const restaurantId = await new Promise((resolve, reject) => {
-    restaurant
-      .findOne({ attributes: ["id"], where: { userId } })
-      .then((record) => {
-        if (record) resolve(record.id);
-        else
-          return res.status(404).json({
+  try {
+    const userId = req.params.restaurantId;
+    const restaurantId = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({ attributes: ["id"], where: { userId } })
+        .then((record) => {
+          if (record) resolve(record.id);
+          else
+            return res.status(404).json({
+              status: "failed",
+              message: "not found1",
+            });
+        })
+        .catch((err) => reject(err));
+    });
+    menu
+      .destroy({ where: { restaurantId } })
+      .then((deleteCount) => {
+        if (deleteCount > 1)
+          return next(
+            new AppError("Somethig went wrong please try again", 500)
+          );
+        else if (deleteCount === 1) return next();
+        else if (deleteCount == 0)
+          res.status(404).json({
             status: "failed",
-            message: "not found1",
+            message: "This restaurant was not found",
           });
       })
-      .catch((err) => reject(err));
-  });
-  menu
-    .destroy({ where: { restaurantId } })
-    .then((deleteCount) => {
-      if (deleteCount > 1)
-        return next(new AppError("Somethig went wrong please try again", 500));
-      else if (deleteCount === 1) return next();
-      else if (deleteCount == 0)
-        res.status(404).json({
+      .catch(() => {
+        return res.status(500).json({
           status: "failed",
-          message: "This restaurant was not found",
+          message: "Internal Server Error",
         });
-    })
-    .catch(() => {
-      return res.status(500).json({
-        status: "failed",
-        message: "Internal Server Error",
       });
+    res.locals.restaurantId = restaurantId;
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
     });
-  res.locals.restaurantId = restaurantId;
+  }
 });
 /*exports.editCardID = catchAsync(async (req, res, next) => {
   const cardID = req.body.cardID;

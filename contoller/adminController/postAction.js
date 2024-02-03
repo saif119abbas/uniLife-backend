@@ -28,10 +28,13 @@ exports.addMajor = catchAsync(async (req, res, next) => {
           status: "failed",
           message: "already created",
         });
-      return next(new AppError("An error occurred please try again", 500));
+      return res.status(500).json({
+        status: "failed",
+        message: "Internal Server Error",
+      });
     });
 });
-exports.removeMajor = catchAsync(async (req, res, next) => {
+exports.removeMajor = async (req, res, next) => {
   try {
     const id = req.params.majorId;
     const count = await new Promise((resolve, reject) => {
@@ -60,7 +63,7 @@ exports.removeMajor = catchAsync(async (req, res, next) => {
       message: "Internal Server Error",
     });
   }
-});
+};
 exports.removeCategory = catchAsync(async (req, res, next) => {
   try {
     const id = req.params.categoryId;
@@ -91,7 +94,7 @@ exports.removeCategory = catchAsync(async (req, res, next) => {
     });
   }
 });
-exports.addCatigory = catchAsync(async (req, res, next) => {
+exports.addCatigory = async (req, res, next) => {
   const data = req.body;
   catigory
     .create(data)
@@ -109,9 +112,12 @@ exports.addCatigory = catchAsync(async (req, res, next) => {
           status: "failed",
           message: "already created",
         });
-      return next(new AppError("An error occurred please try again", 500));
+      return res.status(500).json({
+        status: "failed",
+        message: "Internal Server Error",
+      });
     });
-});
+};
 exports.searchPostByDate = async (req, res, next) => {
   try {
     const { type, studentId } = req.query;
@@ -205,7 +211,6 @@ exports.searchPostByDate = async (req, res, next) => {
     res.status(500).json({
       status: "falied",
       message: "Internal Server Error",
-      message: "Internal Server Error",
     });
   }
 };
@@ -262,38 +267,42 @@ exports.reportedPost = async (_, res) => {
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(0, 0, 0, 0);
 
-    const reportedPosts = await report.findAll({
-      where: {
-        createdAt: {
-          [Op.lt]: today,
-          [Op.gte]: yesterday,
+    const reportedPosts = await report
+      .findAll({
+        where: {
+          createdAt: {
+            [Op.lt]: today,
+            [Op.gte]: yesterday,
+          },
         },
-      },
-      attributes: ["id", "message"],
-      include: [
-        {
-          model: post,
-          attributes: ["id", "image", "description", "createdAt"],
-          include: {
+        attributes: ["id", "message"],
+        include: [
+          {
+            model: post,
+            attributes: ["id", "image", "description", "createdAt"],
+            include: {
+              model: student,
+              as: "reportedStudent",
+              attributes: ["id", "image", "major"],
+              include: {
+                model: user,
+                attributes: ["id", "username"],
+              },
+            },
+          },
+          {
             model: student,
-            as: "reportedStudent",
-            attributes: ["id", "image", "major"],
+            attributes: ["id"],
             include: {
               model: user,
               attributes: ["id", "username"],
             },
           },
-        },
-        {
-          model: student,
-          attributes: ["id"],
-          include: {
-            model: user,
-            attributes: ["id", "username"],
-          },
-        },
-      ],
-    });
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
 
     return res.status(200).json(reportedPosts);
   } catch (err) {

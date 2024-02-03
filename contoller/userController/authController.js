@@ -265,79 +265,91 @@ exports.verify = catchAsync(async (req, res, next) => {
 
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting token and check of it's there
-  let token;
-  console.log(req.headers.authorization);
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
-  ) {
-    console.log("Yes");
-    token = req.headers.authorization.split(" ")[1];
-  }
-  if (!token) {
-    return res.status(401).json({
-      status: "failed",
-      message: "Unauthorized",
-    });
-  }
+  try {
+    let token;
+    console.log(req.headers.authorization);
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      console.log("Yes");
+      token = req.headers.authorization.split(" ")[1];
+    }
+    if (!token) {
+      return res.status(401).json({
+        status: "failed",
+        message: "Unauthorized",
+      });
+    }
 
-  /* if (localStorage.getItem("jwt") !== token)
+    /* if (localStorage.getItem("jwt") !== token)
     return next(new AppError("someerror happen please try again", 401));*/
 
-  // 2) Verification token
-  console.log("token:", token);
-  const id = await new Promise((resolve, reject) => {
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      if (err) {
-        console.log(err);
-        return next(
-          new AppError("An error occurred while verifying the token.", 500)
-        );
-      }
-      resolve(decoded.id);
-      /* if (Date.now() / 1000 - res.iat <= res.exp)
-        return next(new AppError("Timed out please try again", 401));*/
-    });
-  });
-  console.log(parseInt(req.params.userId));
-  console.log(id);
-  if (parseInt(req.params.userId) !== id) {
-    return res.status(403).json({
-      status: "failed",
-      message: "not allowed1",
-    });
-  }
-  // 3) Check if user still exists
-
-  const role = await new Promise((resolve, reject) => {
-    user
-      .findOne({
-        attributes: ["role"],
-        where: { id },
-      })
-      .then((data) => {
-        if (!data) {
+    // 2) Verification token
+    console.log("token:", token);
+    const id = await new Promise((resolve, reject) => {
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          console.log(err);
           return res.status(401).json({
             status: "failed",
             message: "Unauthorized",
           });
         }
-        console.log("my data", data.role);
-        resolve(data.role);
+        resolve(decoded.id);
+        /* if (Date.now() / 1000 - res.iat <= res.exp)
+        return next(new AppError("Timed out please try again", 401));*/
       });
-  });
-  res.locals.role = role;
-  console.log("role:", res.locals.role);
-  next();
-  // 4) Check if user changed password after the token was issued
-  /*if (currentUser.changedPasswordAfter(decoded.iat)) {
+    });
+    console.log(parseInt(req.params.userId));
+    console.log(id);
+    if (parseInt(req.params.userId) !== id) {
+      return res.status(403).json({
+        status: "failed",
+        message: "not allowed1",
+      });
+    }
+
+    // 3) Check if user still exists
+
+    const role = await new Promise((resolve, reject) => {
+      user
+        .findOne({
+          attributes: ["role"],
+          where: { id },
+        })
+        .then((data) => {
+          if (!data) {
+            return res.status(401).json({
+              status: "failed",
+              message: "Unauthorized",
+            });
+          }
+          console.log("my data", data.role);
+          resolve(data.role);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    res.locals.role = role;
+    console.log("role:", res.locals.role);
+    next();
+    // 4) Check if user changed password after the token was issued
+    /*if (currentUser.changedPasswordAfter(decoded.iat)) {
           return next(
             new AppError("User recently changed password! Please log in again.", 401)
-          );
-        }*/
-  // GRANT ACCESS TO PROTECTED ROUTE
-  /*req.session.user = data;
+            );
+          }*/
+    // GRANT ACCESS TO PROTECTED ROUTE
+    /*req.session.user = data;
       })*/
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server error",
+    });
+  }
 });
 exports.editProfile = catchAsync(async (req, res, next) => {
   try {
@@ -420,36 +432,46 @@ exports.editProfile = catchAsync(async (req, res, next) => {
 });
 
 exports.getPofile = catchAsync(async (req, res, next) => {
-  const id = req.params.userId;
-  let data = await new Promise((resolve, reject) => {
-    user
-      .findOne({
-        attributes: ["username", "phoneNum", "email"],
-        where: { id },
-        include: [
-          {
-            model: student,
-            attributes: ["major", "image"],
-          },
-        ],
-      })
-      .then((record) => {
-        if (record) resolve(record);
-        else
-          return res
-            .status(404)
-            .json({ status: "failed", message: "not found" });
-      });
-  });
-  data = {
-    ...data.get(),
-    image: data.student.image,
-    major: data.student.major,
+  try {
+    const id = req.params.userId;
+    let data = await new Promise((resolve, reject) => {
+      user
+        .findOne({
+          attributes: ["username", "phoneNum", "email"],
+          where: { id },
+          include: [
+            {
+              model: student,
+              attributes: ["major", "image"],
+            },
+          ],
+        })
+        .then((record) => {
+          if (record) resolve(record);
+          else
+            return res
+              .status(404)
+              .json({ status: "failed", message: "not found" });
+        })
+        .catch((err) => reject(err));
+    });
+    data = {
+      ...data.get(),
+      image: data.student.image,
+      major: data.student.major,
 
-    student: undefined,
-  };
+      student: undefined,
+    };
 
-  return res.status(200).json(data);
+    return res.status(200).json(data);
+  } catch (err) {
+    console.log(err);
+
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
 });
 exports.storeData = catchAsync(async (req, res) => {
   const image = req.file.buffer || req.files.image[0];

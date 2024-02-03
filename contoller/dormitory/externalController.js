@@ -151,30 +151,34 @@ exports.getAllDormitoryPost = async (req, res) => {
 exports.getPost = catchAsync(async (req, res, next) => {
   try {
     const dorimtoryId = req.params.dorimtoryId;
-    const dorimtoryPosts = await dormitoryPost.findOne({
-      where: { id: dorimtoryId },
-      order: [["createdAt", "DESC"]],
-      include: [
-        {
-          model: dormitoryOwner,
-          attributes: ["userId"],
-          include: [
-            {
-              model: user,
-              attributes: ["username", "email", "phoneNum"],
-            },
-          ],
-        },
-        {
-          model: room,
-          attributes: ["typeOfRoom", "rent", "numberOfPerson"],
-        },
-        {
-          model: images,
-          attributes: ["image"],
-        },
-      ],
-    });
+    const dorimtoryPosts = await dormitoryPost
+      .findOne({
+        where: { id: dorimtoryId },
+        order: [["createdAt", "DESC"]],
+        include: [
+          {
+            model: dormitoryOwner,
+            attributes: ["userId"],
+            include: [
+              {
+                model: user,
+                attributes: ["username", "email", "phoneNum"],
+              },
+            ],
+          },
+          {
+            model: room,
+            attributes: ["typeOfRoom", "rent", "numberOfPerson"],
+          },
+          {
+            model: images,
+            attributes: ["image"],
+          },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
     console.log(dorimtoryPosts);
     const { location, descrption, rooms } = dorimtoryPosts;
     const data = {

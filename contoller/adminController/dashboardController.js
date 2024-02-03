@@ -11,6 +11,7 @@ const {
 } = require("../../models");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
+const sequelize = require("../../sequelize");
 exports.totalUsers = async (_, res) => {
   try {
     const today = new Date();
@@ -97,10 +98,10 @@ exports.popularRestaurant = async (_, res) => {
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 2);
     lastWeek.setHours(0, 0, 0, 0);
-    const sequelize = new Sequelize(databaseName, "root", "", {
+    /*const sequelize = new Sequelize(databaseName, "root", "", {
       host: "localhost",
       dialect: "mysql",
-    });
+    });*/
     const data = await sequelize.query(
       `SELECT
       r.id,

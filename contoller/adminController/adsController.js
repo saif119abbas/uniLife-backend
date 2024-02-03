@@ -1,8 +1,5 @@
 const catchAsync = require("../../utils/catchAsync");
-const AppError = require("../../utils/appError");
 const { ads } = require("../../models");
-const { Op, Sequelize, QueryTypes } = require("sequelize");
-const databaseName = require("../../databaseName");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const cron = require("node-cron");
 exports.addAds = async (req, res) => {
@@ -40,7 +37,7 @@ exports.addAds = async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({
-      status: "failes",
+      status: "failed",
       message: "Internal Server Error",
     });
   }
