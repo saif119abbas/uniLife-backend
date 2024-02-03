@@ -268,7 +268,8 @@ cron.schedule("*/5 * * * *", async () => {
         const title = `${Name} Lecture`;
         const body = `${Name} lecture will start in ${result} minutes`;
         console.log("Sending notification");
-        await pushNotification(FCMs[0].dataValues.token, title, body);
+        if (FCMs.length > 0)
+          await pushNotification(FCMs[0].dataValues.token, title, body);
       }
       // if (notificationTime.getTime() <= currentDateTime.getTime()) {
       //   const title = `${Name} lecture`;
