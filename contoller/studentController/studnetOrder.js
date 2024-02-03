@@ -291,49 +291,53 @@ exports.getOrders = catchAsync(async (req, res, next) => {
       };
       limit = null;
     }
-    const studentOrders = await student.findOne({
-      where: { userId },
-      include: [
-        {
-          model: order,
-          limit,
-          where: condition,
-          order: [["createdAt", "DESC"]],
+    const studentOrders = await student
+      .findOne({
+        where: { userId },
+        include: [
+          {
+            model: order,
+            limit,
+            where: condition,
+            order: [["createdAt", "DESC"]],
 
-          attributes: [
-            "orderId",
-            "status",
-            "totalPrice",
-            "createdAt",
-            "rating",
-          ],
-          include: [
-            {
-              model: orderItem,
-              attributes: ["orderItemId", "Qauntity", "unitPrice"],
-              include: [
-                {
-                  model: foodItem,
-                  attributes: ["price", "nameOfFood"],
-                },
-              ],
-            },
-            {
-              model: restaurant,
-              // attributes: [],
-              include: [
-                {
-                  model: user,
-                  attributes: ["username"],
-                },
-              ],
-            },
-          ],
-          separate: true, // Use separate to apply limit to orders, not the student record
-          order: [["createdAt", "DESC"]], // Keep descending order
-        },
-      ],
-    });
+            attributes: [
+              "orderId",
+              "status",
+              "totalPrice",
+              "createdAt",
+              "rating",
+            ],
+            include: [
+              {
+                model: orderItem,
+                attributes: ["orderItemId", "Qauntity", "unitPrice"],
+                include: [
+                  {
+                    model: foodItem,
+                    attributes: ["price", "nameOfFood"],
+                  },
+                ],
+              },
+              {
+                model: restaurant,
+                // attributes: [],
+                include: [
+                  {
+                    model: user,
+                    attributes: ["username"],
+                  },
+                ],
+              },
+            ],
+            separate: true, // Use separate to apply limit to orders, not the student record
+            order: [["createdAt", "DESC"]], // Keep descending order
+          },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
     console.log(studentOrders);
     if (!studentOrders) {
       return res.status(200).json([]);
@@ -414,69 +418,89 @@ exports.getOffers = catchAsync(async (req, res, next) => {
   return res.status(200).json({ myOffers });
 });
 exports.getPoular = catchAsync(async (req, res, next) => {
-  const data = [];
-  const poular = await foodItem.findAll({
-    attributes: [
-      "foodId",
-      "category",
-      "nameOfFood",
-      "price",
-      "description",
-      "menuMenuId",
-      [Sequelize.fn("MAX", Sequelize.col("count")), "maxCount"],
-    ],
-    group: ["menuMenuId"],
-    where: {
-      count: {
-        [Sequelize.Op.gt]: 0,
-      },
-    },
-  });
-  console.log("The poular", poular);
-  if (!poular || poular.length === 0)
-    return res.status(404).json({
-      status: "failed",
-      message: "no poular",
-    });
-  for (let item of poular) {
-    const myMenu = await menu.findOne({
-      attributes: ["restaurantId"],
-      where: { menuId: item.menuMenuId },
-    });
-    console.log("item:", item);
-    const restu = await restaurant.findOne({
-      attributes: ["userId"],
-      where: { id: myMenu.restaurantId },
-    });
-    const myUser = await user.findOne({
-      attributes: ["username"],
-      where: { id: restu.userId },
-    });
-    const myData = {
-      foodId: item.foodId,
-      category: item.category,
-      nameOfFood: item.nameOfFood,
-      price: item.price,
-      description: item.description,
-      restaurantId: myMenu.restaurantId,
-      name: myUser.username,
-    };
+  try {
+    const data = [];
+    const poular = await foodItem
+      .findAll({
+        attributes: [
+          "foodId",
+          "category",
+          "nameOfFood",
+          "price",
+          "description",
+          "menuMenuId",
+          [Sequelize.fn("MAX", Sequelize.col("count")), "maxCount"],
+        ],
+        group: ["menuMenuId"],
+        where: {
+          count: {
+            [Sequelize.Op.gt]: 0,
+          },
+        },
+      })
+      .catch((err) => {
+        throw err;
+      });
+    console.log("The poular", poular);
+    if (!poular || poular.length === 0)
+      return res.status(404).json({
+        status: "failed",
+        message: "no poular",
+      });
+    for (let item of poular) {
+      const myMenu = await menu.findOne({
+        attributes: ["restaurantId"],
+        where: { menuId: item.menuMenuId },
+      });
+      console.log("item:", item);
+      const restu = await restaurant
+        .findOne({
+          attributes: ["userId"],
+          where: { id: myMenu.restaurantId },
+        })
+        .catch((err) => {
+          throw err;
+        });
+      const myUser = await user
+        .findOne({
+          attributes: ["username"],
+          where: { id: restu.userId },
+        })
+        .catch((err) => {
+          throw err;
+        });
+      const myData = {
+        foodId: item.foodId,
+        category: item.category,
+        nameOfFood: item.nameOfFood,
+        price: item.price,
+        description: item.description,
+        restaurantId: myMenu.restaurantId,
+        name: myUser.username,
+      };
 
-    data.push(myData);
+      data.push(myData);
+    }
+    return res.status(200).json({ data });
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server error",
+    });
   }
-  return res.status(200).json({ data });
 });
 exports.rate = catchAsync(async (req, res, next) => {
   try {
     const orderId = req.params.orderId;
     const userId = req.params.userId;
     const data = req.body;
-    const studentId = await new Promise((resolve) => {
+    const studentId = await new Promise((resolve, reject) => {
       student
         .findOne({ where: { userId }, attributes: ["id"] })
         .then((record) => {
           resolve(record.id);
-        });
+        })
+        .catch((err) => reject(err));
     });
     const count = await new Promise((resolve, reject) => {
       order

@@ -103,12 +103,13 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
   try {
     const { userId, dormitoryPostId } = req.params;
 
-    const dormitoryOwnerId = await new Promise((resolve) => {
+    const dormitoryOwnerId = await new Promise((resolve, reject) => {
       dormitoryOwner
         .findOne({ where: { userId }, attributes: ["id"] })
         .then((record) => {
           if (record) resolve(record.id);
-        });
+        })
+        .catch((err) => reject(err));
     });
     /* let numberOfRoom = 0;
     await room.findAll({ where: { dormitoryPostId: id } }).then((record) => {
@@ -138,10 +139,15 @@ exports.deleteDormitoryPost = catchAsync(async (req, res, next) => {
                 .status(404)
                 .json({ status: "failed", message: "this post not found" });
           });
+      })
+      .catch((error) => {
+        throw error;
       });
   } catch (err) {
     console.log("My error:", err);
-    return next(new AppError("An error occurred please try again", 500));
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
   }
 });
 exports.editDormitoryPost = catchAsync(async (req, res, next) => {

@@ -4,13 +4,17 @@ const { student, user } = require("../../models");
 const { Sequelize } = require("sequelize");
 exports.getStudents = catchAsync(async (req, res) => {
   try {
-    let data = await user.findAll({
-      where: { role: process.env.STUDENT },
-      attributes: ["id", "username", "phoneNum", "email", "createdAt"],
-      include: [
-        { model: student, attributes: ["blocked", "image", "id", "major"] },
-      ],
-    });
+    let data = await user
+      .findAll({
+        where: { role: process.env.STUDENT },
+        attributes: ["id", "username", "phoneNum", "email", "createdAt"],
+        include: [
+          { model: student, attributes: ["blocked", "image", "id", "major"] },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
     const formattedData = data.map((user) => ({
       ...user.get(),
       blocked: user.student.blocked,
@@ -23,7 +27,7 @@ exports.getStudents = catchAsync(async (req, res) => {
     res.status(200).json(formattedData);
   } catch (err) {
     console.log(err);
-    res
+    return res
       .status(500)
       .json({ status: "fail", message: "An error occurred, please try again" });
   }
@@ -46,6 +50,9 @@ exports.blockedStudent = async (req, res) => {
         return res
           .status(200)
           .json({ status: "success", message: "updated successfully" });
+      })
+      .catch((err) => {
+        throw err;
       });
   } catch (err) {
     console.log("my error", err);

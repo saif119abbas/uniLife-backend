@@ -1,7 +1,7 @@
 const { Op } = require("sequelize");
 //const { Sequelize } = require("../../models/index");
 const sql = require("@sequelize/core");
-const Sequelize = require("sequelize");
+//const Sequelize = require("sequelize");
 const { QueryTypes } = require("sequelize");
 const catchAsync = require("../../utils/catchAsync");
 const { student, user, message, FCM } = require("../../models");
@@ -9,6 +9,7 @@ const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
 const AppError = require("../../utils/appError");
 const databaseName = require("../../databaseName");
 const { resolve } = require("path");
+const sequelize = require("../../sequelize");
 exports.sendMessage = catchAsync(async (req, res, next) => {
   try {
     const { userId } = req.params;
@@ -85,77 +86,87 @@ exports.sendMessage = catchAsync(async (req, res, next) => {
   }
 });
 exports.getMessage = catchAsync(async (req, res, next) => {
-  console.log("getMessage");
-  //const receiverId = req.params.receiverId;
-  const { userId } = req.params;
-  let userReceiverId = req.params.receiverId;
-  const senderId = await new Promise((resolve, reject) => {
-    student.findOne({ where: { userId } }).then((record) => {
-      if (record.id) resolve(record.id);
+  try {
+    console.log("getMessage");
+    //const receiverId = req.params.receiverId;
+    const { userId } = req.params;
+    let userReceiverId = req.params.receiverId;
+    const senderId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId } })
+        .then((record) => {
+          if (record.id) resolve(record.id);
+        })
+        .catch((err) => reject(err));
     });
-  });
-  const receiverId = await new Promise((resolve, reject) => {
-    student
-      .findOne({ where: { userId: userReceiverId }, attributes: ["id"] })
-      .then((record) => {
-        if (record.id) resolve(record.id);
-      });
-  });
-  let messages = await new Promise((resolve) => {
-    message
-      .findAll({
-        attributes: [
-          "id",
-          "text",
-          "createdAt",
-          "image",
-          "senderId",
-          // [sequelize.col("s.id", "senderId")],
-        ],
-        where: {
-          [Op.or]: [
-            { senderId, receiverId },
-            { senderId: receiverId, receiverId: senderId },
+    const receiverId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId: userReceiverId }, attributes: ["id"] })
+        .then((record) => {
+          if (record.id) resolve(record.id);
+        });
+    });
+    let messages = await new Promise((resolve, reject) => {
+      message
+        .findAll({
+          attributes: [
+            "id",
+            "text",
+            "createdAt",
+            "image",
+            "senderId",
+            // [sequelize.col("s.id", "senderId")],
           ],
-        },
+          where: {
+            [Op.or]: [
+              { senderId, receiverId },
+              { senderId: receiverId, receiverId: senderId },
+            ],
+          },
 
-        order: [["createdAt", "DESC"]],
-      })
-      .then((record) => {
-        // await message.update({ seen: true }, { where: { id: record.id } });
-        resolve(record);
-      })
-      .catch((err) => {
-        console.log("my error", err);
-        return next(new AppError("An error occurred, please try again", 500));
-      });
-  });
-  messages = messages.map((message) => {
-    console.log(message);
+          order: [["createdAt", "DESC"]],
+        })
+        .then((record) => {
+          // await message.update({ seen: true }, { where: { id: record.id } });
+          resolve(record);
+        })
+        .catch((err) => {
+          console.log("my error", err);
+          reject(err);
+        });
+    });
+    messages = messages.map((message) => {
+      console.log(message);
 
-    const sender =
-      message.dataValues.senderId === senderId ? userId : userReceiverId;
-    return {
-      ...message.dataValues,
+      const sender =
+        message.dataValues.senderId === senderId ? userId : userReceiverId;
+      return {
+        ...message.dataValues,
 
-      senderId: sender,
-    };
-  });
-  const ids = messages.map((message) => message.id);
-  await message.update(
-    { seen: true },
-    { where: { id: { [Op.in]: ids }, seen: false, receiverId: senderId } }
-  );
-  console.log(userReceiverId, userId + "GG");
-  return res.status(200).json({ data: messages });
+        senderId: sender,
+      };
+    });
+    const ids = messages.map((message) => message.id);
+    await message.update(
+      { seen: true },
+      { where: { id: { [Op.in]: ids }, seen: false, receiverId: senderId } }
+    );
+    console.log(userReceiverId, userId + "GG");
+    return res.status(200).json({ data: messages });
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server error",
+    });
+  }
 });
 exports.getMyMessage = catchAsync(async (req, res, next) => {
   try {
-    const Sequelize = require("sequelize");
-    const sequelize = new Sequelize(databaseName, "admin", "1234saiF", {
-      host: "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
-      dialect: "mysql",
-    });
+    /* const Sequelize = require("sequelize");
+        const sequelize = new Sequelize(databaseName, "admin", "1234saiF", {
+          host: "unilife-db.cs7ndlxwgkgc.us-east-1.rds.amazonaws.com",
+          dialect: "mysql",
+        });*/
     const userId = req.params.userId;
     const messages = await sequelize.query(
       `SELECT 
@@ -201,5 +212,9 @@ ORDER BY m.createdAt DESC;
     res.status(200).json({ messages });
   } catch (err) {
     console.log("The err", err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server error",
+    });
   }
 });

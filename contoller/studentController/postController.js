@@ -747,7 +747,8 @@ exports.getPostForStudent = async (req, res, next) => {
         })
         .then((record) => {
           if (record) resolve(record.id);
-        });
+        })
+        .catch((err) => reject(err));
     });
     const posts = await new Promise((resolve, reject) => {
       post
@@ -769,7 +770,8 @@ exports.getPostForStudent = async (req, res, next) => {
               status: "failed",
               message: "no post found",
             });
-        });
+        })
+        .catch((err) => reject(err));
     });
 
     let data = [];

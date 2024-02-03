@@ -16,45 +16,50 @@ const { UploadFile, getURL } = require("../../firebaseConfig");
 const { Op, Sequelize, QueryTypes } = require("sequelize");
 const databaseName = require("../../databaseName");
 const cons = require("consolidate");
+const sequelize = require("../../sequelize");
 exports.getOrders = catchAsync(async (req, res, next) => {
   try {
     const userId = req.params.userId;
-    const ordersRestaurant = await restaurant.findOne({
-      attributes: [],
-      where: { userId },
-      include: [
-        {
-          model: order,
-          attributes: [
-            "orderId",
-            "status",
-            "totalPrice",
-            "createdAt",
-            "notes",
-            "paymentType",
-          ],
-          // order: [["createdAt", "ASC"]],
-          include: [
-            {
-              model: orderItem,
-              attributes: ["orderItemId", "Qauntity", "unitPrice"],
-              include: [
-                { model: foodItem, attributes: ["price", "nameOfFood"] },
-              ],
-            },
-            {
-              model: student,
-              include: [
-                {
-                  model: user,
-                  attributes: ["username", "phoneNum"],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    });
+    const ordersRestaurant = await restaurant
+      .findOne({
+        attributes: [],
+        where: { userId },
+        include: [
+          {
+            model: order,
+            attributes: [
+              "orderId",
+              "status",
+              "totalPrice",
+              "createdAt",
+              "notes",
+              "paymentType",
+            ],
+            // order: [["createdAt", "ASC"]],
+            include: [
+              {
+                model: orderItem,
+                attributes: ["orderItemId", "Qauntity", "unitPrice"],
+                include: [
+                  { model: foodItem, attributes: ["price", "nameOfFood"] },
+                ],
+              },
+              {
+                model: student,
+                include: [
+                  {
+                    model: user,
+                    attributes: ["username", "phoneNum"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
     const { orders } = ordersRestaurant;
     console.log(orders.orderItems);
     let data = [];
@@ -107,14 +112,16 @@ exports.getOrders = catchAsync(async (req, res, next) => {
     });
   } catch (err) {
     console.log("My err", err);
-    return next(new AppError("An error occurred please try again", 500));
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
   }
 });
 exports.updateOrder = catchAsync(async (req, res, next) => {
   try {
     const { orderId, userId } = req.params;
     let { status, restaurantId, studentId, image, FCMs } = await new Promise(
-      (resolve) => {
+      (resolve, reject) => {
         restaurant
           .findOne({
             where: { userId },
@@ -143,7 +150,8 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
               FCMs: record.orders[0].student.FCMs,
             };
             resolve(data);
-          });
+          })
+          .catch((err) => reject(err));
       }
     );
     let text = "";
@@ -221,308 +229,353 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
 });
 
 exports.weeklyDashboard = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const upper = new Date();
-  const lower = new Date();
-  lower.setDate(lower.getDate() - 6);
-  const upperLastWeek = new Date(lower);
-  upperLastWeek.setDate(upperLastWeek.getDate() - 1);
-  const lowerLastWeek = new Date(upperLastWeek);
-  lowerLastWeek.setDate(lowerLastWeek.getDate() - 6);
-  //lower.setDate(upper.getDate() - 7);
-  const totalPrices1 = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: [],
-        include: [
-          {
-            model: order,
-            attributes: ["totalPrice"],
-            where: {
-              createdAt: {
-                [Op.gte]: lower,
-                [Op.lte]: upper,
+  try {
+    const userId = req.params.userId;
+    const upper = new Date();
+    const lower = new Date();
+    lower.setDate(lower.getDate() - 6);
+    const upperLastWeek = new Date(lower);
+    upperLastWeek.setDate(upperLastWeek.getDate() - 1);
+    const lowerLastWeek = new Date(upperLastWeek);
+    lowerLastWeek.setDate(lowerLastWeek.getDate() - 6);
+    //lower.setDate(upper.getDate() - 7);
+    const totalPrices1 = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: [
+            {
+              model: order,
+              attributes: ["totalPrice"],
+              where: {
+                createdAt: {
+                  [Op.gte]: lower,
+                  [Op.lte]: upper,
+                },
               },
             },
-          },
-        ],
-      })
-      .then((record) => {
-        resolve(record?.orders.map((order) => order.totalPrice) || []);
-      });
-  });
-  // res.status(200).json(totalPrices1);
-  const totalPrices2 = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: [],
-        include: [
-          {
-            model: order,
-            attributes: ["totalPrice"],
-            where: {
-              createdAt: {
-                [Op.gte]: lowerLastWeek,
-                [Op.lte]: upperLastWeek,
+          ],
+        })
+        .then((record) => {
+          resolve(record?.orders.map((order) => order.totalPrice) || []);
+        })
+        .catch((err) => reject(err));
+    });
+    // res.status(200).json(totalPrices1);
+    const totalPrices2 = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: [
+            {
+              model: order,
+              attributes: ["totalPrice"],
+              where: {
+                createdAt: {
+                  [Op.gte]: lowerLastWeek,
+                  [Op.lte]: upperLastWeek,
+                },
               },
             },
-          },
-        ],
-      })
-      .then((record) => {
-        resolve(record?.orders.map((order) => order.totalPrice) || []);
-      });
-  });
-  // res.status(200).json(totalPrices2);
-  const revenue = totalPrices1.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue;
-  }, 0);
-  const revenueLastWeek =
-    !totalPrices2 || totalPrices2.length === 0
-      ? 0
-      : totalPrices2.reduce((accumulator, currentValue) => {
-          return accumulator + currentValue;
-        }, 0);
-  const perc = `${
-    !totalPrices2 || totalPrices2.length === 0
-      ? 0
-      : Math.round(((revenue - revenueLastWeek) / revenueLastWeek) * 100)
-  }%`;
-  const data = {
-    revenue,
-    perc,
-  };
-  res.status(200).json(data);
+          ],
+        })
+        .then((record) => {
+          resolve(record?.orders.map((order) => order.totalPrice) || []);
+        })
+        .catch((err) => reject(err));
+    });
+    // res.status(200).json(totalPrices2);
+    const revenue = totalPrices1.reduce((accumulator, currentValue) => {
+      return accumulator + currentValue;
+    }, 0);
+    const revenueLastWeek =
+      !totalPrices2 || totalPrices2.length === 0
+        ? 0
+        : totalPrices2.reduce((accumulator, currentValue) => {
+            return accumulator + currentValue;
+          }, 0);
+    const perc = `${
+      !totalPrices2 || totalPrices2.length === 0
+        ? 0
+        : Math.round(((revenue - revenueLastWeek) / revenueLastWeek) * 100)
+    }%`;
+    const data = {
+      revenue,
+      perc,
+    };
+    res.status(200).json(data);
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 });
 exports.dailyDashboard = catchAsync(async (req, res, next) => {
-  const userId = req.params.userId;
-  const upper = new Date();
-  const lower = new Date();
-  lower.setDate(lower.getDate() - 1);
-  const upperLastDay = new Date(lower);
-  const totalPrices1 = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: [],
-        include: [
-          {
-            model: order,
-            attributes: ["totalPrice"],
-            where: {
-              createdAt: {
-                [Op.gt]: lower,
+  try {
+    const userId = req.params.userId;
+    const upper = new Date();
+    const lower = new Date();
+    lower.setDate(lower.getDate() - 1);
+    const upperLastDay = new Date(lower);
+    const totalPrices1 = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: [
+            {
+              model: order,
+              attributes: ["totalPrice"],
+              where: {
+                createdAt: {
+                  [Op.gt]: lower,
+                },
               },
             },
-          },
-        ],
-      })
-      .then((record) => {
-        resolve(record?.orders.map((order) => order.totalPrice) || []);
-      });
-  });
-  // res.status(200).json(totalPrices1);
-  const totalPrices2 = await new Promise((resolve) => {
-    restaurant
-      .findOne({
-        where: { userId },
-        attributes: [],
-        include: [
-          {
-            model: order,
-            attributes: ["totalPrice"],
-            where: {
-              createdAt: {
-                [Op.gte]: upperLastDay,
-                [Op.lt]: lower,
+          ],
+        })
+        .then((record) => {
+          resolve(record?.orders.map((order) => order.totalPrice) || []);
+        })
+        .catch((err) => reject(err));
+    });
+    // res.status(200).json(totalPrices1);
+    const totalPrices2 = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: [
+            {
+              model: order,
+              attributes: ["totalPrice"],
+              where: {
+                createdAt: {
+                  [Op.gte]: upperLastDay,
+                  [Op.lt]: lower,
+                },
               },
             },
-          },
-        ],
-      })
-      .then((record) => {
-        resolve(record?.orders.map((order) => order.totalPrice) || []);
-      });
-  });
-  // res.status(200).json(totalPrices2);
-  const revenue = totalPrices1.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue;
-  }, 0);
-  const revenueLastDay =
-    !totalPrices2 || totalPrices2.length === 0
-      ? 0
-      : totalPrices2.reduce((accumulator, currentValue) => {
-          return accumulator + currentValue;
-        }, 0);
-  const perc = `  ${
-    !totalPrices2 || totalPrices2.length === 0
-      ? 0
-      : ((revenue - revenueLastDay) / revenueLastDay) * 100
-  }%`;
-  const data = { revenue, perc };
-  res.status(200).json(data);
+          ],
+        })
+        .then((record) => {
+          resolve(record?.orders.map((order) => order.totalPrice) || []);
+        })
+        .catch((err) => reject(err));
+    });
+    // res.status(200).json(totalPrices2);
+    const revenue = totalPrices1.reduce((accumulator, currentValue) => {
+      return accumulator + currentValue;
+    }, 0);
+    const revenueLastDay =
+      !totalPrices2 || totalPrices2.length === 0
+        ? 0
+        : totalPrices2.reduce((accumulator, currentValue) => {
+            return accumulator + currentValue;
+          }, 0);
+    const perc = `  ${
+      !totalPrices2 || totalPrices2.length === 0
+        ? 0
+        : ((revenue - revenueLastDay) / revenueLastDay) * 100
+    }%`;
+    const data = { revenue, perc };
+    res.status(200).json(data);
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 });
 exports.totalPeople = async (req, res, next) => {
-  const userId = req.params.userId;
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const count = await new Promise((resolve) => {
-    order
-      .count({
-        where: {
-          createdAt: {
-            [Op.gte]: sevenDaysAgo,
+  try {
+    const userId = req.params.userId;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const count = await new Promise((resolve, reject) => {
+      order
+        .count({
+          where: {
+            createdAt: {
+              [Op.gte]: sevenDaysAgo,
+            },
           },
-        },
-        distinct: true,
-        col: "studentId",
-        include: [{ model: restaurant, where: { userId }, attributes: [] }],
-      })
-      .then((count) => {
-        resolve(count);
-      });
-  });
-  res.status(200).json({ count });
+          distinct: true,
+          col: "studentId",
+          include: [{ model: restaurant, where: { userId }, attributes: [] }],
+        })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    res.status(200).json({ count });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 };
 exports.newCustomer = async (req, res, next) => {
-  const userId = req.params.userId;
-  const upper = new Date();
-  const lower = new Date();
-  lower.setDate(lower.getDate() - 6);
-  const upperLastWeek = new Date(lower);
-  upperLastWeek.setDate(upperLastWeek.getDate() - 1);
-  const lowerLastWeek = new Date(upperLastWeek);
-  lowerLastWeek.setDate(lowerLastWeek.getDate() - 6);
-  console.log(upper, lower, upperLastWeek, lowerLastWeek);
-  const data = await new Promise((resolve) => {
-    order
-      .count({
-        where: {
-          createdAt: {
-            [Op.gte]: lower,
-            [Op.lte]: upper,
-            [Op.notIn]: [lowerLastWeek, upperLastWeek],
+  try {
+    const userId = req.params.userId;
+    const upper = new Date();
+    const lower = new Date();
+    lower.setDate(lower.getDate() - 6);
+    const upperLastWeek = new Date(lower);
+    upperLastWeek.setDate(upperLastWeek.getDate() - 1);
+    const lowerLastWeek = new Date(upperLastWeek);
+    lowerLastWeek.setDate(lowerLastWeek.getDate() - 6);
+    console.log(upper, lower, upperLastWeek, lowerLastWeek);
+    const data = await new Promise((resolve, reject) => {
+      order
+        .count({
+          where: {
+            createdAt: {
+              [Op.gte]: lower,
+              [Op.lte]: upper,
+              [Op.notIn]: [lowerLastWeek, upperLastWeek],
+            },
           },
-        },
-        distinct: true,
-        col: "studentId",
-        include: [{ model: restaurant, where: { userId }, attributes: [] }],
-        studentId: {
-          [Op.notIn]: order.sequelize.literal(`
-        SELECT "studentId" FROM orders
-            WHERE "createdAt" >= '${lowerLastWeek.toISOString()}'
-            AND "createdAt" <= '${upperLastWeek.toISOString()}'
+          distinct: true,
+          col: "studentId",
+          include: [{ model: restaurant, where: { userId }, attributes: [] }],
+          studentId: {
+            [Op.notIn]: order.sequelize.literal(`
+          SELECT "studentId" FROM orders
+          WHERE "createdAt" >= '${lowerLastWeek.toISOString()}'
+          AND "createdAt" <= '${upperLastWeek.toISOString()}'
           `),
-        },
-      })
-      .then((count) => {
-        resolve(count);
-      });
-  });
-  res.status(200).json({ data });
+          },
+        })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+    res.status(200).json({ data });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 };
 exports.totalOrder = async (req, res, next) => {
-  const userId = req.params.userId;
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
-  const count = await new Promise((resolve) => {
-    order
-      .count({
-        where: {
-          createdAt: {
-            [Op.gt]: sevenDaysAgo,
+  try {
+    const userId = req.params.userId;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 1);
+    const count = await new Promise((resolve, reject) => {
+      order
+        .count({
+          where: {
+            createdAt: {
+              [Op.gt]: sevenDaysAgo,
+            },
           },
-        },
-        col: "studentId",
-        include: [{ model: restaurant, where: { userId }, attributes: [] }],
-      })
-      .then((count) => {
-        resolve(count);
-      });
-  });
-  res.status(200).json({ count });
+          col: "studentId",
+          include: [{ model: restaurant, where: { userId }, attributes: [] }],
+        })
+        .then((count) => {
+          resolve(count);
+        })
+        .catch((err) => reject(err));
+    });
+    res.status(200).json({ count });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 };
 exports.foodLastWeek = async (req, res, next) => {
-  const userId = req.params.userId;
-  const sequelize = new Sequelize(databaseName, "root", "", {
+  try {
+    const userId = req.params.userId;
+    /*const sequelize = new Sequelize(databaseName, "root", "", {
     host: "localhost",
     dialect: "mysql",
-  });
-  const upper = new Date();
-  const lower = new Date();
-  lower.setDate(lower.getDate() - 6);
-  const data = await sequelize.query(
-    `SELECT
+  });*/
+    const upper = new Date();
+    const lower = new Date();
+    lower.setDate(lower.getDate() - 6);
+    const data = await sequelize.query(
+      `SELECT
     foodItem.nameOfFood,
     foodItem.createdAt,
     COUNT(OI_FI.orderItemOrderItemId) AS orderCount
-  FROM
+    FROM
     foodItems AS foodItem
     LEFT JOIN orderitem_fooditems AS OI_FI  ON foodItem.foodId = OI_FI.foodItemFoodId
     LEFT JOIN orderItems AS OI ON OI_FI.orderItemOrderItemId = OI.orderItemId
     LEFT JOIN orders AS o ON OI.orderOrderId  = o.orderId 
     LEFT JOIN restaurants AS r ON o.restaurantId = r.id
-  WHERE
+    WHERE
     o.createdAt BETWEEN :lower AND :upper
     AND r.userId = :userId
     
-  GROUP BY
+    GROUP BY
     foodItem.foodId
-  ORDER BY
+    ORDER BY
     orderCount DESC
-  LIMIT 5;
-  `,
-    {
-      replacements: {
-        lower,
-        upper,
-        userId,
-      },
-      type: QueryTypes.SELECT,
-    }
-  );
+    LIMIT 5;
+    `,
+      {
+        replacements: {
+          lower,
+          upper,
+          userId,
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
 
-  res.status(200).json({ data });
+    res.status(200).json({ data });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ status: "fail", message: "Internal server error" });
+  }
 };
 exports.lastReviewer = async (req, res, next) => {
-  console.log(
-    "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
-  );
   const { userId } = req.params;
 
   try {
-    const data = await order.findAll({
-      attributes: ["createdAt", "rating", "rateDesc"],
-      order: [["updatedAt", "DESC"]],
-      limit: 10,
-      where: {
-        rating: {
-          [Op.gt]: 0,
+    const data = await order
+      .findAll({
+        attributes: ["createdAt", "rating", "rateDesc"],
+        order: [["updatedAt", "DESC"]],
+        limit: 10,
+        where: {
+          rating: {
+            [Op.gt]: 0,
+          },
         },
-      },
-      include: [
-        {
-          model: restaurant,
-          attributes: ["id"],
-          where: { userId },
-        },
-        {
-          model: student,
-          attributes: ["image"],
-          include: [
-            {
-              model: user,
-              attributes: ["username"],
-            },
-          ],
-        },
-      ],
-    });
+        include: [
+          {
+            model: restaurant,
+            attributes: ["id"],
+            where: { userId },
+          },
+          {
+            model: student,
+            attributes: ["image"],
+            include: [
+              {
+                model: user,
+                attributes: ["username"],
+              },
+            ],
+          },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
 
     if (data.length === 0) {
-      console.log("HELOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
       return res.status(200).json([]);
     }
     const retrieveData = data.map((item) => ({
@@ -545,7 +598,7 @@ exports.cancelOrder = async (req, res, next) => {
   try {
     const { orderId, userId } = req.params;
     let { status, restaurantId, studentId, image, FCMs } = await new Promise(
-      (resolve) => {
+      (resolve, reject) => {
         restaurant
           .findOne({
             where: { userId },
@@ -574,7 +627,8 @@ exports.cancelOrder = async (req, res, next) => {
               FCMs: record.orders[0].student.FCMs,
             };
             resolve(data);
-          });
+          })
+          .catch((err) => reject(err));
       }
     );
     let text = "Your Order has been cancelled, we are sorry for that";
@@ -655,6 +709,46 @@ exports.totalRevenu = async (req, res) => {
 
     res.status(200).json({ totalRevenu });
   } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
+};
+exports.payPalRevenu = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    const lower = new Date(`${currentYear}/${currentMonth}/01`);
+    const upper = new Date(`${currentYear}/${currentMonth + 1}/01`);
+    const revenu = await new Promise((resolve, reject) => {
+      restaurant
+        .findOne({
+          where: { userId },
+          attributes: [],
+          include: {
+            model: order,
+            attributes: [
+              [Sequelize.fn("sum", Sequelize.col("totalPrice")), "Revenu"],
+            ],
+            where: {
+              createdAt: {
+                [Op.gte]: lower,
+                [Op.lt]: upper,
+              },
+            },
+          },
+        })
+        .then((record) => {
+          resolve(record.orders[0].Revenu);
+        })
+        .catch((err) => reject(err));
+    });
+    return res.status(200).json(revenu);
+  } catch (err) {
+    console.log(err);
     return res.status(500).json({
       status: "failed",
       message: "Internal Server Error",
