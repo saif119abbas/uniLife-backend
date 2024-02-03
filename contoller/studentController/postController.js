@@ -13,6 +13,7 @@ const {
   notification,
   order,
   FCM,
+  request,
 } = require("../../models");
 const { pushNotification } = require("../../notification");
 const { resolve } = require("path");
@@ -622,7 +623,8 @@ exports.getMyPost = catchAsync(async (req, res, next) => {
       })
       .then((record) => {
         if (record) resolve(record.id);
-      });
+      })
+      .catch((err) => reject(err));
   });
   console.log("studentId", studentId);
   const posts = await new Promise((resolve, reject) => {
@@ -811,5 +813,143 @@ exports.getPostForStudent = async (req, res, next) => {
       status: "failed",
       message: "Internal Server Error",
     });
+  }
+};
+exports.requestPost = async (req, res) => {
+  try {
+    const { userId, postId } = req.params;
+    const { othrerStudent, FCMs } = await new Promise((resolve, reject) => {
+      post
+        .findOne({
+          where: { id: postId },
+          attributes: ["studentId"],
+          include: [{ model: FCM, attributes: ["token"] }],
+        })
+        .then((record) => {
+          const data = { FCMs: record.FCMs, othrerStudent: record.studentId };
+          resolve(data);
+        })
+        .catch((err) => reject(err));
+    });
+    const { studentId, username } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["id"],
+          include: [{ model: user, attributes: ["username"] }],
+          where: {
+            userId,
+          },
+        })
+        .then((record) => {
+          const data = { username: record.user.username, studentId: record.id };
+          if (record) resolve(data);
+        })
+        .catch((err) => reject(err));
+    });
+    await request
+      .create({ studentId, postId })
+      .then(async (record) => {
+        const data = {
+          studentId: othrerStudent,
+          type: "reservepost",
+          text: `user ${username} make a request to your item you posted`,
+          image,
+        };
+        FCMs.map(async (item) => {
+          await pushNotification(item.token, data.type, data.text);
+        });
+        await notification
+          .create(data)
+          .then(() => {
+            return res
+              .status(200)
+              .json({ status: "success", message: "reserved canceled" });
+          })
+          .catch((err) => {
+            throw err;
+          });
+        return res.status(201).json({
+          status: "success",
+          message: "request sucess",
+        });
+      })
+      .catch((err) => {
+        if (err.name === "SequelizeUniqueConstraintError") {
+          return res.status(409).json({
+            status: "failed",
+            message: "You already make a request to this post",
+          });
+        }
+      });
+  } catch (err) {
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
+};
+exports.getRequestPost = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["id"],
+
+          where: {
+            userId,
+          },
+        })
+        .then((record) => {
+          if (record) resolve(record.id);
+        })
+        .catch((err) => reject(err));
+    });
+    const requestedPosts = await request
+      .findAll({
+        attributes: ["id", "status", "postId"],
+        where: {
+          status: "pending",
+        },
+        include: [
+          {
+            model: post,
+            attributes: ["image", "description", "createdAt"],
+            where: { studentId },
+            include: {
+              model: student,
+              attributes: ["image"],
+              include: {
+                model: user,
+                attributes: ["id", "username"],
+              },
+            },
+          },
+          {
+            model: student,
+            attributes: [],
+            include: {
+              model: user,
+              attributes: ["id", "username"],
+            },
+          },
+        ],
+      })
+      .catch((err) => {
+        throw err;
+      });
+    const retrievedData = requestedPosts.map((item) => ({
+      id: item.id,
+      status: item.status,
+      postId: item.postId,
+      username: item.student.user.postId,
+      userImage: item.posts.student.image,
+    }));
+    return res.status(200).json(retrievedData);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
   }
 };

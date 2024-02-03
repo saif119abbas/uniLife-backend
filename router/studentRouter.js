@@ -31,6 +31,8 @@ const {
   deletePost,
   getMyReservePost,
   editPost,
+  requestPost,
+  getRequestPost,
 } = require("../contoller/studentController/postController");
 const {
   validtaeAddLecture,
@@ -188,6 +190,18 @@ router.patch(
   studentPermission,
   upload.single("image"),
   editPost
+);
+router.post(
+  "/request/:userId/:postId",
+  protect,
+  studentPermission,
+  requestPost
+);
+router.get(
+  "/request/:userId/:postId",
+  protect,
+  studentPermission,
+  getRequestPost
 );
 router.post(
   "/message/:userId/:receiverId",
