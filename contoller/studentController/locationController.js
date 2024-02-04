@@ -7,9 +7,9 @@ exports.getLocation = catchAsync(async (req, res) => {
     let { myLoc, goalLoc } = req.query;
     console.log(myLoc, goalLoc);
     myLoc = JSON.parse(myLoc);
-    let currFacultyNumber = parseInt(myLoc.facultyNumber);
-    let currClass = parseInt(myLoc.reference);
-    let currFloor = myLoc.name;
+    let currFacultyNumber = parseInt(myLoc?.facultyNumber);
+    let currClass = parseInt(myLoc?.reference);
+    let currFloor = myLoc?.name;
 
     let toFaculty = parseInt(goalLoc.faculty);
     let toFloor = goalLoc.floor;
@@ -42,12 +42,6 @@ exports.getLocation = catchAsync(async (req, res) => {
           ],
         })
         .then((record) => {
-          /*const floorId = record.floors[0].id;
-          const classrooms = record.floors[0].classrooms;
-          const data = {
-            floorId,
-            classrooms,
-          };*/
           if (record) resolve(record.floors[0].id);
           else resolve(false);
         })
@@ -58,39 +52,6 @@ exports.getLocation = catchAsync(async (req, res) => {
         status: "failed",
         message: "Invalid Class Number",
       });
-    /* if (myLoc === goalLoc)
-      return res.status(200).json({
-        status: "success",
-        message: "you are in right location",
-      });*/
-    /* const currentTime = new Date().toLocaleTimeString("en-US", {
-      hour12: false,
-    });
-   const goalLoc = await new Promise((resolve) => {
-      lecture
-        .findOne({
-          attributes: ["classNumber"],
-          where: {
-            startTime: { [Op.gte]: currentTime },
-          },
-          include: [
-            {
-              model: schedule,
-              attributes: [],
-              include: [
-                {
-                  model: student,
-                  attributes: [],
-                  where: { userId },
-                },
-              ],
-            },
-          ],
-        })
-        .then((record) => {
-          if (record) resolve(record.classNumber);
-        });
-    });*/
     const currFacultyName = await new Promise((resolve, reject) => {
       faculty
         .findOne({
@@ -109,9 +70,11 @@ exports.getLocation = catchAsync(async (req, res) => {
       rightLeft: 0,
       currFac: "",
       nextFac: "",
+      currClass: toClass,
+      currFloor: toFloor,
     };
     data.currFac = currFacultyName;
-    if (currFacultyNumber !== toFaculty) {
+    if (currFacultyName && currFacultyNumber !== toFaculty) {
       const toFacultyName = await new Promise((resolve, reject) => {
         faculty
           .findOne({
@@ -132,7 +95,7 @@ exports.getLocation = catchAsync(async (req, res) => {
     }
     console.log("GG");
     const name = toFloor;
-    if (currFloor !== toFloor) {
+    if (currFloor && currFloor !== toFloor) {
       console.log("floors", currFloor, toFloor);
       const floorId = await new Promise((resolve, reject) => {
         floor
@@ -154,43 +117,44 @@ exports.getLocation = catchAsync(async (req, res) => {
       console.log(data);
       return res.status(200).json(data);
     }
-    if (currClass === toClass)
+    if (currClass && currClass === toClass)
       return res.status(200).json({
         status: "success",
         message: "you are in right location",
       });
-
-    const dir = toClass > currClass ? 1 : -1;
-    console.log(currClass, toClass);
-    let condition =
-      toClass > currClass
-        ? {
-            number: {
-              [Op.gt]: parseInt(currClass),
-              [Op.lt]: parseInt(toClass),
-            },
-          }
-        : {
-            number: {
-              [Op.lt]: parseInt(currClass),
-              [Op.gt]: parseInt(toClass),
-            },
-          };
-    condition = { ...condition, floorId };
-    console.log("Hello", floorId);
-    const classrooms = await new Promise((resolve) => {
-      classroom
-        .findAll({
-          where: condition,
-          attributes: ["number"],
-        })
-        .then((record) => {
-          if (record) resolve(record);
-        });
-    });
-    console.log(classrooms);
-    data.rightLeft = dir * (classrooms.length + 1);
-    console.log(data);
+    if (currClass && currClass !== toClass) {
+      const dir = toClass > currClass ? 1 : -1;
+      console.log(currClass, toClass);
+      let condition =
+        toClass > currClass
+          ? {
+              number: {
+                [Op.gt]: parseInt(currClass),
+                [Op.lt]: parseInt(toClass),
+              },
+            }
+          : {
+              number: {
+                [Op.lt]: parseInt(currClass),
+                [Op.gt]: parseInt(toClass),
+              },
+            };
+      condition = { ...condition, floorId };
+      console.log("Hello", floorId);
+      const classrooms = await new Promise((resolve) => {
+        classroom
+          .findAll({
+            where: condition,
+            attributes: ["number"],
+          })
+          .then((record) => {
+            if (record) resolve(record);
+          });
+      });
+      console.log(classrooms);
+      data.rightLeft = dir * (classrooms.length + 1);
+      console.log(data);
+    }
     return res.status(200).json(data);
   } catch (err) {
     console.log("err:", err);

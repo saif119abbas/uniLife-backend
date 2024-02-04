@@ -10,7 +10,7 @@ const {
 const catchAsync = require("../../utils/catchAsync");
 const { Op } = require("sequelize");
 const { localFormatter } = require("../../utils/formatDate");
-
+const Sequelize = require("sequelize");
 exports.getAllDormitoryPost = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -214,6 +214,18 @@ exports.getMyPosts = catchAsync(async (req, res, next) => {
         "gender",
         "image",
         "name",
+        [
+          Sequelize.literal(
+            "(SELECT COUNT(*) FROM dormitoryViews WHERE dormitoryViews.dormitoryPostId = dormitoryPost.id)"
+          ),
+          "viewCount",
+        ],
+        [
+          Sequelize.literal(
+            "(SELECT COUNT(*) FROM savedDormitories WHERE savedDormitories.dormitoryPostId = dormitoryPost.id)"
+          ),
+          "savedCount",
+        ],
       ],
       order: [["createdAt", "DESC"]],
       include: [

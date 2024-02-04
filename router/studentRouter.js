@@ -198,6 +198,12 @@ router.post(
   studentPermission,
   requestPost
 );
+router.patch(
+  "/request/:userId/:postId",
+  protect,
+  studentPermission,
+  requestPost
+);
 router.get("/request/:userId", protect, studentPermission, getRequestPost);
 router.post(
   "/message/:userId/:receiverId",
