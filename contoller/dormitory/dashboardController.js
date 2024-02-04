@@ -20,79 +20,82 @@ exports.getStatistics = async (req, res) => {
     const lastMonth = new Date(today);
     lastMonth.setDate(lastMonth.getDate() - 30);
 
-    const retrievedData = await dormitoryOwner.findOne({
-      where: { userId },
-      attributes: [
-        [
-          Sequelize.literal(`(
+    const retrievedData = await dormitoryOwner
+      .findOne({
+        where: { userId },
+        attributes: [
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT dormitoryViews.id)
             FROM dormitoryPosts
             LEFT JOIN dormitoryViews ON dormitoryPosts.id = dormitoryViews.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND dormitoryViews.createdAt BETWEEN :yesterday AND :today
           )`),
-          "viewsLastDay",
-        ],
-        [
-          Sequelize.literal(`(
+            "viewsLastDay",
+          ],
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT savedDormitories.id)
             FROM dormitoryPosts
             LEFT JOIN savedDormitories ON dormitoryPosts.id = savedDormitories.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND savedDormitories.createdAt BETWEEN :yesterday AND :today
           )`),
-          "savedLastDay",
-        ],
-        [
-          Sequelize.literal(`(
+            "savedLastDay",
+          ],
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT dormitoryViews.id)
             FROM dormitoryPosts
             LEFT JOIN dormitoryViews ON dormitoryPosts.id = dormitoryViews.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND dormitoryViews.createdAt BETWEEN :lastWeek AND :today
           )`),
-          "viewsLastWeek",
-        ],
-        [
-          Sequelize.literal(`(
+            "viewsLastWeek",
+          ],
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT savedDormitories.id)
             FROM dormitoryPosts
             LEFT JOIN savedDormitories ON dormitoryPosts.id = savedDormitories.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND savedDormitories.createdAt BETWEEN :lastWeek AND :today
           )`),
-          "savedLastWeek",
-        ],
-        [
-          Sequelize.literal(`(
+            "savedLastWeek",
+          ],
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT dormitoryViews.id)
             FROM dormitoryPosts
             LEFT JOIN dormitoryViews ON dormitoryPosts.id = dormitoryViews.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND dormitoryViews.createdAt BETWEEN :lastMonth AND :today
           )`),
-          "viewsLastMonth",
-        ],
-        [
-          Sequelize.literal(`(
+            "viewsLastMonth",
+          ],
+          [
+            Sequelize.literal(`(
             SELECT COUNT(DISTINCT savedDormitories.id)
             FROM dormitoryPosts
             LEFT JOIN savedDormitories ON dormitoryPosts.id = savedDormitories.dormitoryPostId
             WHERE dormitoryOwner.id = dormitoryPosts.dormitoryOwnerId
             AND savedDormitories.createdAt BETWEEN :lastMonth AND :today
           )`),
-          "savedLastMonth",
+            "savedLastMonth",
+          ],
         ],
-      ],
-      replacements: {
-        yesterday,
-        today,
-        lastWeek,
-        lastMonth,
-      },
-      raw: true,
-    });
-
+        replacements: {
+          yesterday,
+          today,
+          lastWeek,
+          lastMonth,
+        },
+        raw: true,
+      })
+      .catch((error) => {
+        throw error;
+      });
     return res.status(200).json(retrievedData);
   } catch (err) {
     console.log(err);
