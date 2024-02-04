@@ -20,6 +20,10 @@ const {
 const { dormitoryPermission } = require("../permission");
 
 const { dormitoryPostCheck } = require("../MiddleWare/dormitoryMiddleWare");
+const {
+  getStatistics,
+  topPosts,
+} = require("../contoller/dormitory/dashboardController");
 router.post(
   "/dormitory/:userId",
   protect,
@@ -69,4 +73,6 @@ router.delete(
   dormitoryPermission,
   deleteRoom
 );
+router.get("/dashboard/:userId", protect, dormitoryPermission, getStatistics);
+router.get("/topposts/:userId", protect, dormitoryPermission, topPosts);
 module.exports = router;
