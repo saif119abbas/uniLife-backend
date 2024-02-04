@@ -16,8 +16,6 @@ const {
   request,
 } = require("../../models");
 const { pushNotification } = require("../../notification");
-const { resolve } = require("path");
-
 const addMajors = async (data, res, next) => {
   const { majors, postId } = data;
   console.log(majors);
@@ -312,26 +310,19 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
             reject(err);
           });
       });
+      const posts = await postMajor.findAll({
+        attributes: [
+          [Sequelize.fn("DISTINCT", Sequelize.col("postId")), "postId"],
+        ],
+      });
+      const postIds = posts.map((post) => post.postId);
+
       console.log(name);
       const majors = await major.findOne({
-        attributes: ["id"],
-        where: { name },
+        attributes: ["id", "name"],
       });
+
       console.log("IDDDD:", majors);
-      // const posts2 = await post.findAll({
-      //   attributes: ["id"],
-      //   include: [
-      //     {
-      //       model: postMajor,
-      //       attributes: ["postId"],
-      //       required: false,
-      //       where: {
-      //         postId: { [Sequelize.Op.eq]: null },
-      //       },
-      //     },
-      //   ],
-      // });
-      // console.log("POSTS2:", posts2);
 
       const majorsId = majors;
       const Items = await postMajor.findAll({
@@ -341,7 +332,12 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
       console.log("Items:", Items);
       ids = Items.map((item) => item.postId);
 
-      condition = { ...condition, id: { [Op.in]: ids } };
+      condition = {
+        ...condition,
+        id: {
+          [Op.or]: [{ [Op.in]: ids }, { [Op.notIn]: postIds }],
+        },
+      };
     }
     console.log("ids", ids);
     console.log(condition);
@@ -1026,6 +1022,97 @@ exports.getRequestPost = async (req, res) => {
       description: item.post.description,
     }));
     return res.status(200).json(retrievedData);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ status: "failed", message: "Internal Server Error" });
+  }
+};
+exports.getRequestPost = async (req, res) => {
+  try {
+    const { userId, postId, otherStudent } = req.params;
+    const { studentId, image, username } = await new Promise(
+      (resolve, reject) => {
+        student
+          .findOne({
+            attributes: ["id", "image"],
+            include: [
+              {
+                model: user,
+                attributes: ["username"],
+              },
+            ],
+            where: {
+              userId,
+            },
+          })
+          .then((record) => {
+            const data = {
+              studentId: record.id,
+              image: record.image,
+              username: record.user.username,
+            };
+            if (record) resolve(data);
+          })
+          .catch((err) => reject(err));
+      }
+    );
+    const { FCMs, studentId2 } = await new Promise((resolve, reject) => {
+      student
+        .findOne({
+          attributes: ["id"],
+          include: [
+            {
+              model: FCM,
+              attributes: token,
+            },
+          ],
+          where: {
+            userId: otherStudent,
+          },
+        })
+        .then((record) => {
+          const FCMs = record.FCMs;
+          const studentId2 = record.id;
+          if (record) resolve({ FCMs, studentId2 });
+        })
+        .catch((err) => reject(err));
+    });
+    await request
+      .update(
+        { status: "rejected" },
+        {
+          where: { studentId: studentId2, postId },
+        }
+      )
+      .then(async ([count]) => {
+        if (count === 1) {
+          const data = {
+            studentId: studentId2,
+            type: "reservepost",
+            text: `user ${username} reject your request`,
+            image,
+          };
+          FCMs.map(async (item) => {
+            await pushNotification(item.token, data.type, data.text);
+          });
+          await notification
+            .create(data)
+            .then(() => {
+              return res.status(200).json({
+                status: "success",
+                message: "request canceled",
+              });
+            })
+            .catch((err) => {
+              throw err;
+            });
+        }
+      })
+      .catch((err) => {
+        throw err;
+      });
   } catch (err) {
     console.error(err);
     return res
