@@ -389,6 +389,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
 exports.reservesdPost = catchAsync(async (req, res, next) => {
   try {
     const { userId, otherStudent, postId } = req.params;
+    console.log(postId, userId, otherStudent);
     const myStudent = await new Promise((resolve, reject) => {
       student
         .findOne({
@@ -406,6 +407,7 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
         })
         .catch((err) => reject(err));
     });
+
     const { FCMs, reservedBy } = await new Promise((resolve, reject) => {
       user
         .findOne({
@@ -426,8 +428,8 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
         })
         .then((record) => {
           const dataResolved = {
-            FCMs: record.user.student.FCMs,
-            reservedBy: record.user.student.id,
+            FCMs: record.student.FCMs,
+            reservedBy: record.student.id,
           };
           resolve(dataResolved);
         })
@@ -446,6 +448,7 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
 
     const id = req.params.postId;
     console.log("FF", FCMs);
+    console.log("GGZZZ", myStudent.dataValues.id);
     await post
       .update(
         { reservedBy },
@@ -453,7 +456,7 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
           where: {
             reservedBy: null,
             id,
-            studentId: { [Op.not]: myStudent.id },
+            studentId: myStudent.dataValues.id,
           },
         }
       )
@@ -466,9 +469,13 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
               .catch((err) => reject(err));
           });
           await request
-            .update({ status: "accept" }, { where: { postId } })
+            .update(
+              { status: "accept" },
+              { where: { postId, studentId: reservedBy } }
+            )
             .then(async ([count]) => {
               if (count === 1) {
+                console.log("HELLOZZ");
                 const data = {
                   studentId,
                   type: "reservepost",
@@ -605,30 +612,44 @@ exports.unReservesdPost = async (req, res) => {
             text: `user ${username} cancelled reservation of your item`,
             image,
           };
-          await request
-            .destroy({ where: { postId: id } })
-            .then(async (count) => {
-              {
-                if (count === 1)
-                  FCMs.map(async (item) => {
-                    await pushNotification(item.token, data.type, data.text);
-                  });
-                await notification
-                  .create(data)
-                  .then(() => {
-                    return res.status(200).json({
-                      status: "success",
-                      message: "reserved canceled",
-                    });
-                  })
-                  .catch((err) => {
-                    throw err;
-                  });
-              }
+          FCMs.map(async (item) => {
+            await pushNotification(item.token, data.type, data.text);
+          });
+          await notification
+            .create(data)
+            .then(() => {
+              return res.status(200).json({
+                status: "success",
+                message: "reserved canceled",
+              });
             })
             .catch((err) => {
               throw err;
             });
+          // await request
+          //   .destroy({ where: { postId: id } })
+          //   .then(async (count) => {
+          //     {
+          //       if (count === 1)
+          //         FCMs.map(async (item) => {
+          //           await pushNotification(item.token, data.type, data.text);
+          //         });
+          //       await notification
+          //         .create(data)
+          //         .then(() => {
+          //           return res.status(200).json({
+          //             status: "success",
+          //             message: "reserved canceled",
+          //           });
+          //         })
+          //         .catch((err) => {
+          //           throw err;
+          //         });
+          //     }
+          //   })
+          //   .catch((err) => {
+          //     throw err;
+          //   });
         } else if (count[0] === 0)
           return res.status(404).json({
             status: "failed",
@@ -982,7 +1003,7 @@ exports.getRequestPost = async (req, res) => {
           },
           {
             model: student,
-            attributes: [],
+            attributes: ["id"],
             include: {
               model: user,
               attributes: ["id", "username"],
@@ -997,7 +1018,8 @@ exports.getRequestPost = async (req, res) => {
       id: item.id,
       status: item.status,
       postId: item.postId,
-      username: item.post.student.user.username,
+      username: item.student.user.username,
+      userId: item.student.user.id,
       userImage: item.post.student.image,
       createdAt: item.post.createdAt,
       image: item.post.image,

@@ -166,7 +166,7 @@ router.get(
 );
 router.get("/post/:userId", protect, studentPermission, getMyPost);
 router.patch(
-  "/post/reserve/:userId/:postId",
+  "/post/reserve/:userId/:otherStudent/:postId",
   protect,
   studentPermission,
   reservesdPost
