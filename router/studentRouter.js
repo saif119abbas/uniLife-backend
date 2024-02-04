@@ -70,6 +70,7 @@ const {
   savePost,
   gtesSavePost,
   removeSaved,
+  addView,
 } = require("../contoller/studentController/savePostController");
 const { studentPermission } = require("../permission");
 const {
@@ -253,4 +254,10 @@ router.get(
   getUnseenCount
 );
 
+router.post(
+  "/dormitorypost/view/:userId/:dormitoryPostId",
+  protect,
+  studentPermission,
+  addView
+);
 module.exports = router;

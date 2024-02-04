@@ -5,6 +5,7 @@ const {
   room,
   dormitoryOwner,
   user,
+  dormitoryView,
 } = require("../../models");
 const { localFormatter } = require("../../utils/formatDate");
 
@@ -189,6 +190,40 @@ exports.removeSaved = async (req, res) => {
       });
   } catch (err) {
     console.log("The error", err);
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
+  }
+};
+exports.addView = async (req, res, next) => {
+  try {
+    const { userId, dormitoryPostId } = req.params;
+    const studentId = await new Promise((resolve, reject) => {
+      student
+        .findOne({ where: { userId }, attributes: ["id"] })
+        .then((record) => {
+          resolve(record.id);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+    if (!studentId)
+      return res.status(404).json({
+        status: "failed",
+        message: "This user not found",
+      });
+    await dormitoryView
+      .create({ studentId, dormitoryPostId })
+      .then(() => {
+        return res.status(201);
+      })
+      .catch((err) => {
+        throw err;
+      });
+  } catch (err) {
+    if (err.name === "SequelizeUniqueConstraintError") return res.status(200);
     return res.status(500).json({
       status: "failed",
       message: "Internal Server Error",
