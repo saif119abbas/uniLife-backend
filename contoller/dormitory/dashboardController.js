@@ -8,236 +8,206 @@ const {
 const Sequelize = require("sequelize");
 const { Op, QueryTypes } = require("sequelize");
 const sequelize = require("../../sequelize");
+
 exports.getStatistics = async (req, res) => {
   try {
     const { userId } = req.params;
-    const dormitoryOwnerId = await new Promise((resolve, reject) => {
-      dormitoryOwner
-        .findOne({ where: { userId }, attributes: ["id"] })
-        .then((record) => {
-          resolve(record.id);
-        })
-        .catch((err) => {
-          reject(err);
-        });
-    });
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     const { viewsLastDay, savedLastDay } = await new Promise(
       (resolve, reject) => {
-        dormitoryPost
-          .findAll({
-            attributes: ["id", "name"],
+        dormitoryOwner
+          .findOne({
+            where: { userId },
+            attributes: ["id"],
             include: [
               {
-                model: dormitoryView,
-                attributes: [
-                  "id",
-                  [
-                    Sequelize.fn(
-                      "COUNT",
-                      Sequelize.col("dormitoryViews.dormitoryPostId")
-                    ),
-                    "viewCount",
-                  ],
-                ],
-                where: {
-                  createdAt: {
-                    [Op.gte]: yesterday,
-                    [Op.lte]: today,
+                model: dormitoryPost,
+                group: ["dormitoryPosts.id"],
+                attributes: ["id"],
+                include: [
+                  {
+                    model: dormitoryView,
+                    attributes: [[Sequelize.fn("count", "id"), "viewsLastDay"]],
+                    where: {
+                      createdAt: {
+                        [Op.gte]: yesterday,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
                   },
-                },
-              },
-              // {
-              //   model: savedDormitory,
-              //   attributes: [
-              //     "id",
-              //     [
-              //       Sequelize.fn(
-              //         "COUNT",
-              //         Sequelize.col("savedDormitories.dormitoryPostId")
-              //       ),
-              //       "savedCount",
-              //     ],
-              //   ],
-              //   where: {
-              //     createdAt: {
-              //       [Op.gte]: yesterday,
-              //       [Op.lte]: today,
-              //     },
-              //   },
-              // },
-              {
-                model: dormitoryOwner,
-                where: { userId },
-                attributes: [],
+                  {
+                    model: savedDormitory,
+                    attributes: [[Sequelize.fn("count", "id"), "savedLastDay"]],
+
+                    where: {
+                      createdAt: {
+                        [Op.gte]: yesterday,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
+                  },
+                ],
               },
             ],
-            group: ["dormitoryPost.id"],
-            order: [
-              [
-                Sequelize.literal("COUNT(`dormitoryViews`.`dormitoryPostId`)"),
-                "DESC",
-              ],
-              // [
-              //   Sequelize.literal(
-              //     "COUNT(`savedDormitories`.`dormitoryPostId`)"
-              //   ),
-              //   "DESC",
-              // ],
-            ],
+            // group: ["dormitoryOwner.id"],
           })
           .then((record) => {
-            console.log(record);
-            const viewCount = record.dormitoryViews[0].viewCount;
-            const savedCount = record.savedDormitories.savedCount;
-
-            const data = {
-              viewsLastDay: viewCount,
-              savedLastDay: savedCount,
-            };
-            resolve(data);
+            const viewsLastDay =
+              record.dormitoryPosts[0].dormitoryViews.length > 0
+                ? // resolve({ viewsLastDay, savedLastDay });
+                  record.dormitoryPosts[0].dormitoryViews[0].dataValues
+                    .viewsLastDay
+                : 0;
+            const savedLastDay = record.dormitoryPosts[0].savedDormitories
+              .length
+              ? record.dormitoryPosts[0].savedDormitories[0].dataValues
+                  .savedLastDay
+              : 0;
+            resolve({ viewsLastDay, savedLastDay });
+            //resolve(record);
           })
           .catch((err) => {
             reject(err);
           });
       }
     );
-    // const lastWeek = new Date(today);
-    // lastWeek.setDate(lastWeek.getDate() - 7);
-    // const { viewsLastWeek, savedLastWeek } = await new Promise(
-    //   (resolve, reject) => {
-    //     dormitoryPost
-    //       .findAll({
-    //         attributes: [
-    //           "id",
-    //           "name",
-    //           [
-    //             Sequelize.fn("COUNT", Sequelize.col("views.dormitoryPostId")),
-    //             "viewCount",
-    //           ],
-    //           [
-    //             Sequelize.fn(
-    //               "COUNT",
-    //               Sequelize.col("savedDormitories.dormitoryPostId")
-    //             ),
-    //             "savedCount",
-    //           ],
-    //         ],
-    //         include: [
-    //           {
-    //             model: dormitoryView,
-    //             attributes: ["id"],
-    //             where: {
-    //               createdAt: {
-    //                 [Op.gt]: lastWeek,
-    //                 [Op.lte]: today,
-    //               },
-    //             },
-    //           },
-    //           {
-    //             model: savedDormitory,
-    //             attributes: ["id"],
-    //             where: {
-    //               createdAt: {
-    //                 [Op.gt]: lastWeek,
-    //                 [Op.lte]: today,
-    //               },
-    //             },
-    //           },
-    //           {
-    //             model: dormitoryOwner,
-    //             where: { userId },
-    //             attributes: [],
-    //           },
-    //         ],
-    //         group: ["dormitoryPost.id"],
-    //         order: [
-    //           [Sequelize.literal("viewCount"), "DESC"],
-    //           [Sequelize.literal("savedCount"), "DESC"],
-    //         ],
-    //       })
-    //       .then((record) => {
-    //         const { viewCount, savedCount } = record;
-    //         const data = {
-    //           viewsLastWeek: viewCount,
-    //           savedLastWeek: savedCount,
-    //         };
-    //         resolve(data);
-    //       })
-    //       .catch((err) => {
-    //         reject(err);
-    //       });
-    //   }
-    // );
-    // const lastMonth = new Date(today);
-    // lastMonth.setDate(lastWeek.getDate() - 30);
-    // const { viewsLastMonth, savedLastMonth } = await new Promise(
-    //   (resolve, reject) => {
-    //     dormitoryPost
-    //       .findAll({
-    //         attributes: [
-    //           "id",
-    //           "name",
-    //           [
-    //             Sequelize.fn("COUNT", Sequelize.col("views.dormitoryPostId")),
-    //             "viewCount",
-    //           ],
-    //           [
-    //             Sequelize.fn(
-    //               "COUNT",
-    //               Sequelize.col("savedDormitories.dormitoryPostId")
-    //             ),
-    //             "savedCount",
-    //           ],
-    //         ],
-    //         include: [
-    //           {
-    //             model: dormitoryView,
-    //             attributes: ["id"],
-    //             where: {
-    //               createdAt: {
-    //                 [Op.gt]: lastMonth,
-    //                 [Op.lte]: today,
-    //               },
-    //             },
-    //           },
-    //           {
-    //             model: savedDormitory,
-    //             attributes: ["id"],
-    //             where: {
-    //               createdAt: {
-    //                 [Op.gt]: lastMonth,
-    //                 [Op.lte]: today,
-    //               },
-    //             },
-    //           },
-    //           {
-    //             model: dormitoryOwner,
-    //             where: { userId },
-    //             attributes: [],
-    //           },
-    //         ],
-    //         group: ["dormitoryPost.id"],
-    //         order: [
-    //           [Sequelize.literal("viewCount"), "DESC"],
-    //           [Sequelize.literal("savedCount"), "DESC"],
-    //         ],
-    //       })
-    //       .then((record) => {
-    //         const { viewCount, savedCount } = record;
-    //         const data = {
-    //           viewsLastMonth: viewCount,
-    //           savedLastMonth: savedCount,
-    //         };
-    //         resolve(data);
-    //       })
-    //       .catch((err) => {
-    //         reject(err);
-    //       });
-    //   }
-    // );
+    const lastWek = new Date(today);
+    lastWek.setDate(yesterday.getDate() - 7);
+    const { viewsLastWeek, savedLastWeek } = await new Promise(
+      (resolve, reject) => {
+        dormitoryOwner
+          .findOne({
+            where: { userId },
+            attributes: ["id"],
+            include: [
+              {
+                model: dormitoryPost,
+                group: ["dormitoryPosts.id"],
+                attributes: ["id"],
+                include: [
+                  {
+                    model: dormitoryView,
+                    attributes: [
+                      [Sequelize.fn("count", "id"), "viewsLastWeek"],
+                    ],
+                    where: {
+                      createdAt: {
+                        [Op.gte]: lastWek,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
+                  },
+                  {
+                    model: savedDormitory,
+                    attributes: [
+                      [Sequelize.fn("count", "id"), "savedLastWeek"],
+                    ],
+
+                    where: {
+                      createdAt: {
+                        [Op.gte]: lastWek,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
+                  },
+                ],
+              },
+            ],
+            // group: ["dormitoryOwner.id"],
+          })
+          .then((record) => {
+            const viewsLastWeek =
+              record.dormitoryPosts[0].dormitoryViews.length > 0
+                ? // resolve({ viewsLastDay, savedLastDay });
+                  record.dormitoryPosts[0].dormitoryViews[0].dataValues
+                    .viewsLastWeek
+                : 0;
+            const savedLastWeek = record.dormitoryPosts[0].savedDormitories
+              .length
+              ? record.dormitoryPosts[0].savedDormitories[0].dataValues
+                  .savedLastWeek
+              : 0;
+            resolve({ viewsLastWeek, savedLastWeek });
+            //resolve(record);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      }
+    );
+    const lastMonth = new Date(today);
+    lastMonth.setDate(yesterday.getDate() - 7);
+    const { viewsLastMonth, savedLastMonth } = await new Promise(
+      (resolve, reject) => {
+        dormitoryOwner
+          .findOne({
+            where: { userId },
+            attributes: ["id"],
+            include: [
+              {
+                model: dormitoryPost,
+                group: ["dormitoryPosts.id"],
+                attributes: ["id"],
+                include: [
+                  {
+                    model: dormitoryView,
+                    attributes: [
+                      [Sequelize.fn("count", "id"), "viewsLastMonth"],
+                    ],
+                    where: {
+                      createdAt: {
+                        [Op.gte]: lastMonth,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
+                  },
+                  {
+                    model: savedDormitory,
+                    attributes: [
+                      [Sequelize.fn("count", "id"), "savedLastMonth"],
+                    ],
+
+                    where: {
+                      createdAt: {
+                        [Op.gte]: lastMonth,
+                        [Op.lte]: today,
+                      },
+                    },
+                    required: false,
+                  },
+                ],
+              },
+            ],
+            // group: ["dormitoryOwner.id"],
+          })
+          .then((record) => {
+            const viewsLastMonth =
+              record.dormitoryPosts[0].dormitoryViews.length > 0
+                ? // resolve({ viewsLastDay, savedLastDay });
+                  record.dormitoryPosts[0].dormitoryViews[0].dataValues
+                    .viewsLastMonth
+                : 0;
+            const savedLastMonth = record.dormitoryPosts[0].savedDormitories
+              .length
+              ? record.dormitoryPosts[0].savedDormitories[0].dataValues
+                  .savedLastMonth
+              : 0;
+            resolve({ viewsLastMonth, savedLastMonth });
+            //resolve(record);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+      }
+    );
+
     const retrievedData = {
       viewsLastDay,
       savedLastDay,
@@ -246,14 +216,17 @@ exports.getStatistics = async (req, res) => {
       viewsLastMonth,
       savedLastMonth,
     };
+
     return res.status(200).json(retrievedData);
   } catch (err) {
     console.log(err);
-    return res
-      .status(500)
-      .json({ status: "failed", message: "Internal Server Error" });
+    return res.status(500).json({
+      status: "failed",
+      message: "Internal Server Error",
+    });
   }
 };
+
 exports.topPosts = async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -267,6 +240,7 @@ exports.topPosts = async (req, res) => {
         FROM
         dormitoryPosts AS dormitoryPost
         LEFT JOIN savedDormitories AS savedDormitory  ON savedDormitory.dormitoryPostId = dormitoryPost.id
+        LEFT JOIN dormitoryOwners AS dormitoryOwner  ON dormitoryOwner.id = dormitoryPost.dormitoryOwnerId
         WHERE
         savedDormitory.createdAt BETWEEN :lower AND :upper
         AND dormitoryOwner.userId = :userId
