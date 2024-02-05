@@ -1,4 +1,6 @@
 const { Op, where } = require("sequelize");
+const Sequelize = require("sequelize");
+
 const catchAsync = require("../../utils/catchAsync");
 const AppError = require("../../utils/appError");
 const { UploadFile, getURL, deleteFile } = require("../../firebaseConfig");
@@ -379,6 +381,7 @@ exports.getPostStudent = catchAsync(async (req, res, next) => {
     console.log(data);
     res.status(200).json(data);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: "Internal server error" });
   }
 });

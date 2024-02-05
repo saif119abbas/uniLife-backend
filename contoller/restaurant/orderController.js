@@ -170,9 +170,9 @@ exports.updateOrder = catchAsync(async (req, res, next) => {
         status = "READY";
         break;
       case "READY":
-        status = "DELIVERED";
+        status = "COLLECTED";
         text =
-          "Your order has been successfully delivered, thanks for trusting us";
+          "Order has been collected successfully, thanks for trusting us";
         break;
       default:
         status = "PENDING";
