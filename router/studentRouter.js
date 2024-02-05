@@ -33,6 +33,7 @@ const {
   editPost,
   requestPost,
   getRequestPost,
+  rejectPost,
 } = require("../contoller/studentController/postController");
 const {
   validtaeAddLecture,
@@ -170,6 +171,12 @@ router.patch(
   protect,
   studentPermission,
   reservesdPost
+);
+router.patch(
+  "/post/reject/:userId/:otherStudent/:postId",
+  protect,
+  studentPermission,
+  rejectPost
 );
 router.patch(
   "/post/unreserve/:userId/:postId",

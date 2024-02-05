@@ -465,17 +465,14 @@ exports.reservesdPost = catchAsync(async (req, res, next) => {
               .catch((err) => reject(err));
           });
           await request
-            .update(
-              { status: "accept" },
-              { where: { postId, studentId: reservedBy } }
-            )
+            .destroy({ where: { postId, studentId: reservedBy } })
             .then(async ([count]) => {
               if (count === 1) {
                 console.log("HELLOZZ");
                 const data = {
                   studentId,
                   type: "reservepost",
-                  text: `user ${username} has reserved your an item you posted`,
+                  text: `${username} has accepted your request to reserve his listing`,
                   image,
                 };
 
@@ -925,7 +922,7 @@ exports.requestPost = async (req, res) => {
         const data = {
           studentId: otherStudent,
           type: "reservepost",
-          text: `user ${username} make a request to your item you posted`,
+          text: `${username} has made a request to reserve an item you've listed`,
           image,
         };
         FCMs.map(async (item) => {
@@ -963,7 +960,7 @@ exports.requestPost = async (req, res) => {
 exports.getRequestPost = async (req, res) => {
   try {
     const { userId } = req.params;
-    const studentId = await new Promise((resolve, reject) => {
+    const { studentId, postOwner } = await new Promise((resolve, reject) => {
       student
         .findOne({
           attributes: ["id"],
@@ -971,9 +968,18 @@ exports.getRequestPost = async (req, res) => {
           where: {
             userId,
           },
+          include: {
+            model: user,
+            attributes: ["id", "username"],
+          },
         })
         .then((record) => {
-          if (record) resolve(record.id);
+          const data = {
+            studentId: record.id,
+            postOwner: record.user.username,
+          };
+
+          if (record) resolve(data);
         })
         .catch((err) => reject(err));
     });
@@ -1014,12 +1020,13 @@ exports.getRequestPost = async (req, res) => {
       id: item.id,
       status: item.status,
       postId: item.postId,
-      username: item.student.user.username,
+      username: postOwner,
       userId: item.student.user.id,
       userImage: item.post.student.image,
       createdAt: item.post.createdAt,
       image: item.post.image,
       description: item.post.description,
+      postOwner: item.student.user.username,
     }));
     return res.status(200).json(retrievedData);
   } catch (err) {
@@ -1029,7 +1036,7 @@ exports.getRequestPost = async (req, res) => {
       .json({ status: "failed", message: "Internal Server Error" });
   }
 };
-exports.getRequestPost = async (req, res) => {
+exports.rejectPost = async (req, res) => {
   try {
     const { userId, postId, otherStudent } = req.params;
     const { studentId, image, username } = await new Promise(
@@ -1065,7 +1072,7 @@ exports.getRequestPost = async (req, res) => {
           include: [
             {
               model: FCM,
-              attributes: token,
+              attributes: ["token"],
             },
           ],
           where: {
@@ -1080,18 +1087,15 @@ exports.getRequestPost = async (req, res) => {
         .catch((err) => reject(err));
     });
     await request
-      .update(
-        { status: "rejected" },
-        {
-          where: { studentId: studentId2, postId },
-        }
-      )
-      .then(async ([count]) => {
+      .destroy({
+        where: { studentId: studentId2, postId },
+      })
+      .then(async (count) => {
         if (count === 1) {
           const data = {
             studentId: studentId2,
             type: "reservepost",
-            text: `user ${username} reject your request`,
+            text: `${username} rejected your request to reserve a listing`,
             image,
           };
           FCMs.map(async (item) => {
@@ -1114,7 +1118,7 @@ exports.getRequestPost = async (req, res) => {
         throw err;
       });
   } catch (err) {
-    console.error(err);
+    console.log(err);
     return res
       .status(500)
       .json({ status: "failed", message: "Internal Server Error" });

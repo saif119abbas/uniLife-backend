@@ -11,16 +11,45 @@ exports.getLocation = catchAsync(async (req, res) => {
     let currClass = parseInt(myLoc?.reference);
     let currFloor = myLoc?.name;
 
-    let toFaculty = parseInt(goalLoc.faculty);
-    let toFloor = goalLoc.floor;
-    let toClass = parseInt(goalLoc.classNum);
+    let toFaculty = parseInt(goalLoc?.faculty);
+    let toFloor = goalLoc?.floor;
+    let toClass = parseInt(goalLoc?.classNum);
     console.log(myLoc);
-    if (!toFaculty || !toFloor || !toClass) {
+    if (!goalLoc || !toFaculty || !toClass || !toFloor) {
+      if (currFacultyNumber && currClass && currFloor) {
+        const currFacultyName = await new Promise((resolve, reject) => {
+          faculty
+            .findOne({
+              where: { facultyNumber: currFacultyNumber },
+              attributes: ["facultyName"],
+            })
+            .then((record) => {
+              if (record) resolve(record.facultyName);
+              else {
+                console.log("Gg");
+              }
+            });
+        });
+
+        const data = {
+          upDown: 0,
+          rightLeft: 0,
+          currFac: "",
+          nextFac: "",
+          currClass,
+          currFloor,
+        };
+        data.currFac = currFacultyName;
+        return res.status(200).json(data);
+      }
+    }
+    if (!currFacultyNumber || !currClass || !currFloor) {
       return res.status(400).json({
         status: "failed",
         message: "Invalid QR Code",
       });
     }
+
     const floorId = await new Promise((resolve, reject) => {
       faculty
         .findOne({
@@ -70,11 +99,11 @@ exports.getLocation = catchAsync(async (req, res) => {
       rightLeft: 0,
       currFac: "",
       nextFac: "",
-      currClass: toClass,
-      currFloor: toFloor,
+      currClass,
+      currFloor,
     };
     data.currFac = currFacultyName;
-    if (currFacultyName && currFacultyNumber !== toFaculty) {
+    if (toFaculty && currFacultyNumber !== toFaculty) {
       const toFacultyName = await new Promise((resolve, reject) => {
         faculty
           .findOne({
@@ -95,7 +124,7 @@ exports.getLocation = catchAsync(async (req, res) => {
     }
     console.log("GG");
     const name = toFloor;
-    if (currFloor && currFloor !== toFloor) {
+    if (toFloor && currFloor !== toFloor) {
       console.log("floors", currFloor, toFloor);
       const floorId = await new Promise((resolve, reject) => {
         floor
@@ -117,12 +146,12 @@ exports.getLocation = catchAsync(async (req, res) => {
       console.log(data);
       return res.status(200).json(data);
     }
-    if (currClass && currClass === toClass)
+    if (toClass && currClass === toClass)
       return res.status(200).json({
         status: "success",
         message: "you are in right location",
       });
-    if (currClass && currClass !== toClass) {
+    if (toClass && currClass !== toClass) {
       const dir = toClass > currClass ? 1 : -1;
       console.log(currClass, toClass);
       let condition =

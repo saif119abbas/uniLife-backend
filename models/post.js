@@ -12,6 +12,11 @@ module.exports = (sequelize, DataTypes) => {
       validator: {
         notEmpty: false,
       },
+      indexes: [
+        {
+          fields: ["description"],
+        },
+      ],
     },
     reservedBy: {
       type: DataTypes.INTEGER,
@@ -30,6 +35,7 @@ module.exports = (sequelize, DataTypes) => {
     post.belongsToMany(models.major, {
       through: models.postMajor,
     });
+
     post.belongsTo(models.catigory);
     post.belongsTo(models.student, { foreignKey: "studentId" });
     post.hasMany(models.report);
